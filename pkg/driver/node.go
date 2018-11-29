@@ -23,7 +23,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-//TODO: add stage to stage it to /var/lib/kubelet/plugin_registry
 func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
@@ -35,9 +34,11 @@ func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolu
 func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	glog.V(4).Infof("NodePublishVolume: called with args %#v", req)
 
+	//TODO: not use volume ID as DNS name
+	// Get DNS name from volume attributes or create it from fs name
 	source := req.GetVolumeId()
 	if len(source) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Staging target not provided")
+		return nil, status.Error(codes.InvalidArgument, "volume ID is not provided")
 	}
 
 	target := req.GetTargetPath()
