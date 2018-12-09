@@ -12,4 +12,6 @@ spec:
   storageClassName: fsx-sc
   csi:
     driver: fsx.csi.aws.com
-    volumeHandle: 172.31.10.28@tcp:/scratch
+    volumeHandle: fs-0a2d0632b5ff567e9
+    volumeAttributes:
+      dnsname: fs-0a2d0632b5ff567e9.fsx.us-west-2.amazonaws.com

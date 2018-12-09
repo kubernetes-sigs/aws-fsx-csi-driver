@@ -15,6 +15,7 @@ package driver
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
@@ -34,12 +35,13 @@ func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolu
 func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	glog.V(4).Infof("NodePublishVolume: called with args %#v", req)
 
-	//TODO: not use volume ID as DNS name
-	// Get DNS name from volume attributes or create it from fs name
-	source := req.GetVolumeId()
-	if len(source) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "volume ID is not provided")
+	attributes := req.GetVolumeAttributes()
+	dnsname := attributes["dnsname"]
+	if len(dnsname) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "dnsname is not provided")
 	}
+
+	source := fmt.Sprintf("%s@tcp:/fsx", dnsname)
 
 	target := req.GetTargetPath()
 	if len(target) == 0 {

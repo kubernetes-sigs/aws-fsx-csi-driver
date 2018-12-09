@@ -132,5 +132,7 @@ k8s.io/apimachinery v0.0.0-20181126122622-195a1699ff5c h1:UGnr+aaGcGM0DIeV2tn2St
 k8s.io/apimachinery v0.0.0-20181126122622-195a1699ff5c/go.mod h1:ccL7Eh7zubPUSh9A3USN90/OzHNSVN6zxzde07TDCL0=
 k8s.io/kubernetes v1.12.2 h1:J94sY8nziFyzMNhnbD5CiSZTo7yWytir0ia+vJuwYfc=
 k8s.io/kubernetes v1.12.2/go.mod h1:ocZa8+6APFNC2tX1DZASIbocyYT5jHzqFVsY5aoB7Jk=
+k8s.io/kubernetes v1.12.3 h1:1FH8TXY6pIuOHoNlsq9bB6rmCP0vfvQZH5YN7OXCHXU=
+k8s.io/kubernetes v1.12.3/go.mod h1:ocZa8+6APFNC2tX1DZASIbocyYT5jHzqFVsY5aoB7Jk=
 k8s.io/utils v0.0.0-20181115163542-0d26856f57b3 h1:S3/Kq185JnolOEemhmDXXd23l2t4bX5hPQPQPADlF1E=
 k8s.io/utils v0.0.0-20181115163542-0d26856f57b3/go.mod h1:8k8uAuAQ0rXslZKaEWd0c3oVhZz7sSzSiPnVZayjIX0=
