@@ -7,11 +7,11 @@ You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
-	Unless required by applicable law or agreed to in writing, software
-	distributed under the License is distributed on an "AS IS" BASIS,
-	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	See the License for the specific language governing permissions and
-	limitations under the License.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 package driver
@@ -36,6 +36,17 @@ var (
 	vendorVersion = "0.1.0"
 )
 
+var (
+	volumeCaps = []csi.VolumeCapability_AccessMode{
+		{
+			Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+		},
+		{
+			Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+		},
+	}
+)
+
 type Driver struct {
 	endpoint string
 	nodeID   string
@@ -43,9 +54,6 @@ type Driver struct {
 	srv *grpc.Server
 
 	mounter mount.Interface
-
-	volumeCaps []csi.VolumeCapability_AccessMode
-	nodeCaps   []csi.NodeServiceCapability_RPC_Type
 }
 
 func NewDriver(endpoint string) *Driver {
@@ -58,15 +66,6 @@ func NewDriver(endpoint string) *Driver {
 		endpoint: endpoint,
 		nodeID:   cloud.GetMetadata().GetInstanceID(),
 		mounter:  newSafeMounter(),
-		volumeCaps: []csi.VolumeCapability_AccessMode{
-			{
-				Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
-			},
-			{
-				Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
-			},
-		},
-		nodeCaps: []csi.NodeServiceCapability_RPC_Type{},
 	}
 }
 
