@@ -1,0 +1,37 @@
+# -*-perl-*-
+
+package.AWSWesleyLustreCSIDriver = {
+	interfaces = (1.0);
+
+    deploy = {
+        generic = true;
+    };
+
+    build-environment = {
+        chroot = basic;
+        network-access = blocked;
+    };
+
+    build-system = bgo-wrap-make;
+    build-tools = {
+        1.0 = {
+            BrazilMakeGo = 2.0;
+            GoLang = 1.0;
+        };
+    };
+
+    # Use runtime-dependencies for when you want to bring in additional
+    # packages when deploying.
+    # Use dependencies instead if you intend for these dependencies to
+    # be exported to other packages that build against you.
+    dependencies = {
+        1.0 = {
+        };
+    };
+
+    test-dependencies = {
+        1.0 = {
+            Go3p-Ginkgo-Gomega = 1.x;
+        };
+	};
+};
