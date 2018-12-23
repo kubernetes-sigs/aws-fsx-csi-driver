@@ -23,9 +23,9 @@ This driver is in alpha stage. Basic volume operations that are functional inclu
 Currently only static provisioning is supported. With static provisioning, a FSx for lustre file system should be created manually, then it could be mounted inside container as a persistence volume (PV) using AWS FSx for Lustre CSI Driver. 
 
 ## Examples
-This example shows how to make a FSx for Lustre filesystem availble inside container for the application to consume. Before this, get yourself familiar with how to setup kubernetes on AWS and [create FSx for Lustre filesystem](https://docs.aws.amazon.com/fsx/latest/LustreGuide/getting-started.html#getting-started-step1). And when creating FSx for Lustre file system, make sure it is created inside the same VPC as kuberentes cluster or it is accessible through VPC peering.
+This example shows how to make a FSx for Lustre filesystem mounted inside container. Before this, get yourself familiar with how to setup kubernetes on AWS and [create FSx for Lustre filesystem](https://docs.aws.amazon.com/fsx/latest/LustreGuide/getting-started.html#getting-started-step1). And when creating FSx for Lustre file system, make sure it is created inside the same VPC as kuberentes cluster or it is accessible through VPC peering.
 
-Once kubernetes cluster and FSx for lustre file system is created, create secret manifest file using [secret.yaml](../deploy/kubernetes/secret.yaml). 
+Once kubernetes cluster and FSx for lustre file system is created, modify secret manifest file using [secret.yaml](../deploy/kubernetes/secret.yaml). 
 
 Then create the secret object:
 ```
@@ -62,7 +62,7 @@ spec:
 Replace `volumeHandle` with `FileSystemId` and `dnsname` with `DNSName`. You can get both `FileSystemId` and `DNSName` using AWS CLI:
 
 ```
-aws fsx describe-file-systems`
+aws fsx describe-file-systems
 ```
 
 Then create PV, persistence volume claim (PVC) and storage class:
@@ -73,13 +73,13 @@ kubectl apply -f deploy/kubernetes/sample_app/claim.yaml
 kubectl apply -f deploy/kubernetes/sample_app/pod.yaml
 ```
 
-After objects are created, verify that pod is running:
+After the objects are created, verify that pod name app is running:
 
 ```
 kubectl get pods
 ```
 
-Make sure data is written onto FSx for luster:
+Also verify that data is written onto FSx for luster:
 
 ```
 kubectl exec -ti app tail -f /data/out.txt
