@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+IMAGE=chengpan/aws-fsx-csi-driver
 VERSION=0.1.0
 
 .PHONY: aws-fsx-csi-driver
@@ -22,3 +23,16 @@ aws-fsx-csi-driver:
 .PHONY: test
 test:
 	go test -v -race ./pkg/...
+
+.PHONY: test-sanity
+test-sanity:
+	go test -v ./tests/sanity/...
+
+.PHONY: image
+image:
+	docker build -t $(IMAGE):testing .
+
+.PHONY: push
+push:
+	docker push $(IMAGE):testing
+

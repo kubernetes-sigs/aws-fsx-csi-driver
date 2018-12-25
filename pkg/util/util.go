@@ -25,6 +25,21 @@ import (
 	"strings"
 )
 
+const (
+	GiB = 1024 * 1024 * 1024
+)
+
+// RoundUp3600GiB rounds up the volume size in bytes upto
+// multiplications of 3600 GiB in the unit of GiB
+func RoundUp3600GiB(volumeSizeBytes int64) int64 {
+	return roundUpSize(volumeSizeBytes, 3600*GiB) * 3600
+}
+
+// GiBToBytes converts GiB to Bytes
+func GiBToBytes(volumeSizeGiB int64) int64 {
+	return volumeSizeGiB * GiB
+}
+
 func ParseEndpoint(endpoint string) (string, string, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
@@ -46,4 +61,8 @@ func ParseEndpoint(endpoint string) (string, string, error) {
 	}
 
 	return scheme, addr, nil
+}
+
+func roundUpSize(volumeSizeBytes int64, allocationUnitBytes int64) int64 {
+	return (volumeSizeBytes + allocationUnitBytes - 1) / allocationUnitBytes
 }
