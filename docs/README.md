@@ -12,14 +12,14 @@ The [Amazon FSx for Lustre]() Container Storage Interface (CSI) Driver provides 
 This driver is in alpha stage. Basic volume operations that are functional include NodePublishVolume/NodeUnpublishVolume.
 
 ### CSI Specification Compability Matrix
-| AWS EBS CSI Driver \ CSI Version       | v0.3.0| v1.0.0 | 
-|----------------------------------------|-------|--------|
-| master branch                          | yes   | no     |
+| AWS FSx for Lustre CSI Driver \ CSI Version       | v0.3.0| v1.0.0 |
+|---------------------------------------------------|-------|--------|
+| master branch                                     | yes   | no     |
 
 ### Kubernetes Version Compability Matrix
-| AWS EBS CSI Driver \ Kubernetes Version| v1.12 | v1.13 | 
-|----------------------------------------|-------|-------|
-| master branch                          | yes   | yes   |
+| AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.12 | v1.13 |
+|---------------------------------------------------|-------|-------|
+| master branch                                     | yes   | yes   |
 
 ## Features
 Currently only static provisioning is supported. With static provisioning, a FSx for lustre file system should be created manually, then it could be mounted inside container as a persistence volume (PV) using AWS FSx for Lustre CSI Driver. 
