@@ -22,10 +22,10 @@ This driver is in alpha stage. Basic volume operations that are functional inclu
 | master branch                                     | yes   | yes   |
 
 ## Features
-Currently only static provisioning is supported. With static provisioning, a FSx for lustre file system needs to be created manually first, then it could be mounted inside container as a persistence volume (PV) using AWS FSx for Lustre CSI Driver. 
+Currently only static provisioning is supported. With static provisioning, a FSx for lustre file system needs to be created manually first, then it could be mounted inside container as a volume using AWS FSx for Lustre CSI Driver.
 
 ## Examples
-This example shows how to make a FSx for Lustre filesystem mounted inside container. Before this, get yourself familiar with how to setup kubernetes on AWS and [create FSx for Lustre filesystem](https://docs.aws.amazon.com/fsx/latest/LustreGuide/getting-started.html#getting-started-step1). And when creating FSx for Lustre file system, make sure it is created inside the same VPC as kuberentes cluster or it is accessible through VPC peering.
+This example shows how to make a FSx for Lustre filesystem mounted inside container. Before this, get yourself familiar with how to setup kubernetes on AWS and [create FSx for Lustre filesystem](https://docs.aws.amazon.com/fsx/latest/LustreGuide/getting-started.html#getting-started-step1). And when creating FSx for Lustre file system, make sure it is accessible from kuberenetes cluster. This can be achieved by creating FSx for lustre filesystem inside the same VPC as kubernetes cluster or using VPC peering.
 
 Once kubernetes cluster and FSx for lustre file system is created, modify secret manifest file using [secret.yaml](../deploy/kubernetes/secret.yaml). 
 
@@ -84,7 +84,7 @@ kubectl get pods
 Also verify that data is written onto FSx for luster:
 
 ```
-kubectl exec -ti app tail -f /data/out.txt
+kubectl exec -ti app -- tail -f /data/out.txt
 ```
 
 ## Development
