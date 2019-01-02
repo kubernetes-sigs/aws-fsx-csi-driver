@@ -7,7 +7,7 @@
 ## Amazon FSx for Lustre CSI Driver
 ### Overview
 
-The [Amazon FSx for Lustre]() Container Storage Interface (CSI) Driver provides a [CSI]() interface used by container orchestrators to manage the lifecycle of Amazon FSx for lustre volumes.
+The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storage Interface (CSI) Driver provides a [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) interface used by container orchestrators to manage the lifecycle of Amazon FSx for lustre volumes.
 
 This driver is in alpha stage. Basic volume operations that are functional include NodePublishVolume/NodeUnpublishVolume.
 
@@ -22,7 +22,7 @@ This driver is in alpha stage. Basic volume operations that are functional inclu
 | master branch                                     | yes   | yes   |
 
 ## Features
-Currently only static provisioning is supported. With static provisioning, a FSx for lustre file system should be created manually, then it could be mounted inside container as a persistence volume (PV) using AWS FSx for Lustre CSI Driver. 
+Currently only static provisioning is supported. With static provisioning, a FSx for lustre file system needs to be created manually first, then it could be mounted inside container as a persistence volume (PV) using AWS FSx for Lustre CSI Driver. 
 
 ## Examples
 This example shows how to make a FSx for Lustre filesystem mounted inside container. Before this, get yourself familiar with how to setup kubernetes on AWS and [create FSx for Lustre filesystem](https://docs.aws.amazon.com/fsx/latest/LustreGuide/getting-started.html#getting-started-step1). And when creating FSx for Lustre file system, make sure it is created inside the same VPC as kuberentes cluster or it is accessible through VPC peering.
@@ -34,7 +34,7 @@ Then create the secret object:
 kubectl apply -f deploy/kubernetes/secret.yaml 
 ```
 
-Deploy the FSx for lustre CSI driver:
+Deploy AWS FSx for lustre CSI driver:
 
 ```
 kubectl apply -f https://raw.githubusercontent.com/aws/aws-fsx-csi-driver/master/deploy/kubernetes/attacher.yaml 
