@@ -40,7 +40,7 @@ func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolu
 }
 
 func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
-	glog.V(4).Infof("NodePublishVolume: called with args %#v", req)
+	glog.V(4).Infof("NodePublishVolume: called with args %+v", req)
 
 	attributes := req.GetVolumeAttributes()
 	dnsname := attributes["dnsname"]
@@ -84,7 +84,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 }
 
 func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
-	glog.V(4).Infof("NodeUnpublishVolume: called with args %#v", req)
+	glog.V(4).Infof("NodeUnpublishVolume: called with args %+v", req)
 
 	target := req.GetTargetPath()
 	if len(target) == 0 {
@@ -101,7 +101,7 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 }
 
 func (d *Driver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
-	glog.V(4).Infof("NodeGetCapabilities: called with args %#v", req)
+	glog.V(4).Infof("NodeGetCapabilities: called with args %+v", req)
 	var caps []*csi.NodeServiceCapability
 	for _, cap := range nodeCaps {
 		c := &csi.NodeServiceCapability{
@@ -117,7 +117,7 @@ func (d *Driver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabi
 }
 
 func (d *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
-	glog.V(4).Infof("NodeGetInfo: called with args %#v", req)
+	glog.V(4).Infof("NodeGetInfo: called with args %+v", req)
 
 	return &csi.NodeGetInfoResponse{
 		NodeId: d.nodeID,
@@ -125,7 +125,7 @@ func (d *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (
 }
 
 func (d *Driver) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) (*csi.NodeGetIdResponse, error) {
-	glog.V(4).Infof("NodeGetId: called with args %#v", req)
+	glog.V(4).Infof("NodeGetId: called with args %+v", req)
 	return &csi.NodeGetIdResponse{
 		NodeId: d.nodeID,
 	}, nil
