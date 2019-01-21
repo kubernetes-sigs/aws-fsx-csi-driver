@@ -27,17 +27,11 @@ Currently only static provisioning is supported. With static provisioning, a FSx
 ## Examples
 This example shows how to make a FSx for Lustre filesystem mounted inside container. Before this, get yourself familiar with how to setup kubernetes on AWS and [create FSx for Lustre filesystem](https://docs.aws.amazon.com/fsx/latest/LustreGuide/getting-started.html#getting-started-step1). And when creating FSx for Lustre file system, make sure it is accessible from kuberenetes cluster. This can be achieved by creating FSx for lustre filesystem inside the same VPC as kubernetes cluster or using VPC peering.
 
-Once kubernetes cluster and FSx for lustre file system is created, modify secret manifest file using [secret.yaml](../deploy/kubernetes/secret.yaml). 
-
-Then create the secret object:
-```
-kubectl apply -f deploy/kubernetes/secret.yaml 
-```
 
 Deploy AWS FSx for lustre CSI driver:
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/aws/aws-fsx-csi-driver/master/deploy/kubernetes/attacher.yaml 
+kubectl apply -f https://raw.githubusercontent.com/aws/aws-fsx-csi-driver/master/deploy/kubernetes/controller.yaml
 kubectl apply -f https://raw.githubusercontent.com/aws/aws-fsx-csi-driver/master/deploy/kubernetes/node.yaml
 ```
 
