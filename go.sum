@@ -52,7 +52,7 @@ github.com/golangci/dupl v0.0.0-20180902072040-3e9179ac440a h1:w8hkcTqaFpzKqonE9
 github.com/golangci/dupl v0.0.0-20180902072040-3e9179ac440a/go.mod h1:ryS0uhF+x9jgbj/N71xsEqODy9BN81/GonCZiOzirOk=
 github.com/golangci/errcheck v0.0.0-20181003203344-ef45e06d44b6 h1:i2jIkQFb8RG45DuQs+ElyROY848cSJIoIkBM+7XXypA=
 github.com/golangci/errcheck v0.0.0-20181003203344-ef45e06d44b6/go.mod h1:DbHgvLiFKX1Sh2T1w8Q/h4NAI8MHIpzCdnBUDTXU3I0=
-github.com/golangci/go-misc v0.0.0-20180628070357-927a3d87b613 h1:WadunOE/TeHR8U7f0TXiJACHeU3cuFOXuKafw4rozqU=
+github.com/golangci/go-misc v0.0.0-20180628070357-927a3d87b613 h1:9kfjN3AdxcbsZBf8NjltjWihK2QfBBBZuv91cMFfDHw=
 github.com/golangci/go-misc v0.0.0-20180628070357-927a3d87b613/go.mod h1:SyvUF2NxV+sN8upjjeVYr5W7tyxaT1JVtvhKhOn2ii8=
 github.com/golangci/go-tools v0.0.0-20180902103155-93eecd106a0b h1:FSrt9JBK7JINu5UobyIF6epfpjL66H+67KZoTbE0zwk=
 github.com/golangci/go-tools v0.0.0-20180902103155-93eecd106a0b/go.mod h1:unzUULGw35sjyOYjUt0jMTXqHlZPpPc6e+xfO4cd6mM=
@@ -174,7 +174,7 @@ gopkg.in/yaml.v2 v2.2.1/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 honnef.co/go/tools v0.0.0-20180728063816-88497007e858/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 k8s.io/klog v0.1.0 h1:I5HMfc/DtuVaGR1KPwUrTc476K8NCqNBldC7H4dYEzk=
 k8s.io/klog v0.1.0/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUcqjScdoY3a9IHpCEIOOfk=
-k8s.io/kubernetes v1.13.1 h1:UGJpxWwhE/oxhHhaNgmoW/nQcdFdKETx5bV8K5FHgyk=
+k8s.io/kubernetes v1.13.1 h1:IwCCcPOZwY9rKcQyBJYXAE4Wgma4oOW5NYR3HXKFfZ8=
 k8s.io/kubernetes v1.13.1/go.mod h1:ocZa8+6APFNC2tX1DZASIbocyYT5jHzqFVsY5aoB7Jk=
 k8s.io/utils v0.0.0-20181115163542-0d26856f57b3 h1:S3/Kq185JnolOEemhmDXXd23l2t4bX5hPQPQPADlF1E=
 k8s.io/utils v0.0.0-20181115163542-0d26856f57b3/go.mod h1:8k8uAuAQ0rXslZKaEWd0c3oVhZz7sSzSiPnVZayjIX0=
