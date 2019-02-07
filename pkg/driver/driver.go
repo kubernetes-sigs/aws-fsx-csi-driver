@@ -49,10 +49,11 @@ var (
 
 type Driver struct {
 	endpoint string
-	nodeID   string
+	srv      *grpc.Server
 
-	srv *grpc.Server
+	cloud cloud.Cloud
 
+	nodeID  string
 	mounter mount.Interface
 }
 
@@ -65,6 +66,7 @@ func NewDriver(endpoint string) *Driver {
 	return &Driver{
 		endpoint: endpoint,
 		nodeID:   cloud.GetMetadata().GetInstanceID(),
+		cloud:    cloud,
 		mounter:  newSafeMounter(),
 	}
 }
@@ -93,10 +95,16 @@ func (d *Driver) Run() error {
 	d.srv = grpc.NewServer(opts...)
 
 	csi.RegisterIdentityServer(d.srv, d)
+	csi.RegisterControllerServer(d.srv, d)
 	csi.RegisterNodeServer(d.srv, d)
 
 	glog.Infof("Listening for connections on address: %#v", listener.Addr())
 	return d.srv.Serve(listener)
+}
+
+func (d *Driver) Stop() {
+	glog.Infof("Stopping server")
+	d.srv.Stop()
 }
 
 func newSafeMounter() *mount.SafeFormatAndMount {
