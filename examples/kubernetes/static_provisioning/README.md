@@ -1,12 +1,6 @@
 ## Static Provisioning Example
 This example shows how to make a pre-created FSx for Lustre filesystem mounted inside container. 
 
-### Prerequisites
-Before the example, you need to:
-* Get yourself familiar with how to setup Kubernetes on AWS and [create FSx for Lustre filesystem](https://docs.aws.amazon.com/fsx/latest/LustreGuide/getting-started.html#getting-started-step1). 
-* When creating FSx for Lustre file system, make sure it is accessible from Kuberenetes cluster. This can be achieved by creating FSx for lustre filesystem inside the same VPC as Kubernetes cluster or using VPC peering.
-* Install FSx for Lustre CSI driver following the [Installation](../../../docs/README.md#Installation) steps.
-
 ### Edit Persistent Volume Spec
 Edit the [persistence volume manifest file](pv.yaml):
 ```

@@ -7,7 +7,7 @@
 ## Amazon FSx for Lustre CSI Driver
 ### Overview
 
-The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storage Interface (CSI) Driver provides a [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) interface used by container orchestrators to manage the lifecycle of Amazon FSx for lustre volumes.
+The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storage Interface (CSI) Driver provides a [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) interface to be used by container orchestrators to manage lifecycle of Amazon FSx for lustre filesystems.
 
 ### CSI Specification Compability Matrix
 | AWS FSx for Lustre CSI Driver \ CSI Version       | v0.3.0| v1.0.0 |
@@ -41,8 +41,14 @@ kubectl apply -f https://raw.githubusercontent.com/aws/aws-fsx-csi-driver/master
 ```
 
 ### Examples
+Before the example, you need to:
+* Get yourself familiar with how to setup Kubernetes on AWS and [create FSx for Lustre filesystem](https://docs.aws.amazon.com/fsx/latest/LustreGuide/getting-started.html#getting-started-step1). 
+* When creating FSx for Lustre file system, make sure it is accessible from Kuberenetes cluster. This can be achieved by creating FSx for lustre filesystem inside the same VPC as Kubernetes cluster or using VPC peering.
+* Install FSx for Lustre CSI driver following the [Installation](README.md#Installation) steps.
+
+#### Example links
 * [Static provisioning](../examples/kubernetes/static_provisioning/README.md)
-* Dynamic provisioning
+* [Dynamic provisioning](../examples/kubernetes/dynamic_provisioning/README.md)
 * Accessing the filesystem from multiple pods
 
 ## Development
@@ -52,8 +58,8 @@ Please go through [CSI Spec](https://github.com/container-storage-interface/spec
 * Golang 1.11.2+
 
 ### Testing
-To execute all unit tests, run: `make test`
-To execute sanity tests, run: `make test-sanity`
+* To execute all unit tests, run: `make test`
+* To execute sanity tests, run: `make test-sanity`
 
 ## License
 This library is licensed under the Apache 2.0 License. 
