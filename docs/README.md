@@ -9,77 +9,41 @@
 
 The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storage Interface (CSI) Driver provides a [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) interface used by container orchestrators to manage the lifecycle of Amazon FSx for lustre volumes.
 
-This driver is in alpha stage. Basic volume operations that are functional include NodePublishVolume/NodeUnpublishVolume.
-
 ### CSI Specification Compability Matrix
 | AWS FSx for Lustre CSI Driver \ CSI Version       | v0.3.0| v1.0.0 |
 |---------------------------------------------------|-------|--------|
 | master branch                                     | yes   | no     |
+
+### Features
+The following CSI interfaces are implemented:
+* Controller Service: CreateVolume, DeleteVolume, ControllerGetCapabilities, ValidateVolumeCapabilities
+* Node Service: NodePublishVolume, NodeUnpublishVolume, NodeGetCapabilities, NodeGetInfo, NodeGetId
+* Identity Service: CONTROLLER_SERVICE 
+
+## FSx for Lustre CSI Driver on Kubernetes
+Following sections are Kubernetes specific. If you are Kubernetes user, use followings for driver features, installation steps and examples.
 
 ### Kubernetes Version Compability Matrix
 | AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.12 | v1.13 |
 |---------------------------------------------------|-------|-------|
 | master branch                                     | yes   | yes   |
 
-## Features
-Currently only static provisioning is supported. With static provisioning, a FSx for lustre file system needs to be created manually first, then it could be mounted inside container as a volume using AWS FSx for Lustre CSI Driver.
+### Features
+* Static provisioning - FSx for Lustre file system needs to be created manually first, then it could be mounted inside container as a volume using the Driver.
+* Dynamic provisioning - uses persistence volume claim (PVC) to let the Kuberenetes to create the FSx for Lustre filesystem for you and consumes the volume from inside container.
 
-## Examples
-This example shows how to make a FSx for Lustre filesystem mounted inside container. Before this, get yourself familiar with how to setup kubernetes on AWS and [create FSx for Lustre filesystem](https://docs.aws.amazon.com/fsx/latest/LustreGuide/getting-started.html#getting-started-step1). And when creating FSx for Lustre file system, make sure it is accessible from kuberenetes cluster. This can be achieved by creating FSx for lustre filesystem inside the same VPC as kubernetes cluster or using VPC peering.
-
-
-Deploy AWS FSx for lustre CSI driver:
+### Installation
+Deploy the driver using followings step:
 
 ```
 kubectl apply -f https://raw.githubusercontent.com/aws/aws-fsx-csi-driver/master/deploy/kubernetes/controller.yaml
 kubectl apply -f https://raw.githubusercontent.com/aws/aws-fsx-csi-driver/master/deploy/kubernetes/node.yaml
 ```
 
-Edit the [persistence volume manifest file](../examples/kubernetes/sample_app/pv.yaml):
-```
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: fsx-pv
-spec:
-  capacity:
-    storage: 5Gi
-  volumeMode: Filesystem
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Recycle
-  storageClassName: fsx-sc
-  csi:
-    driver: fsx.csi.aws.com
-    volumeHandle: [FileSystemId]
-    volumeAttributes:
-      dnsname: [DNSName] 
-```
-Replace `volumeHandle` with `FileSystemId` and `dnsname` with `DNSName`. You can get both `FileSystemId` and `DNSName` using AWS CLI:
-
-```
-aws fsx describe-file-systems
-```
-
-Then create PV, persistence volume claim (PVC) and storage class:
-```
-kubectl apply -f examples/kubernetes/sample_app/storageclass.yaml
-kubectl apply -f examples/kubernetes/sample_app/pv.yaml
-kubectl apply -f examples/kubernetes/sample_app/claim.yaml
-kubectl apply -f examples/kubernetes/sample_app/pod.yaml
-```
-
-After the objects are created, verify that pod name app is running:
-
-```
-kubectl get pods
-```
-
-Also verify that data is written onto FSx for luster:
-
-```
-kubectl exec -ti app -- tail -f /data/out.txt
-```
+### Examples
+* [Static provisioning](../examples/kubernetes/static_provisioning/README.md)
+* Dynamic provisioning
+* Accessing the filesystem from multiple pods
 
 ## Development
 Please go through [CSI Spec](https://github.com/container-storage-interface/spec/blob/master/spec.md) and [General CSI driver development guideline](https://kubernetes-csi.github.io/docs/Development.html) to get some basic understanding of CSI driver before you start.
@@ -89,6 +53,7 @@ Please go through [CSI Spec](https://github.com/container-storage-interface/spec
 
 ### Testing
 To execute all unit tests, run: `make test`
+To execute sanity tests, run: `make test-sanity`
 
 ## License
 This library is licensed under the Apache 2.0 License. 
