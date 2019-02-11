@@ -12,6 +12,6 @@ spec:
   storageClassName: fsx-sc
   csi:
     driver: fsx.csi.aws.com
-    volumeHandle: fs-0b88f4c7b6f8772d7
+    volumeHandle: fs-0199e5a63bd90f796
     volumeAttributes:
-      dnsname: fs-0b88f4c7b6f8772d7.fsx.us-west-2.amazonaws.com
+      dnsname: fs-0199e5a63bd90f796.fsx.us-east-1.amazonaws.com 
