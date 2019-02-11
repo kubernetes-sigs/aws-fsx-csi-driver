@@ -49,7 +49,7 @@ Before the example, you need to:
 #### Example links
 * [Static provisioning](../examples/kubernetes/static_provisioning/README.md)
 * [Dynamic provisioning](../examples/kubernetes/dynamic_provisioning/README.md)
-* Accessing the filesystem from multiple pods
+* [Accessing the filesystem from multiple pods](../examples/kubernetes/multiple_pods/README.md)
 
 ## Development
 Please go through [CSI Spec](https://github.com/container-storage-interface/spec/blob/master/spec.md) and [General CSI driver development guideline](https://kubernetes-csi.github.io/docs/Development.html) to get some basic understanding of CSI driver before you start.
