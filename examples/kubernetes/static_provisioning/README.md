@@ -23,28 +23,28 @@ spec:
 ```
 Replace `volumeHandle` with `FileSystemId` and `dnsname` with `DNSName`. You can get both `FileSystemId` and `DNSName` using AWS CLI:
 
-```
-aws fsx describe-file-systems
+```sh
+>> aws fsx describe-file-systems
 ```
 
 ### Deploy the Application
 Create PV, persistence volume claim (PVC), storageclass and the pod that consumes the PV:
-```
-kubectl apply -f examples/kubernetes/static_provisioning/storageclass.yaml
-kubectl apply -f examples/kubernetes/static_provisioning/pv.yaml
-kubectl apply -f examples/kubernetes/static_provisioning/claim.yaml
-kubectl apply -f examples/kubernetes/static_provisioning/pod.yaml
+```sh
+>> kubectl apply -f examples/kubernetes/static_provisioning/storageclass.yaml
+>> kubectl apply -f examples/kubernetes/static_provisioning/pv.yaml
+>> kubectl apply -f examples/kubernetes/static_provisioning/claim.yaml
+>> kubectl apply -f examples/kubernetes/static_provisioning/pod.yaml
 ```
 
 ### Check the Application uses FSx for Lustre filesystem
 After the objects are created, verify that pod is running:
 
-```
-kubectl get pods
+```sh
+>> kubectl get pods
 ```
 
 Also verify that data is written onto FSx for Luster filesystem:
 
-```
-kubectl exec -ti fsx-app -- tail -f /data/out.txt
+```sh
+>> kubectl exec -ti fsx-app -- tail -f /data/out.txt
 ```
