@@ -34,21 +34,21 @@ Update `spec.resource.requests.storage` with the storage capacity to request. Th
 
 ### Deploy the Application
 Create PVC, storageclass and the pod that consumes the PV:
-```
-kubectl apply -f examples/kubernetes/dynamic_provisioning/storageclass.yaml
-kubectl apply -f examples/kubernetes/dynamic_provisioning/claim.yaml
-kubectl apply -f examples/kubernetes/dynamic_provisioning/pod.yaml
+```sh
+>> kubectl apply -f examples/kubernetes/dynamic_provisioning/storageclass.yaml
+>> kubectl apply -f examples/kubernetes/dynamic_provisioning/claim.yaml
+>> kubectl apply -f examples/kubernetes/dynamic_provisioning/pod.yaml
 ```
 
 ### Check the Application uses FSx for Lustre filesystem
 After the objects are created, verify that pod is running:
 
-```
-kubectl get pods
+```sh
+>> kubectl get pods
 ```
 
 Also verify that data is written onto FSx for Luster filesystem:
 
-```
-kubectl exec -ti fsx-app -- tail -f /data/out.txt
+```sh
+>> kubectl exec -ti fsx-app -- tail -f /data/out.txt
 ```
