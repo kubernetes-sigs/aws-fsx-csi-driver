@@ -33,11 +33,23 @@ Following sections are Kubernetes specific. If you are Kubernetes user, use foll
 * Dynamic provisioning - uses persistence volume claim (PVC) to let the Kuberenetes to create the FSx for Lustre filesystem for you and consumes the volume from inside container.
 
 ### Installation
-Deploy the driver using followings step:
-
+Checkout the project:
+```sh
+>> git clone https://github.com/aws/aws-fsx-csi-driver.git
+>> cd aws-fsx-csi-driver
 ```
-kubectl apply -f https://raw.githubusercontent.com/aws/aws-fsx-csi-driver/master/deploy/kubernetes/controller.yaml
-kubectl apply -f https://raw.githubusercontent.com/aws/aws-fsx-csi-driver/master/deploy/kubernetes/node.yaml
+
+Edit the [secret manifest](../deploy/kubernetes/secret.yaml) using your favorite text editor. The secret should have enough permission to create FSx for Lustre filesystem. Then deploy the secret:
+
+```sh
+>> kubectl apply -f deploy/kubernetes/secret.yaml
+```
+
+Deploy the driver:
+
+```sh
+>> kubectl apply -f deploy/kubernetes/controller.yaml
+>> kubectl apply -f deploy/kubernetes/node.yaml
 ```
 
 ### Examples
