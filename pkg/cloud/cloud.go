@@ -30,8 +30,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/fsx"
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog"
 )
 
 const (
@@ -199,7 +199,7 @@ func (c *cloud) WaitForFileSystemAvailable(ctx context.Context, fileSystemId str
 		if err != nil {
 			return true, err
 		}
-		glog.V(4).Infof("WaitForFileSystemAvailable filesystem status is: %v", *fs.Lifecycle)
+		klog.V(4).Infof("WaitForFileSystemAvailable filesystem status is: %v", *fs.Lifecycle)
 		switch *fs.Lifecycle {
 		case "AVAILABLE":
 			return true, nil
