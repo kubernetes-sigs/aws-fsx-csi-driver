@@ -22,5 +22,6 @@ RUN yum install util-linux -y
 COPY --from=builder /go/src/github.com/kubernetes-sigs/aws-fsx-csi-driver/hack/install-lustre-client.sh /install-lustre-client.sh
 RUN /install-lustre-client.sh
 COPY --from=builder /go/src/github.com/kubernetes-sigs/aws-fsx-csi-driver/bin/aws-fsx-csi-driver /bin/aws-fsx-csi-driver
+COPY THIRD-PARTY /
 
 ENTRYPOINT ["/bin/aws-fsx-csi-driver"]
