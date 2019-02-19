@@ -7,7 +7,7 @@
 ## Amazon FSx for Lustre CSI Driver
 ### Overview
 
-The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storage Interface (CSI) Driver provides a [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) interface to be used by container orchestrators to manage lifecycle of Amazon FSx for lustre filesystems.
+The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storage Interface (CSI) Driver implements [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) specification for chntainer orchestrators (CO) to manage lifecycle of Amazon FSx for Lustre filesystems.
 
 ### CSI Specification Compability Matrix
 | AWS FSx for Lustre CSI Driver \ CSI Version       | v0.3.0| v1.0.0 |
@@ -18,15 +18,15 @@ The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storag
 The following CSI interfaces are implemented:
 * Controller Service: CreateVolume, DeleteVolume, ControllerGetCapabilities, ValidateVolumeCapabilities
 * Node Service: NodePublishVolume, NodeUnpublishVolume, NodeGetCapabilities, NodeGetInfo, NodeGetId
-* Identity Service: CONTROLLER_SERVICE 
+* Identity Service: GetPluginInfo, GetPluginCapabilities, Probe
 
 ## FSx for Lustre CSI Driver on Kubernetes
 Following sections are Kubernetes specific. If you are Kubernetes user, use followings for driver features, installation steps and examples.
 
 ### Kubernetes Version Compability Matrix
-| AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.12 | v1.13 |
-|---------------------------------------------------|-------|-------|
-| master branch                                     | yes   | yes   |
+| AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 |
+|---------------------------------------------------|-------|-------|-------|
+| master branch                                     | yes   | yes   | yes   |
 
 ### Features
 * Static provisioning - FSx for Lustre file system needs to be created manually first, then it could be mounted inside container as a volume using the Driver.
@@ -45,7 +45,7 @@ Edit the [secret manifest](../deploy/kubernetes/secret.yaml) using your favorite
 >> kubectl apply -f deploy/kubernetes/secret.yaml
 ```
 
-Deploy the driver:
+Then deploy the driver:
 
 ```sh
 >> kubectl apply -f deploy/kubernetes/controller.yaml
@@ -54,7 +54,7 @@ Deploy the driver:
 
 ### Examples
 Before the example, you need to:
-* Get yourself familiar with how to setup Kubernetes on AWS and [create FSx for Lustre filesystem](https://docs.aws.amazon.com/fsx/latest/LustreGuide/getting-started.html#getting-started-step1). 
+* Get yourself familiar with how to setup Kubernetes on AWS and [create FSx for Lustre filesystem](https://docs.aws.amazon.com/fsx/latest/LustreGuide/getting-started.html#getting-started-step1) if you are using static provisioning.
 * When creating FSx for Lustre file system, make sure it is accessible from Kuberenetes cluster. This can be achieved by creating FSx for lustre filesystem inside the same VPC as Kubernetes cluster or using VPC peering.
 * Install FSx for Lustre CSI driver following the [Installation](README.md#Installation) steps.
 
