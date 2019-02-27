@@ -14,7 +14,7 @@ parameters:
   securityGroupIds: sg-086f61ea73388fb6b
 ```
 * subnetId - the subnet ID that the FSx for Lustre filesystem should be created inside.
-* securityGroupIds - a list of security group IDs that should be attached to the filesystem
+* securityGroupIds - a comman separated list of security group IDs that should be attached to the filesystem
  
 ### Edit [Persistent Volume Claim Spec](claim.yaml)
 ```
