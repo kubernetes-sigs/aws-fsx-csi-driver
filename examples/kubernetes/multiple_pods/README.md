@@ -1,40 +1,24 @@
 ## Multiple Pods Read Write Many 
-This example shows how to create a static provisioned FSx for Lustre PV and access it from multiple pods with RWX access mode.
+This example shows how to create a dynamically provisioned FSx for Lustre PV and access it from multiple pods with `ReadWriteMany` access mode. If you are using static provisioning, following steps to setup static provisioned PV with access mode set to `ReadWriteMany` and the rest of steps of consuming the volume from pods are similar.
 
-### Edit Persistent Volume
-Edit persistent volume using sample [spec](pv.yaml):
+### Edit [StorageClass](storageclass.yaml)
 ```
-apiVersion: v1
-kind: PersistentVolume
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
 metadata:
-  name: fsx-pv
-spec:
-  capacity:
-    storage: 5Gi
-  volumeMode: Filesystem
-  accessModes:
-    - ReadWriteMany
-  persistentVolumeReclaimPolicy: Recycle
-  storageClassName: fsx-sc
-  csi:
-    driver: fsx.csi.aws.com
-    volumeHandle: [FileSystemId]
-    volumeAttributes:
-      dnsname: [DNSName] 
+  name: fsx-sc
+provisioner: fsx.csi.aws.com
+parameters:
+  subnetId: subnet-056da83524edbe641
+  securityGroupIds: sg-086f61ea73388fb6b
 ```
-Replace `volumeHandle` with `FileSystemId` and `dnsname` with `DNSName`. Note that the access mode is `RWX` which means the PV can be read and write from multiple pods.
-
-You can get both `FileSystemId` and `DNSName` using AWS CLI:
-
-```sh
->> aws fsx describe-file-systems
-```
+* subnetId - the subnet ID that the FSx for Lustre filesystem should be created inside.
+* securityGroupIds - a comman separated list of security group IDs that should be attached to the filesystem
 
 ### Deploy the Application
 Create PV, persistence volume claim (PVC), storageclass and the pods that consume the PV:
 ```sh
 >> kubectl apply -f examples/kubernetes/multiple_pods/storageclass.yaml
->> kubectl apply -f examples/kubernetes/multiple_pods/pv.yaml
 >> kubectl apply -f examples/kubernetes/multiple_pods/claim.yaml
 >> kubectl apply -f examples/kubernetes/multiple_pods/pod1.yaml
 >> kubectl apply -f examples/kubernetes/multiple_pods/pod2.yaml
