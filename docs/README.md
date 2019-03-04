@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/aws/aws-fsx-csi-driver.svg?branch=master)](https://travis-ci.org/aws/aws-fsx-csi-driver)
+[![Build Status](https://travis-ci.org/aws/csi-driver-amazon-fsx.svg?branch=master)](https://travis-ci.org/aws/csi-driver-amazon-fsx)
 
 **WARNING**: This driver is in pre ALPHA currently. This means that there may potentially be backwards compatible breaking changes moving forward. Do NOT use this driver in a production environment in its current state.
 
