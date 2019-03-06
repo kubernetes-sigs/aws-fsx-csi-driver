@@ -1,7 +1,7 @@
 module github.com/kubernetes-sigs/aws-fsx-csi-driver
 
 require (
-	github.com/aws/aws-sdk-go v1.16.5
+	github.com/aws/aws-sdk-go v1.16.36
 	github.com/container-storage-interface/spec v0.3.0
 	github.com/davecgh/go-spew v1.1.0 // indirect
 	github.com/golang/mock v1.2.0
