@@ -5,11 +5,12 @@
 package mocks
 
 import (
+	reflect "reflect"
+
 	aws "github.com/aws/aws-sdk-go/aws"
 	request "github.com/aws/aws-sdk-go/aws/request"
 	fsx "github.com/aws/aws-sdk-go/service/fsx"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
 // MockFSx is a mock of FSx interface

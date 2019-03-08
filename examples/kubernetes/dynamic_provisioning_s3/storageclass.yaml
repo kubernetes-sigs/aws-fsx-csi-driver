@@ -1,0 +1,10 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: fsx-sc
+provisioner: fsx.csi.aws.com
+parameters:
+  subnetId: subnet-0cd89fc1c1bc6ef51
+  securityGroupIds: sg-0afdb18c8af898a78
+  s3ImportPath: s3://dl-benchmark-result
+  s3OutputPath: s3://dl-benchmark-result/export

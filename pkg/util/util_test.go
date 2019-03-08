@@ -16,7 +16,9 @@ limitations under the License.
 
 package util
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestGiBToBytes(t *testing.T) {
 	var sizeInGiB int64 = 3
@@ -65,6 +67,35 @@ func TestRoundUp3600GiB(t *testing.T) {
 			actual := RoundUp3600GiB(tc.sizeInBytes)
 			if actual != tc.expected {
 				t.Fatalf("RoundUp3600GiB got wrong result. actual: %d, expected: %d", actual, tc.expected)
+			}
+		})
+	}
+}
+
+func TestGetURLHost(t *testing.T) {
+	testCases := []struct {
+		name     string
+		url      string
+		expected string
+	}{
+		{
+			name:     "GetURLHost host without path",
+			url:      "s3://fs-s3-data-repo",
+			expected: "fs-s3-data-repo",
+		},
+		{
+			name:     "GetURLHost standard url",
+			url:      "s3://fs-s3-data-repo/import-path",
+			expected: "fs-s3-data-repo",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, _ := GetURLHost(tc.url)
+
+			if actual != tc.expected {
+				t.Fatalf("GetURLHost got wrong result. actual: %s, expected: %s", actual, tc.expected)
 			}
 		})
 	}

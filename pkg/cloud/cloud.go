@@ -71,6 +71,8 @@ type FileSystemOptions struct {
 	CapacityGiB      int64
 	SubnetId         string
 	SecurityGroupIds []string
+	S3ImportPath     string
+	S3ExportPath     string
 }
 
 // FSx abstracts FSx client to facilitate its mocking.
@@ -132,12 +134,23 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		return nil, fmt.Errorf("SubnetId is required")
 	}
 
+	lustreConfiguration := &fsx.CreateFileSystemLustreConfiguration{}
+
+	if fileSystemOptions.S3ImportPath != "" {
+		lustreConfiguration.SetImportPath(fileSystemOptions.S3ImportPath)
+	}
+
+	if fileSystemOptions.S3ExportPath != "" {
+		lustreConfiguration.SetExportPath(fileSystemOptions.S3ExportPath)
+	}
+
 	input := &fsx.CreateFileSystemInput{
-		ClientRequestToken: aws.String(volumeName),
-		FileSystemType:     aws.String("LUSTRE"),
-		StorageCapacity:    aws.Int64(fileSystemOptions.CapacityGiB),
-		SubnetIds:          []*string{aws.String(fileSystemOptions.SubnetId)},
-		SecurityGroupIds:   aws.StringSlice(fileSystemOptions.SecurityGroupIds),
+		ClientRequestToken:  aws.String(volumeName),
+		FileSystemType:      aws.String("LUSTRE"),
+		LustreConfiguration: lustreConfiguration,
+		StorageCapacity:     aws.Int64(fileSystemOptions.CapacityGiB),
+		SubnetIds:           []*string{aws.String(fileSystemOptions.SubnetId)},
+		SecurityGroupIds:    aws.StringSlice(fileSystemOptions.SecurityGroupIds),
 		Tags: []*fsx.Tag{
 			{
 				Key:   aws.String(VolumeNameTagKey),
@@ -179,6 +192,7 @@ func (c *cloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (*F
 	if err != nil {
 		return nil, err
 	}
+
 	return &FileSystem{
 		FileSystemId: *fs.FileSystemId,
 		CapacityGiB:  *fs.StorageCapacity,

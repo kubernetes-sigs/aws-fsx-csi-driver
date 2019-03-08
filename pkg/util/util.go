@@ -66,3 +66,14 @@ func ParseEndpoint(endpoint string) (string, string, error) {
 func roundUpSize(volumeSizeBytes int64, allocationUnitBytes int64) int64 {
 	return (volumeSizeBytes + allocationUnitBytes - 1) / allocationUnitBytes
 }
+
+// GetURLHost returns hostname  of given url
+func GetURLHost(urlStr string) (string, error) {
+	u, err := url.Parse(urlStr)
+
+	if err != nil {
+		return "", fmt.Errorf("Could not parse url: %v", err)
+	}
+
+	return u.Host, nil
+}

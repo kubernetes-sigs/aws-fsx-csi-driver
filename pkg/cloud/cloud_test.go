@@ -35,6 +35,8 @@ func TestCreateFileSystem(t *testing.T) {
 		subnetId               = "subnet-056da83524edbe641"
 		securityGroupIds       = []string{"sg-086f61ea73388fb6b", "sg-0145e55e976000c9e"}
 		dnsname                = "test.fsx.us-west-2.amazoawd.com"
+		s3ImportPath           = "s3://fsx-s3-data-repository"
+		s3ExportPath           = "s3://fsx-s3-data-repository/export"
 	)
 	testCases := []struct {
 		name     string
@@ -84,6 +86,121 @@ func TestCreateFileSystem(t *testing.T) {
 
 				if resp.DnsName != dnsname {
 					t.Fatalf("DnsName mismatches. actual: %v expected: %v", resp.DnsName, dnsname)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "success: S3 data repository",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					metadata: &metadata{"instanceID", "region", "az"},
+					fsx:      mockFSx,
+				}
+
+				req := &FileSystemOptions{
+					CapacityGiB:      volumeSizeGiB,
+					SubnetId:         subnetId,
+					SecurityGroupIds: securityGroupIds,
+					S3ImportPath:     s3ImportPath,
+					S3ExportPath:     s3ExportPath,
+				}
+
+				dataRepositoryConfiguration := &fsx.DataRepositoryConfiguration{}
+				dataRepositoryConfiguration.SetImportPath(s3ImportPath)
+				dataRepositoryConfiguration.SetExportPath(s3ExportPath)
+
+				lustreFileSystemConfiguration := &fsx.LustreFileSystemConfiguration{
+					DataRepositoryConfiguration: dataRepositoryConfiguration,
+				}
+
+				output := &fsx.CreateFileSystemOutput{
+					FileSystem: &fsx.FileSystem{
+						FileSystemId:        aws.String(fileSystemId),
+						StorageCapacity:     aws.Int64(volumeSizeGiB),
+						DNSName:             aws.String(dnsname),
+						LustreConfiguration: lustreFileSystemConfiguration,
+					},
+				}
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				resp, err := c.CreateFileSystem(ctx, volumeName, req)
+				if err != nil {
+					t.Fatalf("CreateFileSystem is failed: %v", err)
+				}
+
+				if resp == nil {
+					t.Fatal("resp is nil")
+				}
+
+				if resp.FileSystemId != fileSystemId {
+					t.Fatalf("FileSystemId mismatches. actual: %v expected: %v", resp.FileSystemId, fileSystemId)
+				}
+
+				if resp.CapacityGiB != volumeSizeGiB {
+					t.Fatalf("CapacityGiB mismatches. actual: %v expected: %v", resp.CapacityGiB, volumeSizeGiB)
+				}
+
+				if resp.DnsName != dnsname {
+					t.Fatalf("DnsName mismatches. actual: %v expected: %v", resp.DnsName, dnsname)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "fail: invalid import and export path config - only s3ExportPath",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					metadata: &metadata{"instanceID", "region", "az"},
+					fsx:      mockFSx,
+				}
+
+				req := &FileSystemOptions{
+					CapacityGiB:      volumeSizeGiB,
+					SubnetId:         subnetId,
+					SecurityGroupIds: securityGroupIds,
+					S3ExportPath:     s3ExportPath,
+				}
+
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystemWithContext failed"))
+				_, err := c.CreateFileSystem(ctx, volumeName, req)
+				if err == nil {
+					t.Fatalf("CreateFileSystem is not failed")
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "fail: invalid import and export path config - different bucket",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					metadata: &metadata{"instanceID", "region", "az"},
+					fsx:      mockFSx,
+				}
+
+				req := &FileSystemOptions{
+					CapacityGiB:      volumeSizeGiB,
+					SubnetId:         subnetId,
+					SecurityGroupIds: securityGroupIds,
+					S3ImportPath:     "s3://bucket1/import",
+					S3ExportPath:     "s3://bucket2/export",
+				}
+
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystemWithContext failed"))
+				_, err := c.CreateFileSystem(ctx, volumeName, req)
+				if err == nil {
+					t.Fatalf("CreateFileSystem is not failed")
 				}
 
 				mockCtl.Finish()
@@ -207,6 +324,8 @@ func TestDescribeFileSystem(t *testing.T) {
 		fileSystemId        = "fs-1234"
 		volumeSizeGiB int64 = 3600
 		dnsname             = "test.fsx.us-west-2.amazoawd.com"
+		s3ImportPath        = "s3://fsx-s3-data-repository"
+		s3ExportPath        = "s3://fsx-s3-data-repository/export"
 	)
 	testCases := []struct {
 		name     string
@@ -231,6 +350,45 @@ func TestDescribeFileSystem(t *testing.T) {
 						},
 					},
 				}
+				ctx := context.Background()
+				mockFSx.EXPECT().DescribeFileSystemsWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				_, err := c.DescribeFileSystem(ctx, fileSystemId)
+				if err != nil {
+					t.Fatalf("DeleteFileSystem is failed: %v", err)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "success: S3 data repository",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					metadata: &metadata{"instanceID", "region", "az"},
+					fsx:      mockFSx,
+				}
+
+				dataRepositoryConfiguration := &fsx.DataRepositoryConfiguration{}
+				dataRepositoryConfiguration.SetImportPath(s3ImportPath)
+				dataRepositoryConfiguration.SetExportPath(s3ExportPath)
+
+				lustreFileSystemConfiguration := &fsx.LustreFileSystemConfiguration{
+					DataRepositoryConfiguration: dataRepositoryConfiguration,
+				}
+
+				output := &fsx.DescribeFileSystemsOutput{
+					FileSystems: []*fsx.FileSystem{
+						{
+							FileSystemId:        aws.String(fileSystemId),
+							StorageCapacity:     aws.Int64(volumeSizeGiB),
+							DNSName:             aws.String(dnsname),
+							LustreConfiguration: lustreFileSystemConfiguration,
+						},
+					},
+				}
+
 				ctx := context.Background()
 				mockFSx.EXPECT().DescribeFileSystemsWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
 				_, err := c.DescribeFileSystem(ctx, fileSystemId)

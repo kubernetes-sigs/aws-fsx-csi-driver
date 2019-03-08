@@ -6,6 +6,7 @@ require (
 	github.com/davecgh/go-spew v1.1.0 // indirect
 	github.com/golang/mock v1.2.0
 	github.com/kubernetes-csi/csi-test v0.3.0-2
+	github.com/mattn/goveralls v0.0.2 // indirect
 	github.com/onsi/ginkgo v1.7.0
 	github.com/onsi/gomega v1.4.3
 	github.com/pmezard/go-difflib v1.0.0 // indirect
