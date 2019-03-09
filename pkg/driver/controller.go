@@ -69,6 +69,15 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		SubnetId:         subnetId,
 		SecurityGroupIds: strings.Split(securityGroupIds, ","),
 	}
+
+	if val, ok := volumeParams["s3ImportPath"]; ok {
+		fsOptions.S3ImportPath = val
+	}
+
+	if val, ok := volumeParams["s3ExportPath"]; ok {
+		fsOptions.S3ExportPath = val
+	}
+
 	fs, err := d.cloud.CreateFileSystem(ctx, volName, fsOptions)
 	if err != nil {
 		switch err {
