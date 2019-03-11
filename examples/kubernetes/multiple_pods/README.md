@@ -1,7 +1,7 @@
 ## Multiple Pods Read Write Many 
 This example shows how to create a dynamically provisioned FSx for Lustre PV and access it from multiple pods with `ReadWriteMany` access mode. If you are using static provisioning, following steps to setup static provisioned PV with access mode set to `ReadWriteMany` and the rest of steps of consuming the volume from pods are similar.
 
-### Edit [StorageClass](storageclass.yaml)
+### Edit [StorageClass](./specs/storageclass.yaml)
 ```
 kind: StorageClass
 apiVersion: storage.k8s.io/v1

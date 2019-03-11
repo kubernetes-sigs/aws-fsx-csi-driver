@@ -3,7 +3,7 @@ This example shows how to create a FSx for Lustre filesystem using persistence v
 
 Amazon FSx for Lustre is deeply integrated with Amazon S3. This integration means that you can seamlessly access the objects stored in your Amazon S3 buckets from applications mounting your Amazon FSx for Lustre file system. Please check [Using Data Repositories](https://docs.aws.amazon.com/fsx/latest/LustreGuide/fsx-data-repositories.html) for details.
 
-### Edit [StorageClass](storageclass.yaml)
+### Edit [StorageClass](./specs/storageclass.yaml)
 ```
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
@@ -26,7 +26,7 @@ Note:
 - S3ExportPath can not be given without specifying S3ImportPath.
 - S3ImportPath can stand alone and a random path will be created automatically like `s3://dl-benchmark-result/FSxLustre20190308T012310Z`
 
-### Edit [Persistent Volume Claim Spec](claim.yaml)
+### Edit [Persistent Volume Claim Spec](./specs/claim.yaml)
 ```
 apiVersion: v1
 kind: PersistentVolumeClaim

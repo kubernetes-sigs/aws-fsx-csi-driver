@@ -1,7 +1,7 @@
 ## Static Provisioning Example
 This example shows how to make a pre-created FSx for Lustre filesystem mounted inside container. 
 
-### Edit [Persistent Volume Spec](pv.yaml)
+### Edit [Persistent Volume Spec](./specs/pv.yaml)
 ```
 apiVersion: v1
 kind: PersistentVolume

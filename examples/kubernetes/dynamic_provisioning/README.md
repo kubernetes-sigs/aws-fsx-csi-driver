@@ -2,7 +2,7 @@
 This example shows how to create a FSx for Lustre filesystem using persistence volume claim (PVC) and consumes it from a pod. 
 
 
-### Edit [StorageClass](storageclass.yaml)
+### Edit [StorageClass](./specs/storageclass.yaml)
 ```
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
@@ -16,7 +16,7 @@ parameters:
 * subnetId - the subnet ID that the FSx for Lustre filesystem should be created inside.
 * securityGroupIds - a comman separated list of security group IDs that should be attached to the filesystem
  
-### Edit [Persistent Volume Claim Spec](claim.yaml)
+### Edit [Persistent Volume Claim Spec](./specs/claim.yaml)
 ```
 apiVersion: v1
 kind: PersistentVolumeClaim
