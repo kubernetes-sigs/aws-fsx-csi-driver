@@ -19,9 +19,8 @@ ADD . .
 RUN make
 
 FROM amazonlinux:2
-RUN yum install util-linux -y
-COPY --from=builder /go/src/github.com/kubernetes-sigs/aws-fsx-csi-driver/hack/install-lustre-client.sh /install-lustre-client.sh
-RUN /install-lustre-client.sh
+RUN yum install util-linux libyaml -y \
+    && amazon-linux-extras install -y lustre2.10
 COPY --from=builder /go/src/github.com/kubernetes-sigs/aws-fsx-csi-driver/bin/aws-fsx-csi-driver /bin/aws-fsx-csi-driver
 COPY THIRD-PARTY /
 

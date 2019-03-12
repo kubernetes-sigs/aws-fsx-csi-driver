@@ -30,9 +30,9 @@ test-sanity:
 
 .PHONY: image
 image:
-	docker build -t $(IMAGE):testing .
+	docker build -t $(IMAGE):latest .
 
 .PHONY: push
 push:
-	docker push $(IMAGE):testing
+	docker push $(IMAGE):latest
 
