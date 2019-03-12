@@ -30,10 +30,10 @@ Replace `volumeHandle` with `FileSystemId` and `dnsname` with `DNSName`. You can
 ### Deploy the Application
 Create PV, persistence volume claim (PVC), storageclass and the pod that consumes the PV:
 ```sh
->> kubectl apply -f examples/kubernetes/static_provisioning/storageclass.yaml
->> kubectl apply -f examples/kubernetes/static_provisioning/pv.yaml
->> kubectl apply -f examples/kubernetes/static_provisioning/claim.yaml
->> kubectl apply -f examples/kubernetes/static_provisioning/pod.yaml
+>> kubectl apply -f examples/kubernetes/static_provisioning/specs/storageclass.yaml
+>> kubectl apply -f examples/kubernetes/static_provisioning/specs/pv.yaml
+>> kubectl apply -f examples/kubernetes/static_provisioning/specs/claim.yaml
+>> kubectl apply -f examples/kubernetes/static_provisioning/specs/pod.yaml
 ```
 
 ### Check the Application uses FSx for Lustre filesystem

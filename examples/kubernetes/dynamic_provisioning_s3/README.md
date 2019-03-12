@@ -45,9 +45,9 @@ Update `spec.resource.requests.storage` with the storage capacity to request. Th
 ### Deploy the Application
 Create PVC, storageclass and the pod that consumes the PV:
 ```sh
->> kubectl apply -f examples/kubernetes/dynamic_provisioning/storageclass.yaml
->> kubectl apply -f examples/kubernetes/dynamic_provisioning/claim.yaml
->> kubectl apply -f examples/kubernetes/dynamic_provisioning/pod.yaml
+>> kubectl apply -f examples/kubernetes/dynamic_provisioning/specs/storageclass.yaml
+>> kubectl apply -f examples/kubernetes/dynamic_provisioning/specs/claim.yaml
+>> kubectl apply -f examples/kubernetes/dynamic_provisioning/specs/pod.yaml
 ```
 
 ### Use Case 1: Acccess S3 files in readonly mode, no write back.

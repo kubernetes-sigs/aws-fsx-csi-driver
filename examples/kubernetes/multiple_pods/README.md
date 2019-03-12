@@ -18,10 +18,10 @@ parameters:
 ### Deploy the Application
 Create PV, persistence volume claim (PVC), storageclass and the pods that consume the PV:
 ```sh
->> kubectl apply -f examples/kubernetes/multiple_pods/storageclass.yaml
->> kubectl apply -f examples/kubernetes/multiple_pods/claim.yaml
->> kubectl apply -f examples/kubernetes/multiple_pods/pod1.yaml
->> kubectl apply -f examples/kubernetes/multiple_pods/pod2.yaml
+>> kubectl apply -f examples/kubernetes/multiple_pods/specs/storageclass.yaml
+>> kubectl apply -f examples/kubernetes/multiple_pods/specs/claim.yaml
+>> kubectl apply -f examples/kubernetes/multiple_pods/specs/pod1.yaml
+>> kubectl apply -f examples/kubernetes/multiple_pods/specs/pod2.yaml
 ```
 
 Both pod1 and pod2 are writing to the same FSx for Lustre filesystem at the same time.
