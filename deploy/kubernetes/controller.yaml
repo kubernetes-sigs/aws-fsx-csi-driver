@@ -92,7 +92,7 @@ spec:
           operator: Exists
       containers:
         - name: fsx-plugin
-          image: chengpan/aws-fsx-csi-driver:testing
+          image: chengpan/aws-fsx-csi-driver:latest
           imagePullPolicy: Always
           args :
             - --endpoint=$(CSI_ENDPOINT)

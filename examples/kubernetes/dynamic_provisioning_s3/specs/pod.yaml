@@ -5,7 +5,7 @@ metadata:
 spec:
   containers:
   - name: app
-    image: chengpan/aws-fsx-csi-driver:testing
+    image: chengpan/aws-fsx-csi-driver:latest
     command: ["/bin/sh"]
     args: ["-c", "while true; do echo $(date -u) >> /data/out.txt; sleep 5; done"]
     volumeMounts:
