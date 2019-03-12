@@ -7,7 +7,7 @@
 ## Amazon FSx for Lustre CSI Driver
 ### Overview
 
-The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storage Interface (CSI) Driver implements [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) specification for chntainer orchestrators (CO) to manage lifecycle of Amazon FSx for Lustre filesystems.
+The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storage Interface (CSI) Driver implements [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) specification for container orchestrators (CO) to manage lifecycle of Amazon FSx for Lustre filesystems.
 
 ### CSI Specification Compability Matrix
 | AWS FSx for Lustre CSI Driver \ CSI Version       | v0.3.0| v1.0.0 |
@@ -61,6 +61,7 @@ Before the example, you need to:
 #### Example links
 * [Static provisioning](../examples/kubernetes/static_provisioning/README.md)
 * [Dynamic provisioning](../examples/kubernetes/dynamic_provisioning/README.md)
+* [Dynamic provisioning with S3 integration](../examples/kubernetes/dynamic_provisioning_s3/README.md)
 * [Accessing the filesystem from multiple pods](../examples/kubernetes/multiple_pods/README.md)
 
 ## Development
