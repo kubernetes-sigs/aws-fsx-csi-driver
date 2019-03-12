@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-IMAGE=chengpan/aws-fsx-csi-driver
+IMAGE=amazon/aws-fsx-csi-driver
 VERSION=0.1.0
 
 .PHONY: aws-fsx-csi-driver
@@ -36,3 +36,10 @@ image:
 push:
 	docker push $(IMAGE):latest
 
+.PHONY: image-release
+image-release:
+	docker build -t $(IMAGE):$(VERSION)
+
+.PHONY: push-release
+push-release:
+	docker push $(IMAGE):$(VERSION)
