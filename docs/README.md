@@ -55,7 +55,9 @@ Then deploy the driver:
 ### Examples
 Before the example, you need to:
 * Get yourself familiar with how to setup Kubernetes on AWS and [create FSx for Lustre filesystem](https://docs.aws.amazon.com/fsx/latest/LustreGuide/getting-started.html#getting-started-step1) if you are using static provisioning.
-* When creating FSx for Lustre file system, make sure it is accessible from Kuberenetes cluster. This can be achieved by creating FSx for lustre filesystem inside the same VPC as Kubernetes cluster or using VPC peering.
+* When creating FSx for Lustre file system, make sure its VPC is accessible from Kuberenetes cluster's VPC and network traffic is allowed by security group. 
+  * For FSx for Lustre VPC, you can either create FSx for lustre filesystem inside the same VPC as Kubernetes cluster or using VPC peering.
+  * For security group, make sure port 988 is allowed for the security groups that are attached the lustre filesystem ENI.
 * Install FSx for Lustre CSI driver following the [Installation](README.md#Installation) steps.
 
 #### Example links

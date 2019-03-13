@@ -13,8 +13,8 @@ provisioner: fsx.csi.aws.com
 parameters:
   subnetId: subnet-056da83524edbe641
   securityGroupIds: sg-086f61ea73388fb6b
-  s3ImportPath: s3://dl-benchmark-dataset
-  s3ExportPath: s3://dl-benchmark-dataset/export
+  s3ImportPath: s3://ml-training-data-000
+  s3ExportPath: s3://ml-training-data-000/export
 ```
 * subnetId - the subnet ID that the FSx for Lustre filesystem should be created inside.
 * securityGroupIds - a comman separated list of security group IDs that should be attached to the filesystem
@@ -22,9 +22,9 @@ parameters:
 * s3ExportPath(Optional) - S3 data repository you want to export new or modified files from persistent volume to S3
 
 Note:
-- S3Bucket in s3ImportPath and s3ExportPath must be same, otherwise aws-fsx-csi-driver can not create FSx for lustre successfully.
+- S3Bucket in s3ImportPath and s3ExportPath must be same, otherwise the driver can not create FSx for lustre successfully.
+- S3ImportPath can stand alone and a random path will be created automatically like `s3://ml-training-data-000/FSxLustre20190308T012310Z`
 - S3ExportPath can not be given without specifying S3ImportPath.
-- S3ImportPath can stand alone and a random path will be created automatically like `s3://dl-benchmark-result/FSxLustre20190308T012310Z`
 
 ### Edit [Persistent Volume Claim Spec](./specs/claim.yaml)
 ```
@@ -53,7 +53,7 @@ Create PVC, storageclass and the pod that consumes the PV:
 ### Use Case 1: Acccess S3 files in readonly mode, no write back.
 If you only want to import data and read it with any modification and creation. You can skip `s3ExportPath` parameter in your `storageclass.yaml` configuration.
 
-You can see S3 files have been downloaded in the persistent volume.
+You can see S3 files are visible in the persistent volume.
 
 ```
 kubectl exec -it fsx-app ls /data
