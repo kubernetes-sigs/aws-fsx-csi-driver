@@ -4,7 +4,7 @@ metadata:
   name: fsx-sc
 provisioner: fsx.csi.aws.com
 parameters:
-  subnetId: subnet-0cd89fc1c1bc6ef51
-  securityGroupIds: sg-0afdb18c8af898a78
-  s3ImportPath: s3://dl-benchmark-result
-  s3OutputPath: s3://dl-benchmark-result/export
+  subnetId: subnet-056da83524edbe641
+  securityGroupIds: sg-086f61ea73388fb6b
+  s3ImportPath: s3://ml-training-data-000
+  s3ExportPath: s3://ml-training-data-000/export
