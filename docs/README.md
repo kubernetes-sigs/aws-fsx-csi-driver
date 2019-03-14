@@ -1,6 +1,7 @@
 [![Build Status](https://travis-ci.org/aws/csi-driver-amazon-fsx.svg?branch=master)](https://travis-ci.org/aws/csi-driver-amazon-fsx)
+[![Coverage Status](https://coveralls.io/repos/github/aws/csi-driver-amazon-fsx/badge.svg?branch=master)](https://coveralls.io/github/aws/csi-driver-amazon-fsx?branch=master)
 
-**WARNING**: This driver is in pre ALPHA currently. This means that there may potentially be backwards compatible breaking changes moving forward. Do NOT use this driver in a production environment in its current state.
+**WARNING**: This driver is currently an ALPHA release. This means that there may potentially be backwards compatible breaking changes moving forward. Do NOT use this driver in a production environment in its current state.
 
 **DISCLAIMER**: This is not an officially supported Amazon product
 
@@ -27,6 +28,11 @@ Following sections are Kubernetes specific. If you are Kubernetes user, use foll
 | AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 |
 |---------------------------------------------------|-------|-------|-------|
 | master branch                                     | yes   | yes   | yes   |
+
+### Container Images
+|FSx CSI Driver Version     | Image                               |
+|---------------------------|-------------------------------------|
+|master branch              |amazon/aws-fsx-csi-driver:latest     |
 
 ### Features
 * Static provisioning - FSx for Lustre file system needs to be created manually first, then it could be mounted inside container as a volume using the Driver.
