@@ -5,9 +5,15 @@ metadata:
 spec:
   containers:
   - name: app
-    image: busybox
+    image: amazonlinux:2
     command: ["/bin/sh"]
+    securityContext:
+      privileged: true
     args: ["-c", "while true; do echo $(date -u) >> /data/out.txt; sleep 5; done"]
+    lifecycle:
+      postStart:
+        exec:
+          command: ["amazon-linux-extras", "install", "lustre2.10", "-y"]
     volumeMounts:
     - name: persistent-storage
       mountPath: /data

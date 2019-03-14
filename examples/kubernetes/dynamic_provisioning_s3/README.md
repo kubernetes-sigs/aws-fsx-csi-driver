@@ -1,4 +1,4 @@
-## Dynamic Provisioning with data repository Example
+## Dynamic Provisioning with Data Repository
 This example shows how to create a FSx for Lustre filesystem using persistence volume claim (PVC) with data repository integration.
 
 Amazon FSx for Lustre is deeply integrated with Amazon S3. This integration means that you can seamlessly access the objects stored in your Amazon S3 buckets from applications mounting your Amazon FSx for Lustre file system. Please check [Using Data Repositories](https://docs.aws.amazon.com/fsx/latest/LustreGuide/fsx-data-repositories.html) for details.
@@ -22,9 +22,9 @@ parameters:
 * s3ExportPath(Optional) - S3 data repository you want to export new or modified files from persistent volume to S3
 
 Note:
-- S3Bucket in s3ImportPath and s3ExportPath must be same, otherwise the driver can not create FSx for lustre successfully.
-- S3ImportPath can stand alone and a random path will be created automatically like `s3://ml-training-data-000/FSxLustre20190308T012310Z`
-- S3ExportPath can not be given without specifying S3ImportPath.
+- S3 Bucket in s3ImportPath and s3ExportPath must be same, otherwise the driver can not create FSx for lustre successfully.
+- s3ImportPath can stand alone and a random path will be created automatically like `s3://ml-training-data-000/FSxLustre20190308T012310Z`
+- s3ExportPath can not be given without specifying S3ImportPath.
 
 ### Edit [Persistent Volume Claim Spec](./specs/claim.yaml)
 ```
@@ -50,30 +50,29 @@ Create PVC, storageclass and the pod that consumes the PV:
 >> kubectl apply -f examples/kubernetes/dynamic_provisioning/specs/pod.yaml
 ```
 
-### Use Case 1: Acccess S3 files in readonly mode, no write back.
-If you only want to import data and read it with any modification and creation. You can skip `s3ExportPath` parameter in your `storageclass.yaml` configuration.
+### Use Case 1: Acccess S3 files from Lustre filesystem
+If you only want to import data and read it without any modification and creation. You can skip `s3ExportPath` parameter in your `storageclass.yaml` configuration.
 
 You can see S3 files are visible in the persistent volume.
 
 ```
-kubectl exec -it fsx-app ls /data
+>> kubectl exec -it fsx-app ls /data
 ```
 
-### Use case 2: Sync back new created files to s3ExportPath
+### Use case 2: Archive files to s3ExportPath
+For new files and modified files, you can use lustre user space tool to archive the data back to s3 on `s3ExportPath`.
 
-Pod `fsx-app` create a file `out.txt` in mounted volume, you can run following command to check this file.
+Pod `fsx-app` create a file `out.txt` in mounted volume, run following command to check this file:
 
+```sh
+>> kubectl exec -ti fsx-app -- tail -f /data/out.txt
 ```
-kubectl exec -ti fsx-app -- tail -f /data/out.txt
+
+Export the file back to S3 using:
+```sh
+>> kubectl exec -ti fsx-app -- lfs hsm_archive /data/out.txt
 ```
 
-### Use case 3: Sync back modified S3 files to s3ExportPath
-Making change to S3 files is allowed but original files in S3 won't be updated. Instead, FSx allows you to sync these changes back to s3ExportPath.
-
-### Sync files
-New created and modified files won't be synced back to S3 automatically. In order to sync files to `S3ExportPath`, you need to install lustre client in your container image and manually run following command to force sync up.
-
-```
-sudo lfs hsm_archive /data/out.txt
-sudo lfs hsm_run /data/out.txt
-```
+## Notes
+* New created files won't be synced back to S3 automatically. In order to sync files to `s3ExportPath`, you need to install lustre client in your container image and manually run following command to force sync up using `lfs hsm_archive`. And the container should run in priviledged mode with `CAP_SYS_ADMIN` capability.
+* This example uses lifecycle hook to install lustre client for demostration purpose, a normal approach will be building a container image with lustre client.
