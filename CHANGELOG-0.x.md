@@ -1,5 +1,10 @@
 # v0.1.0
-[Documentation](https://github.com/aws/csi-driver-amazon-fsx/blob/master/docs/README.md)
+[Documentation](https://github.com/aws/aws-fsx-csi-driver/blob/v0.1.0/docs/README.md)
+
+filename  | sha512 hash
+--------- | ------------
+[v0.1.0.zip](https://github.com/aws/aws-fsx-csi-driver/archive/v0.1.0.zip) | `3f6a991028887b58304155820d176ca8f583f98f5c0ec9ba2f72912ff604c0be67ff6bacb818c823c2a87ea9578dfd5cf4db686276e3258aeff6522c55426740`
+[v0.1.0.tar.gz](https://github.com/aws/aws-fsx-csi-driver/archive/v0.1.0.tar.gz) | `2b0ba81ea414ac9ab8f6dc6dbb51648d7830f1ed38a76fe070b7ed6d6d95167b7ee1ef6ab9f8f4b11aedba730921d3f01bb43827c805366b83f3a47f75835d54`
 
 ## Changelog
 
