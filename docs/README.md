@@ -14,6 +14,7 @@ The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storag
 | AWS FSx for Lustre CSI Driver \ CSI Version       | v0.3.0| v1.0.0 |
 |---------------------------------------------------|-------|--------|
 | master branch                                     | yes   | no     |
+| v0.1.0                                            | yes   | no     |
 
 ### Features
 The following CSI interfaces are implemented:
@@ -28,11 +29,13 @@ Following sections are Kubernetes specific. If you are Kubernetes user, use foll
 | AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 |
 |---------------------------------------------------|-------|-------|-------|
 | master branch                                     | yes   | yes   | yes   |
+| v0.1.0                                            | yes   | yes   | yes   |
 
 ### Container Images
 |FSx CSI Driver Version     | Image                               |
 |---------------------------|-------------------------------------|
 |master branch              |amazon/aws-fsx-csi-driver:latest     |
+|v0.1.0                     |amazon/aws-fsx-csi-driver:v0.1.0     |
 
 ### Features
 * Static provisioning - FSx for Lustre file system needs to be created manually first, then it could be mounted inside container as a volume using the Driver.

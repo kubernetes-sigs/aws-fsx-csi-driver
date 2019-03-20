@@ -92,7 +92,7 @@ spec:
           operator: Exists
       containers:
         - name: fsx-plugin
-          image: amazon/aws-fsx-csi-driver:v0.1.0
+          image: amazon/aws-fsx-csi-driver:latest
           args :
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
