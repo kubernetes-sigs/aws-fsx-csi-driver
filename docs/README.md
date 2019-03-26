@@ -57,8 +57,7 @@ Edit the [secret manifest](../deploy/kubernetes/secret.yaml) using your favorite
 Then deploy the driver:
 
 ```sh
->> kubectl apply -f deploy/kubernetes/controller.yaml
->> kubectl apply -f deploy/kubernetes/node.yaml
+>> kubectl apply -f deploy/kubernetes/manifest.yaml
 ```
 
 ### Examples
