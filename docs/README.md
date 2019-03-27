@@ -42,23 +42,21 @@ Following sections are Kubernetes specific. If you are Kubernetes user, use foll
 * Dynamic provisioning - uses persistence volume claim (PVC) to let the Kuberenetes to create the FSx for Lustre filesystem for you and consumes the volume from inside container.
 
 ### Installation
-Checkout the project:
+#### Set up driver permission
+The driver requires IAM permission to talk to Amazon FSx for Lustre service to create/delete the filesystem on user's behalf. There are several methods to grant driver IAM permission:
+* Using secret object - create an IAM user with proper permission, put that user's credentials in [secret manifest](../deploy/kubernetes/secret.yaml) then deploy the secret.
+
 ```sh
->> git clone https://github.com/aws/aws-fsx-csi-driver.git
->> cd aws-fsx-csi-driver
+curl https://raw.githubusercontent.com/aws/csi-driver-amazon-fsx/master/deploy/kubernetes/secret.yaml > secret.yaml
+# Edit the secret with user credentials
+kubectl apply -f secret.yaml
 ```
 
-Edit the [secret manifest](../deploy/kubernetes/secret.yaml) using your favorite text editor. The secret should have enough permission to create FSx for Lustre filesystem. Then deploy the secret:
+* Using worker node instance profile - grant all the worker nodes with proper permission by attach policy to the instance profile of the worker.
 
+#### Deploy driver
 ```sh
->> kubectl apply -f deploy/kubernetes/secret.yaml
-```
-
-Then deploy the driver:
-
-```sh
->> kubectl apply -f deploy/kubernetes/controller.yaml
->> kubectl apply -f deploy/kubernetes/node.yaml
+kubectl apply -f https://raw.githubusercontent.com/aws/csi-driver-amazon-fsx/master/deploy/kubernetes/manifest.yaml
 ```
 
 ### Examples
