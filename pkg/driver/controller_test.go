@@ -218,7 +218,7 @@ func TestDeleteVolume(t *testing.T) {
 		testFunc func(t *testing.T)
 	}{
 		{
-			name: "success: normal",
+			name: "sucess: normal",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
