@@ -4,7 +4,7 @@ metadata:
   name: fsx-claim
 spec:
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   storageClassName: fsx-sc
   resources:
     requests:
