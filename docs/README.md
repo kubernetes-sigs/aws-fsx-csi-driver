@@ -1,5 +1,5 @@
-[![Build Status](https://travis-ci.org/aws/csi-driver-amazon-fsx.svg?branch=master)](https://travis-ci.org/aws/csi-driver-amazon-fsx)
-[![Coverage Status](https://coveralls.io/repos/github/aws/csi-driver-amazon-fsx/badge.svg?branch=master)](https://coveralls.io/github/aws/csi-driver-amazon-fsx?branch=master)
+[![Build Status](https://travis-ci.org/kubernetes-sigs/aws-fsx-csi-driver.svg?branch=master)](https://travis-ci.org/kubernetes-sigs/aws-fsx-csi-driver)
+[![Coverage Status](https://coveralls.io/repos/github/kubernetes-sigs/aws-fsx-csi-driver/badge.svg?branch=master)](https://coveralls.io/github/kubernetes-sigs/aws-fsx-csi-driver?branch=master)
 
 **WARNING**: This driver is currently an ALPHA release. This means that there may potentially be backwards compatible breaking changes moving forward. Do NOT use this driver in a production environment in its current state.
 
@@ -47,7 +47,7 @@ The driver requires IAM permission to talk to Amazon FSx for Lustre service to c
 * Using secret object - create an IAM user with proper permission, put that user's credentials in [secret manifest](../deploy/kubernetes/secret.yaml) then deploy the secret.
 
 ```sh
-curl https://raw.githubusercontent.com/aws/csi-driver-amazon-fsx/master/deploy/kubernetes/secret.yaml > secret.yaml
+curl https://raw.githubusercontent.com/kubernetes-sigs/aws-fsx-csi-driver/master/deploy/kubernetes/secret.yaml > secret.yaml
 # Edit the secret with user credentials
 kubectl apply -f secret.yaml
 ```
@@ -56,7 +56,7 @@ kubectl apply -f secret.yaml
 
 #### Deploy driver
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/aws/csi-driver-amazon-fsx/master/deploy/kubernetes/manifest.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-fsx-csi-driver/master/deploy/kubernetes/manifest.yaml
 ```
 
 ### Examples
