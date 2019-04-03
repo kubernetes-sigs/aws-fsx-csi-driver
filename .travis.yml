@@ -1,5 +1,5 @@
 language: go
-go_import_path: github.com/aws/aws-fsx-csi-driver
+go_import_path: github.com/kubernetes-sigs/aws-fsx-csi-driver
 
 env:
   global:
