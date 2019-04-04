@@ -218,7 +218,7 @@ func TestDeleteVolume(t *testing.T) {
 		testFunc func(t *testing.T)
 	}{
 		{
-			name: "sucess: normal",
+			name: "success: normal",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
@@ -237,7 +237,7 @@ func TestDeleteVolume(t *testing.T) {
 				mockCloud.EXPECT().DeleteFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(nil)
 				_, err := driver.DeleteVolume(ctx, req)
 				if err != nil {
-					t.Fatalf("CreateVolume is failed: %v", err)
+					t.Fatalf("DeleteVolume is failed: %v", err)
 				}
 
 				mockCtl.Finish()
@@ -259,7 +259,7 @@ func TestDeleteVolume(t *testing.T) {
 				ctx := context.Background()
 				_, err := driver.DeleteVolume(ctx, req)
 				if err == nil {
-					t.Fatal("CreateVolume is not failed")
+					t.Fatal("DeleteVolume is not failed")
 				}
 
 				mockCtl.Finish()
@@ -284,7 +284,7 @@ func TestDeleteVolume(t *testing.T) {
 				mockCloud.EXPECT().DeleteFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(cloud.ErrNotFound)
 				_, err := driver.DeleteVolume(ctx, req)
 				if err != nil {
-					t.Fatalf("CreateVolume is failed: %v", err)
+					t.Fatalf("DeleteVolume is failed: %v", err)
 				}
 
 				mockCtl.Finish()
@@ -309,7 +309,7 @@ func TestDeleteVolume(t *testing.T) {
 				mockCloud.EXPECT().DeleteFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(errors.New("DeleteFileSystem failed"))
 				_, err := driver.DeleteVolume(ctx, req)
 				if err == nil {
-					t.Fatal("CreateVolume is not failed")
+					t.Fatal("DeleteVolume is not failed")
 				}
 
 				mockCtl.Finish()
