@@ -38,7 +38,7 @@ spec:
   storageClassName: fsx-sc
   resources:
     requests:
-      storage: 5Gi
+      storage: 3600Gi
 ```
 Update `spec.resource.requests.storage` with the storage capacity to request. The storage capacity value will be rounded up multiplication of 3600GiB.
 
