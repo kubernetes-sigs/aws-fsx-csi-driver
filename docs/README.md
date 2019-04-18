@@ -54,6 +54,30 @@ kubectl apply -f secret.yaml
 
 * Using worker node instance profile - grant all the worker nodes with proper permission by attach policy to the instance profile of the worker.
 
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateServiceLinkedRole",
+        "iam:AttachRolePolicy",
+        "iam:PutRolePolicy"
+       ],
+      "Resource": "arn:aws:iam::*:role/aws-service-role/s3.data-source.lustre.fsx.amazonaws.com/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "fsx:*"
+      ],
+      "Resource": ["*"]
+    }
+  ]
+}
+```
+
 #### Deploy driver
 ```sh
 kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-fsx-csi-driver/master/deploy/kubernetes/manifest.yaml
