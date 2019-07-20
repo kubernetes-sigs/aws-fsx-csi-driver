@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"testing"
 
-	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
+	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
 	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/driver/mocks"
 )
@@ -62,7 +62,7 @@ func TestNodePublishVolume(t *testing.T) {
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId: "volumeId",
-					VolumeAttributes: map[string]string{
+					VolumeContext: map[string]string{
 						"dnsname": dnsname,
 					},
 					VolumeCapability: stdVolCap,
@@ -93,7 +93,7 @@ func TestNodePublishVolume(t *testing.T) {
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId:         "volumeId",
-					VolumeAttributes: map[string]string{},
+					VolumeContext:    map[string]string{},
 					VolumeCapability: stdVolCap,
 					TargetPath:       targetPath,
 				}
@@ -120,7 +120,7 @@ func TestNodePublishVolume(t *testing.T) {
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId: "volumeId",
-					VolumeAttributes: map[string]string{
+					VolumeContext: map[string]string{
 						"dnsname": dnsname,
 					},
 					VolumeCapability: stdVolCap,
@@ -148,7 +148,7 @@ func TestNodePublishVolume(t *testing.T) {
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId: "volumeId",
-					VolumeAttributes: map[string]string{
+					VolumeContext: map[string]string{
 						"dnsname": dnsname,
 					},
 					TargetPath: targetPath,
@@ -176,7 +176,7 @@ func TestNodePublishVolume(t *testing.T) {
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId: "volumeId",
-					VolumeAttributes: map[string]string{
+					VolumeContext: map[string]string{
 						"dnsname": dnsname,
 					},
 					VolumeCapability: &csi.VolumeCapability{
@@ -212,7 +212,7 @@ func TestNodePublishVolume(t *testing.T) {
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId: "volumeId",
-					VolumeAttributes: map[string]string{
+					VolumeContext: map[string]string{
 						"dnsname": dnsname,
 					},
 					VolumeCapability: stdVolCap,
@@ -244,7 +244,7 @@ func TestNodePublishVolume(t *testing.T) {
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId: "volumeId",
-					VolumeAttributes: map[string]string{
+					VolumeContext: map[string]string{
 						"dnsname": dnsname,
 					},
 					VolumeCapability: stdVolCap,
