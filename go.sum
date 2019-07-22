@@ -25,8 +25,8 @@ github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af/go.mod h1:Nht
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
 github.com/kubernetes-csi/csi-test v0.3.0-2 h1:RsVmFc3AlpjQdyfMKiphvd8igXwOI7lQgWo+kJAh49c=
 github.com/kubernetes-csi/csi-test v0.3.0-2/go.mod h1:YxJ4UiuPWIhMBkxUKY5c267DyA0uDZ/MtAimhx/2TA0=
-github.com/kubernetes-csi/csi-test v2.0.1+incompatible h1:I1vqMmF42KywPatkdP2PMx9u/jeDPTdV/rWjABrH/tg=
-github.com/kubernetes-csi/csi-test v2.0.1+incompatible/go.mod h1:YxJ4UiuPWIhMBkxUKY5c267DyA0uDZ/MtAimhx/2TA0=
+github.com/kubernetes-csi/csi-test v2.1.0+incompatible h1:tAwEHWnkd5jK1zgkTrYZogbG1xoyaFBWEED3vuB8iAI=
+github.com/kubernetes-csi/csi-test v2.1.0+incompatible/go.mod h1:YxJ4UiuPWIhMBkxUKY5c267DyA0uDZ/MtAimhx/2TA0=
 github.com/mattn/goveralls v0.0.2 h1:7eJB6EqsPhRVxvwEXGnqdO2sJI0PTsrWoTMXEk9/OQc=
 github.com/mattn/goveralls v0.0.2/go.mod h1:8d1ZMHsd7fW6IRPKQh46F2WRpyib5/X4FOpevwGNQEw=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=

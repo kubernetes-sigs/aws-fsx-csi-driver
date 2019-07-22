@@ -342,9 +342,14 @@ func TestControllerGetCapabilities(t *testing.T) {
 func TestValidateVolumeCapabilities(t *testing.T) {
 
 	var (
-		endpoint     = "endpoint"
-		fileSystemId = "fs-12345"
-		stdVolCap    = &csi.VolumeCapability{
+		endpoint         = "endpoint"
+		fileSystemId     = "fs-12345"
+		subnetId         = "subnet-056da83524edbe641"
+		securityGroupIds = "sg-086f61ea73388fb6b,sg-0145e55e976000c9e"
+		dnsname          = "test.fsx.us-west-2.amazoawd.com"
+		s3ImportPath     = "s3://ml-training-data-000"
+		s3ExportPath     = "s3://ml-training-data-000/export"
+		stdVolCap        = &csi.VolumeCapability{
 			AccessType: &csi.VolumeCapability_Mount{
 				Mount: &csi.VolumeCapability_MountVolume{},
 			},
@@ -374,15 +379,22 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(fs, nil)
 
 				req := &csi.ValidateVolumeCapabilitiesRequest{
-					VolumeId: fileSystemId,
+					VolumeId:      fileSystemId,
+					VolumeContext: map[string]string{"dnsname": dnsname},
 					VolumeCapabilities: []*csi.VolumeCapability{
 						stdVolCap,
+					},
+					Parameters: map[string]string{
+						"subnetId":         subnetId,
+						"securityGroupIds": securityGroupIds,
+						"s3ImportPath":     s3ImportPath,
+						"s3ExportPath":     s3ExportPath,
 					},
 				}
 
 				resp, err := driver.ValidateVolumeCapabilities(ctx, req)
 				if err != nil {
-					t.Fatalf("ControllerGetCapabilities is failed: %v", err)
+					t.Fatalf("ValidateVolumeCapabilities is failed: %v", err)
 				}
 				if resp.Confirmed == nil {
 					t.Fatal("capability is not supported")
@@ -410,14 +422,14 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 
 				_, err := driver.ValidateVolumeCapabilities(ctx, req)
 				if err == nil {
-					t.Fatal("ControllerGetCapabilities is not failed")
+					t.Fatal("ValidateVolumeCapabilities is not failed")
 				}
 
 				mockCtl.Finish()
 			},
 		},
 		{
-			name: "fail: volueme capability is missing",
+			name: "fail: volume capability is missing",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
@@ -434,7 +446,69 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 
 				_, err := driver.ValidateVolumeCapabilities(ctx, req)
 				if err == nil {
-					t.Fatal("ControllerGetCapabilities is not failed")
+					t.Fatal("ValidateVolumeCapabilities is not failed")
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "fail: volume context is invalid",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				ctx := context.Background()
+				req := &csi.ValidateVolumeCapabilitiesRequest{
+					VolumeId:      fileSystemId,
+					VolumeContext: map[string]string{"foo": "bar"},
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+				}
+
+				resp, err := driver.ValidateVolumeCapabilities(ctx, req)
+				if err != nil {
+					t.Fatalf("ValidateVolumeCapabilities is failed: %v", err)
+				}
+				if resp.Confirmed != nil {
+					t.Fatalf("ValidateVolumeCapabilities set confirmed unexpectedly: %v", err)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "fail: parameters are invalid",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				ctx := context.Background()
+				req := &csi.ValidateVolumeCapabilitiesRequest{
+					VolumeId: fileSystemId,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					Parameters: map[string]string{"foo": "bar"},
+				}
+
+				resp, err := driver.ValidateVolumeCapabilities(ctx, req)
+				if err != nil {
+					t.Fatalf("ValidateVolumeCapabilities is failed: %v", err)
+				}
+				if resp.Confirmed != nil {
+					t.Fatalf("ValidateVolumeCapabilities set confirmed unexpectedly: %v", err)
 				}
 
 				mockCtl.Finish()

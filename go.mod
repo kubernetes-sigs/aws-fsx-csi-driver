@@ -5,7 +5,7 @@ require (
 	github.com/container-storage-interface/spec v1.1.0
 	github.com/davecgh/go-spew v1.1.0 // indirect
 	github.com/golang/mock v1.2.0
-	github.com/kubernetes-csi/csi-test v2.0.1+incompatible
+	github.com/kubernetes-csi/csi-test v2.1.0+incompatible
 	github.com/mattn/goveralls v0.0.2 // indirect
 	github.com/onsi/ginkgo v1.7.0
 	github.com/onsi/gomega v1.4.3

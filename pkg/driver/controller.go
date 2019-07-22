@@ -18,6 +18,7 @@ package driver
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -25,6 +26,7 @@ import (
 	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 )
 
@@ -33,6 +35,8 @@ var (
 	controllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 	}
+	validVolumeContext = sets.NewString("dnsname")
+	validParameters    = sets.NewString("subnetId", "securityGroupIds", "s3ImportPath", "s3ExportPath")
 )
 
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -62,6 +66,11 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	volumeParams := req.GetParameters()
+	invalidParams := d.isValidParameters(volumeParams)
+	if len(invalidParams) > 0 {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume parameters %v not supported", invalidParams))
+	}
+
 	subnetId := volumeParams["subnetId"]
 	securityGroupIds := volumeParams["securityGroupIds"]
 	fsOptions := &cloud.FileSystemOptions{
@@ -159,27 +168,60 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 		return nil, status.Error(codes.InvalidArgument, "Volume capabilities not provided")
 	}
 
-	if _, err := d.cloud.DescribeFileSystem(ctx, volumeID); err != nil {
-		if err == cloud.ErrNotFound {
-			return nil, status.Error(codes.NotFound, "Volume not found")
-		}
-		return nil, status.Errorf(codes.Internal, "Could not get volume with ID %q: %v", volumeID, err)
-	}
+	volContext := req.GetVolumeContext()
+	invalidContext := d.isValidVolumeContext(volContext)
+	contextValid := len(invalidContext) == 0
 
-	confirmed := d.isValidVolumeCapabilities(volCaps)
-	if confirmed {
+	capsValid := d.isValidVolumeCapabilities(volCaps)
+
+	volParams := req.GetParameters()
+	invalidParams := d.isValidParameters(volParams)
+	paramsValid := len(invalidParams) == 0
+
+	if contextValid && capsValid && paramsValid {
+		if _, err := d.cloud.DescribeFileSystem(ctx, volumeID); err != nil {
+			if err == cloud.ErrNotFound {
+				return nil, status.Error(codes.NotFound, "Volume not found")
+			}
+			return nil, status.Errorf(codes.Internal, "Could not get volume with ID %q: %v", volumeID, err)
+		}
+
 		return &csi.ValidateVolumeCapabilitiesResponse{
 			Confirmed: &csi.ValidateVolumeCapabilitiesResponse_Confirmed{
-				// TODO if volume context is provided, should validate it too
-				// VolumeContext:      req.GetVolumeContext(),
+				VolumeContext:      volContext,
 				VolumeCapabilities: volCaps,
-				// TODO if parameters are provided, should validate them too
-				// Parameters:      req.GetParameters(),
+				Parameters:         volParams,
 			},
 		}, nil
 	} else {
-		return &csi.ValidateVolumeCapabilitiesResponse{}, nil
+		message := ""
+		if !contextValid {
+			message += fmt.Sprintf("Volume context %v not supported;", invalidContext)
+		}
+		if !capsValid {
+			message += "Volume capabilities not supported;"
+		}
+		if !paramsValid {
+			message += fmt.Sprintf("Volume parameters %v not supported;", invalidParams)
+		}
+		return &csi.ValidateVolumeCapabilitiesResponse{
+			Message: message,
+		}, nil
 	}
+}
+
+// isValidVolumeContext returns nil if the volume context is valid or an array of invalid ones
+func (d *Driver) isValidVolumeContext(volumeContext map[string]string) []string {
+	invalidVolumeContext := []string{}
+	for k := range volumeContext {
+		if !validVolumeContext.Has(k) {
+			invalidVolumeContext = append(invalidVolumeContext, k)
+		}
+	}
+	if len(invalidVolumeContext) > 0 {
+		return invalidVolumeContext
+	}
+	return nil
 }
 
 func (d *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) bool {
@@ -199,6 +241,20 @@ func (d *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) bool
 		}
 	}
 	return foundAll
+}
+
+// isValidParameters returns nil if the parameters are valid or an array of invalid ones
+func (d *Driver) isValidParameters(parameters map[string]string) []string {
+	invalidParameters := []string{}
+	for k := range parameters {
+		if !validParameters.Has(k) {
+			invalidParameters = append(invalidParameters, k)
+		}
+	}
+	if len(invalidParameters) > 0 {
+		return invalidParameters
+	}
+	return nil
 }
 
 func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
