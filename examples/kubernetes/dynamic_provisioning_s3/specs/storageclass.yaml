@@ -8,3 +8,5 @@ parameters:
   securityGroupIds: sg-086f61ea73388fb6b
   s3ImportPath: s3://ml-training-data-000
   s3ExportPath: s3://ml-training-data-000/export
+mountOptions:
+  - flock

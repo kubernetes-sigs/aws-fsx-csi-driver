@@ -39,7 +39,8 @@ Following sections are Kubernetes specific. If you are Kubernetes user, use foll
 
 ### Features
 * Static provisioning - FSx for Lustre file system needs to be created manually first, then it could be mounted inside container as a volume using the Driver.
-* Dynamic provisioning - uses persistence volume claim (PVC) to let the Kuberenetes to create the FSx for Lustre filesystem for you and consumes the volume from inside container.
+* Dynamic provisioning - uses persistent volume claim (PVC) to let the Kuberenetes to create the FSx for Lustre filesystem for you and consumes the volume from inside container.
+* Mount options - mount options can be specified in persistent volume (PV) to define how the volume should be mounted.
 
 ### Installation
 #### Set up driver permission
