@@ -1,58 +1,7 @@
 ---
 
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: csi-node-sa
-  namespace: kube-system
-
----
-
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: csi-node
-  namespace: default
-rules:
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get", "list"]
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["get", "list", "update"]
-  - apiGroups: [""]
-    resources: ["namespaces"]
-    verbs: ["get", "list"]
-  - apiGroups: [""]
-    resources: ["persistentvolumes"]
-    verbs: ["get", "list", "watch", "update"]
-  - apiGroups: ["storage.k8s.io"]
-    resources: ["volumeattachments"]
-    verbs: ["get", "list", "watch", "update"]
-  - apiGroups: ["csi.storage.k8s.io"]
-    resources: ["csinodeinfos"]
-    verbs: ["get", "list", "watch", "update"]
-
----
-
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: csi-node
-  namespace: default
-subjects:
-  - kind: ServiceAccount
-    name: csi-node-sa
-    namespace: default
-roleRef:
-  kind: ClusterRole
-  name: csi-node
-  apiGroup: rbac.authorization.k8s.io
-
----
-
 kind: DaemonSet
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 metadata:
   name: fsx-csi-node
   namespace: kube-system
@@ -65,7 +14,8 @@ spec:
       labels:
         app: fsx-csi-node
     spec:
-      serviceAccount: csi-node-sa
+      nodeSelector:
+        beta.kubernetes.io/os: linux
       hostNetwork: true
       containers:
         - name: fsx-plugin
@@ -85,15 +35,22 @@ spec:
               mountPropagation: "Bidirectional"
             - name: plugin-dir
               mountPath: /csi
-            - name: device-dir
-              mountPath: /dev
+          ports:
+            - containerPort: 9810
+              name: healthz
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /healthz
+              port: healthz
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 2
         - name: csi-driver-registrar
-          image: quay.io/k8scsi/driver-registrar:v0.4.2
+          image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
           args:
             - --csi-address=$(ADDRESS)
-            - --mode=node-register
-            - --driver-requires-attachment=true
-            - --pod-info-mount-version="v1"
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
             - --v=5
           env:
@@ -110,31 +67,35 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
+        - name: liveness-probe
+          imagePullPolicy: Always
+          image: quay.io/k8scsi/livenessprobe:v1.1.0
+          args:
+            - --csi-address=/csi/csi.sock
+            - --health-port=9810
+          volumeMounts:
+            - mountPath: /csi
+              name: plugin-dir
       volumes:
         - name: kubelet-dir
           hostPath:
             path: /var/lib/kubelet
             type: Directory
+        - name: registration-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins_registry/
+            type: Directory
         - name: plugin-dir
           hostPath:
             path: /var/lib/kubelet/plugins/fsx.csi.aws.com/
             type: DirectoryOrCreate
-        - name: registration-dir
-          hostPath:
-            path: /var/lib/kubelet/plugins/
-            type: Directory
-        - name: device-dir
-          hostPath:
-            path: /dev
-            type: Directory
-
 
 ---
 
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: csi-controller-sa
+  name: fsx-csi-controller-sa
   namespace: kube-system
 
 ---
@@ -142,7 +103,7 @@ metadata:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: external-provisioner-role
+  name: fsx-csi-external-provisioner-role
 rules:
   - apiGroups: [""]
     resources: ["persistentvolumes"]
@@ -155,70 +116,50 @@ rules:
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["events"]
-    verbs: ["get", "list", "watch", "create", "update", "patch"]
-
----
-
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: csi-provisioner-binding
-subjects:
-  - kind: ServiceAccount
-    name: csi-controller-sa
-    namespace: kube-system
-roleRef:
-  kind: ClusterRole
-  name: external-provisioner-role
-  apiGroup: rbac.authorization.k8s.io
-
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: external-attacher-role
-rules:
-  - apiGroups: [""]
-    resources: ["persistentvolumes"]
-    verbs: ["get", "list", "watch", "update"]
+    verbs: ["list", "watch", "create", "update", "patch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["csinodes"]
+    verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["nodes"]
     verbs: ["get", "list", "watch"]
-  - apiGroups: ["storage.k8s.io"]
-    resources: ["volumeattachments"]
-    verbs: ["get", "list", "watch", "update"]
 
 ---
 
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-attacher-binding
+  name: fsx-csi-external-provisioner-binding
 subjects:
   - kind: ServiceAccount
-    name: csi-controller-sa
+    name: fsx-csi-controller-sa
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: external-attacher-role
+  name: fsx-csi-external-provisioner-role
   apiGroup: rbac.authorization.k8s.io
 
 ---
 
 kind: StatefulSet
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 metadata:
   name: fsx-csi-controller
   namespace: kube-system
 spec:
   serviceName: fsx-csi-controller
   replicas: 1
+  selector:
+    matchLabels:
+      app: fsx-csi-controller
   template:
     metadata:
       labels:
         app: fsx-csi-controller
     spec:
-      serviceAccount: csi-controller-sa
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      serviceAccount: fsx-csi-controller-sa
       priorityClassName: system-cluster-critical
       tolerations:
         - key: CriticalAddonsOnly
@@ -249,21 +190,9 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-provisioner
-          image: quay.io/k8scsi/csi-provisioner:v0.4.2
+          image: quay.io/k8scsi/csi-provisioner:v1.3.0
           args:
-            - --provisioner=fsx.csi.aws.com
-            - --csi-address=$(ADDRESS)
-            - --connection-timeout=5m
-            - --v=5
-          env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-          volumeMounts:
-            - name: socket-dir
-              mountPath: /var/lib/csi/sockets/pluginproxy/
-        - name: csi-attacher
-          image: quay.io/k8scsi/csi-attacher:v0.4.2
-          args:
+            - --timeout=5m
             - --csi-address=$(ADDRESS)
             - --v=5
           env:
@@ -275,3 +204,12 @@ spec:
       volumes:
         - name: socket-dir
           emptyDir: {}
+
+---
+
+apiVersion: storage.k8s.io/v1beta1
+kind: CSIDriver
+metadata:
+  name: efs.csi.aws.com
+spec:
+  attachRequired: false
