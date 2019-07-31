@@ -12,13 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+PKG=github.com/kubernetes-sigs/aws-fsx-csi-driver
 IMAGE=amazon/aws-fsx-csi-driver
 VERSION=0.1.0
+GIT_COMMIT?=$(shell git rev-parse HEAD)
+BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE}"
 
 .PHONY: aws-fsx-csi-driver
 aws-fsx-csi-driver:
 	mkdir -p bin
-	CGO_ENABLED=0 GOOS=linux go build -ldflags "-X github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/driver.vendorVersion=${VERSION}" -o bin/aws-fsx-csi-driver ./cmd/
+	CGO_ENABLED=0 GOOS=linux go build -ldflags ${LDFLAGS} -o bin/aws-fsx-csi-driver ./cmd/
 
 .PHONY: test
 test:
