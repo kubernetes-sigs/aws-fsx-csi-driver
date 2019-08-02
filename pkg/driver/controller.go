@@ -20,7 +20,7 @@ import (
 	"context"
 	"strings"
 
-	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
+	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/cloud"
 	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/util"
 	"google.golang.org/grpc/codes"
@@ -93,7 +93,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Errorf(codes.Internal, "Filesystem is not ready: %v", err)
 	}
 
-	return newCreatVolumeResponse(fs), nil
+	return newCreateVolumeResponse(fs), nil
 }
 
 func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
@@ -166,10 +166,20 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 		return nil, status.Errorf(codes.Internal, "Could not get volume with ID %q: %v", volumeID, err)
 	}
 
-	supported := d.isValidVolumeCapabilities(volCaps)
-	return &csi.ValidateVolumeCapabilitiesResponse{
-		Supported: supported,
-	}, nil
+	confirmed := d.isValidVolumeCapabilities(volCaps)
+	if confirmed {
+		return &csi.ValidateVolumeCapabilitiesResponse{
+			Confirmed: &csi.ValidateVolumeCapabilitiesResponse_Confirmed{
+				// TODO if volume context is provided, should validate it too
+				// VolumeContext:      req.GetVolumeContext(),
+				VolumeCapabilities: volCaps,
+				// TODO if parameters are provided, should validate them too
+				// Parameters:      req.GetParameters(),
+			},
+		}, nil
+	} else {
+		return &csi.ValidateVolumeCapabilitiesResponse{}, nil
+	}
 }
 
 func (d *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) bool {
@@ -203,12 +213,16 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-func newCreatVolumeResponse(fs *cloud.FileSystem) *csi.CreateVolumeResponse {
+func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "")
+}
+
+func newCreateVolumeResponse(fs *cloud.FileSystem) *csi.CreateVolumeResponse {
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
-			Id:            fs.FileSystemId,
+			VolumeId:      fs.FileSystemId,
 			CapacityBytes: util.GiBToBytes(fs.CapacityGiB),
-			Attributes: map[string]string{
+			VolumeContext: map[string]string{
 				"dnsname": fs.DnsName,
 			},
 		},

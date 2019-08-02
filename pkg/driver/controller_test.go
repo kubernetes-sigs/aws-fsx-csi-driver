@@ -21,7 +21,7 @@ import (
 	"errors"
 	"testing"
 
-	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
+	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
 	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/cloud"
 	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/driver/mocks"
@@ -90,15 +90,15 @@ func TestCreateVolume(t *testing.T) {
 					t.Fatal("resp.Volume is nil")
 				}
 
-				if resp.Volume.Id != fileSystemId {
-					t.Fatalf("VolumeId mismatches. actual: %v expected: %v", resp.Volume.Id, fileSystemId)
+				if resp.Volume.VolumeId != fileSystemId {
+					t.Fatalf("VolumeId mismatches. actual: %v expected: %v", resp.Volume.VolumeId, fileSystemId)
 				}
 
 				if resp.Volume.CapacityBytes == 0 {
 					t.Fatalf("resp.Volume.CapacityGiB is zero")
 				}
 
-				name, exists := resp.Volume.Attributes["dnsname"]
+				name, exists := resp.Volume.VolumeContext["dnsname"]
 				if !exists {
 					t.Fatal("dnsname is missing")
 				}
@@ -384,7 +384,7 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 				if err != nil {
 					t.Fatalf("ControllerGetCapabilities is failed: %v", err)
 				}
-				if !resp.Supported {
+				if resp.Confirmed == nil {
 					t.Fatal("capability is not supported")
 				}
 				mockCtl.Finish()

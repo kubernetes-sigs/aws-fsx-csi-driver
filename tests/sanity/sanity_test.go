@@ -53,6 +53,7 @@ var _ = AfterSuite(func() {
 })
 
 var _ = Describe("AWS FSx for Lustre CSI Driver", func() {
+	_ = os.MkdirAll("/tmp/csi", os.ModePerm)
 	config := &sanity.Config{
 		Address:        endpoint,
 		TargetPath:     mountPath,
