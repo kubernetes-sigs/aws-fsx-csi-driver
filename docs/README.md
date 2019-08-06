@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/kubernetes-sigs/aws-fsx-csi-driver.svg?branch=master)](https://travis-ci.org/kubernetes-sigs/aws-fsx-csi-driver)
 [![Coverage Status](https://coveralls.io/repos/github/kubernetes-sigs/aws-fsx-csi-driver/badge.svg?branch=master)](https://coveralls.io/github/kubernetes-sigs/aws-fsx-csi-driver?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-sigs/aws-fsx-csi-driver)](https://goreportcard.com/report/github.com/kubernetes-sigs/aws-fsx-csi-driver)
 
 **WARNING**: This driver is currently an ALPHA release. This means that there may potentially be backwards compatible breaking changes moving forward. Do NOT use this driver in a production environment in its current state.
 
@@ -11,9 +12,9 @@
 The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storage Interface (CSI) Driver implements [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) specification for container orchestrators (CO) to manage lifecycle of Amazon FSx for Lustre filesystems.
 
 ### CSI Specification Compability Matrix
-| AWS FSx for Lustre CSI Driver \ CSI Version       | v0.3.0| v1.0.0 |
+| AWS FSx for Lustre CSI Driver \ CSI Version       | v0.3.0| v1.1.0 |
 |---------------------------------------------------|-------|--------|
-| master branch                                     | yes   | no     |
+| master branch                                     | no    | yes    |
 | v0.1.0                                            | yes   | no     |
 
 ### Features
@@ -26,10 +27,10 @@ The following CSI interfaces are implemented:
 Following sections are Kubernetes specific. If you are Kubernetes user, use followings for driver features, installation steps and examples.
 
 ### Kubernetes Version Compability Matrix
-| AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 |
-|---------------------------------------------------|-------|-------|-------|
-| master branch                                     | yes   | yes   | yes   |
-| v0.1.0                                            | yes   | yes   | yes   |
+| AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 | v1.14 |
+|---------------------------------------------------|-------|-------|-------|-------|
+| master branch                                     | no    | no    | no    | yes   |
+| v0.1.0                                            | yes   | yes   | yes   | no    |
 
 ### Container Images
 |FSx CSI Driver Version     | Image                               |
