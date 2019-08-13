@@ -94,7 +94,7 @@ func TestNodePublishVolume(t *testing.T) {
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId: "volumeId",
-					VolumeAttributes: map[string]string{
+					VolumeContext: map[string]string{
 						"dnsname": dnsname,
 					},
 					VolumeCapability: stdVolCap,
@@ -127,7 +127,7 @@ func TestNodePublishVolume(t *testing.T) {
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId: "volumeId",
-					VolumeAttributes: map[string]string{
+					VolumeContext: map[string]string{
 						"dnsname": dnsname,
 					},
 					VolumeCapability: &csi.VolumeCapability{
