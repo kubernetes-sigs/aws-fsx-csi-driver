@@ -210,6 +210,6 @@ spec:
 apiVersion: storage.k8s.io/v1beta1
 kind: CSIDriver
 metadata:
-  name: efs.csi.aws.com
+  name: fsx.csi.aws.com
 spec:
   attachRequired: false
