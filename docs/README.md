@@ -4,8 +4,6 @@
 
 **WARNING**: This driver is currently an ALPHA release. This means that there may potentially be backwards compatible breaking changes moving forward. Do NOT use this driver in a production environment in its current state.
 
-**DISCLAIMER**: This is not an officially supported Amazon product
-
 ## Amazon FSx for Lustre CSI Driver
 ### Overview
 
