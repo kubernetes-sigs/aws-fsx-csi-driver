@@ -1,3 +1,20 @@
+# v0.2.0
+
+## Changelog
+
+### Notable changes
+* Merge Deployment Manifests ([#51](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/51), [@christopherhein](https://github.com/christopherhein))
+* Update README for driver permission and installation ([#52](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/52), [@leakingtapan](https://github.com/leakingtapan))
+* Change static and dynamic example to use ReadWriteMany by default ([#58](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/58), [@chyz198](https://github.com/chyz198))
+* Update README for org change ([#59](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/59), [@leakingtapan](https://github.com/leakingtapan))
+* Update repo references ([#60](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/60), [@chenrui333](https://github.com/chenrui333))
+* Add iam policy for FSx driver ([#62](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/62), [@Jeffwan](https://github.com/Jeffwan))
+* Update to CSI v1.1.0 ([#69](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/69), [@wongma7](https://github.com/wongma7))
+* Added flag for version information output ([#73](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/73), [@wongma7](https://github.com/wongma7))
+* Implement mount options support ([#74](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/74), [@wongma7](https://github.com/wongma7))
+* Bump driver version to 0.2.0 ([#86](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/86), [@leakingtapan](https://github.com/leakingtapan))
+* Bump golang version to 1.12.7 ([#87](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/87), [@leakingtapan](https://github.com/leakingtapan))
+
 # v0.1.0
 [Documentation](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/blob/v0.1.0/docs/README.md)
 
