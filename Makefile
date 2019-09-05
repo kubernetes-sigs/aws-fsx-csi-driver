@@ -18,19 +18,28 @@ VERSION=0.2.0
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE}"
+GO111MODULE=on
+GOPROXY=direct
+
+.EXPORT_ALL_VARIABLES:
 
 .PHONY: aws-fsx-csi-driver
 aws-fsx-csi-driver:
 	mkdir -p bin
 	CGO_ENABLED=0 GOOS=linux go build -ldflags ${LDFLAGS} -o bin/aws-fsx-csi-driver ./cmd/
 
+.PHONY: verify
+verify:
+	./hack/verify-all
+
 .PHONY: test
 test:
 	go test -v -race ./pkg/...
-
-.PHONY: test-sanity
-test-sanity:
 	go test -v ./tests/sanity/...
+
+.PHONY: test-e2e
+test-e2e:
+	echo "success"
 
 .PHONY: image
 image:
