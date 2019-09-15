@@ -24,8 +24,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -107,15 +105,8 @@ func NewCloud() (Cloud, error) {
 		return nil, fmt.Errorf("could not get metadata from AWS: %v", err)
 	}
 
-	provider := []credentials.Provider{
-		&credentials.EnvProvider{},
-		&ec2rolecreds.EC2RoleProvider{Client: svc},
-		&credentials.SharedCredentialsProvider{},
-	}
-
 	awsConfig := &aws.Config{
 		Region:                        aws.String(metadata.GetRegion()),
-		Credentials:                   credentials.NewChainCredentials(provider),
 		CredentialsChainVerboseErrors: aws.Bool(true),
 	}
 
