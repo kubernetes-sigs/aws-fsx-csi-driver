@@ -29,7 +29,7 @@ func TestGiBToBytes(t *testing.T) {
 	}
 }
 
-func TestRoundUp3600GiB(t *testing.T) {
+func TestRoundUpVolumeSize(t *testing.T) {
 	testCases := []struct {
 		name        string
 		sizeInBytes int64
@@ -38,16 +38,26 @@ func TestRoundUp3600GiB(t *testing.T) {
 		{
 			name:        "Roundup 1 byte",
 			sizeInBytes: 1,
-			expected:    3600,
+			expected:    1200,
 		},
 		{
 			name:        "Roundup 1 Gib",
 			sizeInBytes: 1 * GiB,
-			expected:    3600,
+			expected:    1200,
+		},
+		{
+			name:        "Roundup 1000 Gib",
+			sizeInBytes: 1000 * GiB,
+			expected:    1200,
 		},
 		{
 			name:        "Roundup 2000 Gib",
 			sizeInBytes: 2000 * GiB,
+			expected:    2400,
+		},
+		{
+			name:        "Roundup 3000 Gib",
+			sizeInBytes: 3000 * GiB,
 			expected:    3600,
 		},
 		{
@@ -64,9 +74,9 @@ func TestRoundUp3600GiB(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := RoundUp3600GiB(tc.sizeInBytes)
+			actual := RoundUpVolumeSize(tc.sizeInBytes)
 			if actual != tc.expected {
-				t.Fatalf("RoundUp3600GiB got wrong result. actual: %d, expected: %d", actual, tc.expected)
+				t.Fatalf("RoundUpVolumeSize got wrong result. actual: %d, expected: %d", actual, tc.expected)
 			}
 		})
 	}

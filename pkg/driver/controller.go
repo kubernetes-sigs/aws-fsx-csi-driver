@@ -58,7 +58,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	if capRange == nil {
 		volumeSizeGiB = cloud.DefaultVolumeSize
 	} else {
-		volumeSizeGiB = util.RoundUp3600GiB(capRange.GetRequiredBytes())
+		volumeSizeGiB = util.RoundUpVolumeSize(capRange.GetRequiredBytes())
 	}
 
 	volumeParams := req.GetParameters()
