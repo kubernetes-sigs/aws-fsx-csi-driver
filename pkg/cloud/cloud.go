@@ -35,7 +35,7 @@ import (
 const (
 	// DefaultVolumeSize represents the default size used
 	// this is the minimum FSx for Lustre FS size
-	DefaultVolumeSize = 3600
+	DefaultVolumeSize = 1200
 )
 
 // Tags
