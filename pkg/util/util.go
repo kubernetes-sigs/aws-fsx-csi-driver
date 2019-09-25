@@ -29,10 +29,15 @@ const (
 	GiB = 1024 * 1024 * 1024
 )
 
-// RoundUp3600GiB rounds up the volume size in bytes upto
-// multiplications of 3600 GiB in the unit of GiB
-func RoundUp3600GiB(volumeSizeBytes int64) int64 {
-	return roundUpSize(volumeSizeBytes, 3600*GiB) * 3600
+// RoundUpVolumeSize rounds up the volume size in bytes upto
+// 1200 GiB, 2400 GiB, or multiplications of 3600 GiB in the
+// unit of GiB
+func RoundUpVolumeSize(volumeSizeBytes int64) int64 {
+	if volumeSizeBytes < 3600*GiB {
+		return roundUpSize(volumeSizeBytes, 1200*GiB) * 1200
+	} else {
+		return roundUpSize(volumeSizeBytes, 3600*GiB) * 3600
+	}
 }
 
 // GiBToBytes converts GiB to Bytes

@@ -31,7 +31,7 @@ func TestCreateFileSystem(t *testing.T) {
 	var (
 		volumeName             = "volumeName"
 		fileSystemId           = "fs-1234"
-		volumeSizeGiB    int64 = 3600
+		volumeSizeGiB    int64 = 1200
 		subnetId               = "subnet-056da83524edbe641"
 		securityGroupIds       = []string{"sg-086f61ea73388fb6b", "sg-0145e55e976000c9e"}
 		dnsname                = "test.fsx.us-west-2.amazoawd.com"
@@ -322,7 +322,7 @@ func TestDeleteFileSystem(t *testing.T) {
 func TestDescribeFileSystem(t *testing.T) {
 	var (
 		fileSystemId        = "fs-1234"
-		volumeSizeGiB int64 = 3600
+		volumeSizeGiB int64 = 1200
 		dnsname             = "test.fsx.us-west-2.amazoawd.com"
 		s3ImportPath        = "s3://fsx-s3-data-repository"
 		s3ExportPath        = "s3://fsx-s3-data-repository/export"

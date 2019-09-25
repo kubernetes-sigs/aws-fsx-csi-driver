@@ -38,9 +38,9 @@ spec:
   storageClassName: fsx-sc
   resources:
     requests:
-      storage: 3600Gi
+      storage: 1200Gi
 ```
-Update `spec.resource.requests.storage` with the storage capacity to request. The storage capacity value will be rounded up multiplication of 3600GiB.
+Update `spec.resource.requests.storage` with the storage capacity to request. The storage capacity value will be rounded up to 1200 GiB, 2400 GiB, or a multiple of 3600 GiB.
 
 ### Deploy the Application
 Create PVC, storageclass and the pod that consumes the PV:
