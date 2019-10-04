@@ -70,6 +70,7 @@ kubectl apply -f secret.yaml
     {
       "Effect": "Allow",
       "Action": [
+        "s3:*",
         "fsx:*"
       ],
       "Resource": ["*"]
