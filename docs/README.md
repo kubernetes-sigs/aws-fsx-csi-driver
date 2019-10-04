@@ -41,6 +41,9 @@ Following sections are Kubernetes specific. If you are Kubernetes user, use foll
 * Dynamic provisioning - uses persistent volume claim (PVC) to let the Kuberenetes to create the FSx for Lustre filesystem for you and consumes the volume from inside container.
 * Mount options - mount options can be specified in storageclass to define how the volume should be mounted.
 
+**Notes**:
+* For dynamically provisioned volumes, only one subnet is allowed inside storageclass's `parameters.subnetId`. This is a [limitation](https://docs.aws.amazon.com/fsx/latest/APIReference/API_CreateFileSystem.html#FSx-CreateFileSystem-request-SubnetIds) that is enforced by FSx for Lustre.
+
 ### Installation
 #### Set up driver permission
 The driver requires IAM permission to talk to Amazon FSx for Lustre service to create/delete the filesystem on user's behalf. There are several methods to grant driver IAM permission:
