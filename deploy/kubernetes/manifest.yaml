@@ -97,6 +97,9 @@ kind: ServiceAccount
 metadata:
   name: fsx-csi-controller-sa
   namespace: kube-system
+  #Enable if EKS IAM for SA is used
+  #annotations:
+  #  eks.amazonaws.com/role-arn: arn:aws:iam::586565787010:role/fsx-csi-role
 
 ---
 
