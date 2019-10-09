@@ -17,26 +17,33 @@ limitations under the License.
 package driver
 
 import (
-	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/cloud"
+	"os"
+
 	"k8s.io/kubernetes/pkg/util/mount"
 )
 
-func NewFakeMounter() Mounter {
+// Mounter is an interface for mount operations
+type Mounter interface {
+	mount.Interface
+	MakeDir(pathname string) error
+}
+
+type NodeMounter struct {
+	mount.Interface
+}
+
+func newNodeMounter() Mounter {
 	return &NodeMounter{
-		Interface: &mount.FakeMounter{
-			MountPoints: []mount.MountPoint{},
-			Log:         []mount.FakeAction{},
-		},
+		Interface: mount.New(""),
 	}
 }
 
-// NewFakeDriver creates a new mock driver used for testing
-func NewFakeDriver(endpoint string) *Driver {
-	cloud := cloud.NewFakeCloudProvider()
-	return &Driver{
-		endpoint: endpoint,
-		nodeID:   cloud.GetMetadata().GetInstanceID(),
-		cloud:    cloud,
-		mounter:  NewFakeMounter(),
+func (m *NodeMounter) MakeDir(pathname string) error {
+	err := os.MkdirAll(pathname, os.FileMode(0755))
+	if err != nil {
+		if !os.IsExist(err) {
+			return err
+		}
 	}
+	return nil
 }
