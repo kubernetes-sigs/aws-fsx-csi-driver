@@ -5,12 +5,11 @@
 package mocks
 
 import (
-	reflect "reflect"
-
-	aws "github.com/aws/aws-sdk-go/aws"
+	context "context"
 	request "github.com/aws/aws-sdk-go/aws/request"
 	fsx "github.com/aws/aws-sdk-go/service/fsx"
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
 )
 
 // MockFSx is a mock of FSx interface
@@ -37,7 +36,7 @@ func (m *MockFSx) EXPECT() *MockFSxMockRecorder {
 }
 
 // CreateFileSystemWithContext mocks base method
-func (m *MockFSx) CreateFileSystemWithContext(arg0 aws.Context, arg1 *fsx.CreateFileSystemInput, arg2 ...request.Option) (*fsx.CreateFileSystemOutput, error) {
+func (m *MockFSx) CreateFileSystemWithContext(arg0 context.Context, arg1 *fsx.CreateFileSystemInput, arg2 ...request.Option) (*fsx.CreateFileSystemOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
@@ -57,7 +56,7 @@ func (mr *MockFSxMockRecorder) CreateFileSystemWithContext(arg0, arg1 interface{
 }
 
 // DeleteFileSystemWithContext mocks base method
-func (m *MockFSx) DeleteFileSystemWithContext(arg0 aws.Context, arg1 *fsx.DeleteFileSystemInput, arg2 ...request.Option) (*fsx.DeleteFileSystemOutput, error) {
+func (m *MockFSx) DeleteFileSystemWithContext(arg0 context.Context, arg1 *fsx.DeleteFileSystemInput, arg2 ...request.Option) (*fsx.DeleteFileSystemOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
@@ -77,7 +76,7 @@ func (mr *MockFSxMockRecorder) DeleteFileSystemWithContext(arg0, arg1 interface{
 }
 
 // DescribeFileSystemsWithContext mocks base method
-func (m *MockFSx) DescribeFileSystemsWithContext(arg0 aws.Context, arg1 *fsx.DescribeFileSystemsInput, arg2 ...request.Option) (*fsx.DescribeFileSystemsOutput, error) {
+func (m *MockFSx) DescribeFileSystemsWithContext(arg0 context.Context, arg1 *fsx.DescribeFileSystemsInput, arg2 ...request.Option) (*fsx.DescribeFileSystemsOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {

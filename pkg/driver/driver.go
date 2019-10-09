@@ -25,7 +25,6 @@ import (
 	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/util"
 	"google.golang.org/grpc"
 	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/util/mount"
 )
 
 const (
@@ -50,7 +49,7 @@ type Driver struct {
 	cloud cloud.Cloud
 
 	nodeID  string
-	mounter mount.Interface
+	mounter Mounter
 }
 
 func NewDriver(endpoint string) *Driver {
@@ -63,7 +62,7 @@ func NewDriver(endpoint string) *Driver {
 		endpoint: endpoint,
 		nodeID:   cloud.GetMetadata().GetInstanceID(),
 		cloud:    cloud,
-		mounter:  newSafeMounter(),
+		mounter:  newNodeMounter(),
 	}
 }
 
@@ -101,11 +100,4 @@ func (d *Driver) Run() error {
 func (d *Driver) Stop() {
 	klog.Infof("Stopping server")
 	d.srv.Stop()
-}
-
-func newSafeMounter() *mount.SafeFormatAndMount {
-	return &mount.SafeFormatAndMount{
-		Interface: mount.New(""),
-		Exec:      mount.NewOsExec(),
-	}
 }
