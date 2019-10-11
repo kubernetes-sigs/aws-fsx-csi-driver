@@ -39,7 +39,7 @@ test:
 
 .PHONY: test-e2e
 test-e2e:
-	echo "success"
+	TESTCONFIG=./tester/e2e-test-config.yaml go run tester/cmd/main.go
 
 .PHONY: image
 image:

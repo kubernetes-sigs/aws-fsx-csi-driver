@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	driverName = "fsx.csi.aws.com"
+	DriverName = "fsx.csi.aws.com"
 )
 
 var (

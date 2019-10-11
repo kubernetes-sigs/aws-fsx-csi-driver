@@ -1,0 +1,85 @@
+cluster:
+  kops:
+    stateFile: s3://k8s-kops-csi-e2e
+    zones: us-west-2a
+    nodeCount: 3
+    nodeSize: c5.large
+    kubernetesVersion: 1.15.3
+    featureGates: |2
+        kubeAPIServer:
+          featureGates:
+            CSIDriverRegistry: "true"
+            CSINodeInfo: "true"
+            CSIBlockVolume: "true"
+            CSIMigration: "true"
+            CSIMigrationAWS: "true"
+            ExpandCSIVolumes: "true"
+            VolumeSnapshotDataSource: "true"
+            CSIInlineVolume: "true"
+        kubeControllerManager:
+          featureGates:
+            CSIDriverRegistry: "true"
+            CSINodeInfo: "true"
+            CSIBlockVolume: "true"
+            CSIMigration: "true"
+            CSIMigrationAWS: "true"
+            ExpandCSIVolumes: "true"
+            CSIInlineVolume: "true"
+        kubelet:
+          featureGates:
+            CSIDriverRegistry: "true"
+            CSINodeInfo: "true"
+            CSIBlockVolume: "true"
+            CSIMigration: "true"
+            CSIMigrationAWS: "true"
+            ExpandCSIVolumes: "true"
+            CSIInlineVolume: "true"
+    iamPolicies: |2
+        additionalPolicies:
+          node: |
+            [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "iam:CreateServiceLinkedRole",
+                  "iam:AttachRolePolicy",
+                  "iam:PutRolePolicy"
+                ],
+                "Resource": "arn:aws:iam::*:role/aws-service-role/s3.data-source.lustre.fsx.amazonaws.com/*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "s3:*",
+                  "fsx:*"
+                ],
+                "Resource": ["*"]
+              }
+            ]
+
+build: |
+  eval $(aws ecr get-login --region us-west-2 --no-include-email)
+  AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+  IMAGE_TAG={{TEST_ID}}
+  IMAGE_NAME=$AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/aws-fsx-csi-driver
+  docker build -t $IMAGE_NAME:$IMAGE_TAG .
+  docker push $IMAGE_NAME:$IMAGE_TAG
+
+install: |
+  echo "Deploying driver"
+  AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+  IMAGE_TAG={{TEST_ID}}
+  IMAGE_NAME=$AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/aws-fsx-csi-driver
+
+  sed -i'' "s,amazon/aws-fsx-csi-driver:latest,$IMAGE_NAME:$IMAGE_TAG," deploy/kubernetes/manifest.yaml
+  kubectl apply -f deploy/kubernetes/manifest.yaml
+
+uninstall: |
+  echo "Removing driver"
+  kubectl delete -f deploy/kubernetes/manifest.yaml
+
+test: |
+  export KUBECONFIG=$HOME/.kube/config
+  cluster_name=test-cluster-{{TEST_ID}}.k8s.local
+  cd tests/e2e
+  go test ./ -v -timeout 0 --cluster-name=$cluster_name --region=us-west-2 --report-dir=$ARTIFACTS
