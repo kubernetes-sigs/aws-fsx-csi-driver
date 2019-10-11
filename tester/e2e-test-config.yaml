@@ -82,4 +82,4 @@ test: |
   export KUBECONFIG=$HOME/.kube/config
   cluster_name=test-cluster-{{TEST_ID}}.k8s.local
   cd tests/e2e
-  go test ./ -v --cluster-name=$cluster_name --region=us-west-2 --report-dir=$ARTIFACTS
+  go test ./ -v -timeout 0 --cluster-name=$cluster_name --region=us-west-2 --report-dir=$ARTIFACTS

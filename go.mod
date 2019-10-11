@@ -9,7 +9,9 @@ require (
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	google.golang.org/grpc v1.23.0
+	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
+	k8s.io/client-go v0.0.0
 	k8s.io/klog v0.4.0
 	k8s.io/kubernetes v1.16.1
 )
