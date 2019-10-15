@@ -34,7 +34,6 @@ import (
 )
 
 const (
-	execTimeout = 10 * time.Second
 	// Some pods can take much longer to get ready due to volume attach/detach latency.
 	slowPodStartTimeout = 15 * time.Minute
 	// Description that will printed during tests

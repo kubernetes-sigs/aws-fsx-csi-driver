@@ -34,6 +34,7 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning", func() {
 		cs               clientset.Interface
 		ns               *v1.Namespace
 		dvr              driver.PVTestDriver
+		cloud            *cloud
 		subnetId         string
 		securityGroupIds []string
 	)
@@ -42,9 +43,10 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning", func() {
 		cs = f.ClientSet
 		ns = f.Namespace
 		dvr = driver.InitFSxCSIDriver()
-		instance, err := getNodeInstance(*clusterName)
+		cloud = NewCloud(*region)
+		instance, err := cloud.getNodeInstance(*clusterName)
 		if err != nil {
-			Fail(fmt.Sprintf("could ge node instance %v", err))
+			Fail(fmt.Sprintf("failed to get node instance %v", err))
 		}
 		securityGroupIds = getSecurityGroupIds(instance)
 		subnetId = *instance.SubnetId
@@ -104,4 +106,75 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning", func() {
 		}
 		test.Run(cs, ns)
 	})
+})
+
+var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning with s3 data repository", func() {
+	f := framework.NewDefaultFramework("fsx")
+
+	var (
+		cs               clientset.Interface
+		ns               *v1.Namespace
+		dvr              driver.PVTestDriver
+		cloud            *cloud
+		subnetId         string
+		securityGroupIds []string
+		bucketName       string
+	)
+
+	BeforeEach(func() {
+		cs = f.ClientSet
+		ns = f.Namespace
+		dvr = driver.InitFSxCSIDriver()
+		cloud = NewCloud(*region)
+		instance, err := cloud.getNodeInstance(*clusterName)
+		if err != nil {
+			Fail(fmt.Sprintf("failed to get node instance %v", err))
+		}
+		securityGroupIds = getSecurityGroupIds(instance)
+		subnetId = *instance.SubnetId
+
+		bucketName = fmt.Sprintf("fsx-e2e-%s", ns.Name)
+		fmt.Println("name: " + bucketName)
+		err = cloud.createS3Bucket(bucketName)
+		if err != nil {
+			Fail(fmt.Sprintf("failed to create s3 bucket %v", err))
+		}
+	})
+
+	AfterEach(func() {
+		err := cloud.deleteS3Bucket(bucketName)
+		if err != nil {
+			Fail(fmt.Sprintf("failed to delete s3 bucket %v", err))
+		}
+	})
+
+	It("should create a volume on demand with s3 as data repository", func() {
+		log.Printf("Using subnet ID %s security group ID %s", subnetId, securityGroupIds)
+		pods := []testsuites.PodDetails{
+			{
+				Cmd: "echo 'hello world' > /mnt/test-1/data && grep 'hello world' /mnt/test-1/data",
+				Volumes: []testsuites.VolumeDetails{
+					{
+						Parameters: map[string]string{
+							"subnetId":         subnetId,
+							"securityGroupIds": strings.Join(securityGroupIds, ","),
+							"s3ImportPath":     fmt.Sprintf("s3://%s", bucketName),
+							"s3ExportPath":     fmt.Sprintf("s3://%s/export", bucketName),
+						},
+						ClaimSize: "3600Gi",
+						VolumeMount: testsuites.VolumeMountDetails{
+							NameGenerate:      "test-volume-",
+							MountPathGenerate: "/mnt/test-",
+						},
+					},
+				},
+			},
+		}
+		test := testsuites.DynamicallyProvisionedCmdVolumeTest{
+			CSIDriver: dvr,
+			Pods:      pods,
+		}
+		test.Run(cs, ns)
+	})
+
 })
