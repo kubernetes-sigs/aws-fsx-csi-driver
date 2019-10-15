@@ -21,11 +21,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/s3"
+	fsx "github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/cloud"
 )
 
 type cloud struct {
 	ec2client *ec2.EC2
 	s3client  *s3.S3
+	fsx.Cloud
 }
 
 func NewCloud(region string) *cloud {
@@ -33,9 +35,11 @@ func NewCloud(region string) *cloud {
 		Region: aws.String(region),
 	}
 	sess := session.Must(session.NewSession(config))
+
 	return &cloud{
-		ec2client: ec2.New(sess),
-		s3client:  s3.New(sess),
+		ec2.New(sess),
+		s3.New(sess),
+		fsx.NewCloud(region),
 	}
 }
 

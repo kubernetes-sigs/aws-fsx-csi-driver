@@ -24,7 +24,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/fsx"
@@ -82,7 +81,6 @@ type FSx interface {
 }
 
 type Cloud interface {
-	GetMetadata() MetadataService
 	CreateFileSystem(ctx context.Context, volumeName string, fileSystemOptions *FileSystemOptions) (fs *FileSystem, err error)
 	DeleteFileSystem(ctx context.Context, fileSystemId string) (err error)
 	DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error)
@@ -90,34 +88,20 @@ type Cloud interface {
 }
 
 type cloud struct {
-	metadata MetadataService
-	fsx      FSx
+	fsx FSx
 }
 
 // NewCloud returns a new instance of AWS cloud
 // It panics if session is invalid
-func NewCloud() (Cloud, error) {
-	sess := session.Must(session.NewSession(&aws.Config{}))
-	svc := ec2metadata.New(sess)
-
-	metadata, err := NewMetadataService(svc)
-	if err != nil {
-		return nil, fmt.Errorf("could not get metadata from AWS: %v", err)
-	}
-
+func NewCloud(region string) Cloud {
 	awsConfig := &aws.Config{
-		Region:                        aws.String(metadata.GetRegion()),
+		Region:                        aws.String(region),
 		CredentialsChainVerboseErrors: aws.Bool(true),
 	}
 
 	return &cloud{
-		metadata: metadata,
-		fsx:      fsx.New(session.Must(session.NewSession(awsConfig))),
-	}, nil
-}
-
-func (c *cloud) GetMetadata() MetadataService {
-	return c.metadata
+		fsx: fsx.New(session.Must(session.NewSession(awsConfig))),
+	}
 }
 
 func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSystemOptions *FileSystemOptions) (fs *FileSystem, err error) {
