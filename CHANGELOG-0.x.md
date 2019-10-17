@@ -1,6 +1,7 @@
 # v0.2.0
 
 ## Changelog
+See [details](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/compare/v0.1.0...v0.2.0) for all the changes.
 
 ### Notable changes
 * Merge Deployment Manifests ([#51](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/51), [@christopherhein](https://github.com/christopherhein))
@@ -14,6 +15,14 @@
 * Implement mount options support ([#74](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/74), [@wongma7](https://github.com/wongma7))
 * Bump driver version to 0.2.0 ([#86](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/86), [@leakingtapan](https://github.com/leakingtapan))
 * Bump golang version to 1.12.7 ([#87](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/87), [@leakingtapan](https://github.com/leakingtapan))
+* Update CHANGELOG for 0.2.0 ([#90](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/90), [@leakingtapan](https://github.com/leakingtapan))
+* Switch to use prow job ([#92](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/92), [@leakingtapan](https://github.com/leakingtapan))
+* Update go sdk version for IAM for SA ([#96](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/96), [@leakingtapan](https://github.com/leakingtapan))
+* Add support for 1200 GiB and 2400 GiB filesystems ([#98](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/98), [@buzzsurfr](https://github.com/buzzsurfr))
+* Update README for IAM policy ([#100](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/100), [@leakingtapan](https://github.com/leakingtapan))
+* Update manifest for using EKS IAM for SA ([#102](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/102), [@leakingtapan](https://github.com/leakingtapan))
+* Add e2e tests ([#103](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/103), [@leakingtapan](https://github.com/leakingtapan))
+* Add e2e test for s3 data repository ([#106](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/106), [@leakingtapan](https://github.com/leakingtapan))
 
 # v0.1.0
 [Documentation](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/blob/v0.1.0/docs/README.md)

@@ -25,10 +25,10 @@ The following CSI interfaces are implemented:
 Following sections are Kubernetes specific. If you are Kubernetes user, use followings for driver features, installation steps and examples.
 
 ### Kubernetes Version Compability Matrix
-| AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 | v1.14 |
-|---------------------------------------------------|-------|-------|-------|-------|
-| master branch                                     | no    | no    | no    | yes   |
-| v0.1.0                                            | yes   | yes   | yes   | no    |
+| AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 | v1.14 | v1.15 |
+|---------------------------------------------------|-------|-------|-------|-------|-------|
+| master branch                                     | no    | no    | no    | yes   | yes   |
+| v0.1.0                                            | yes   | yes   | yes   | no    | no    |
 
 ### Container Images
 |FSx CSI Driver Version     | Image                               |
@@ -113,6 +113,7 @@ Dependencies are managed through go module. To build the project, first turn on 
 ### Testing
 * To execute all unit tests, run: `make test`
 * To execute sanity tests, run: `make test-sanity`
+* To execute e2e tests, run: `make test-e2e`
 
 ## License
 This library is licensed under the Apache 2.0 License. 
