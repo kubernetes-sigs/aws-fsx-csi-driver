@@ -14,7 +14,7 @@
 
 PKG=github.com/kubernetes-sigs/aws-fsx-csi-driver
 IMAGE?=amazon/aws-fsx-csi-driver
-VERSION=0.2.0
+VERSION=v0.2.0
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE}"
