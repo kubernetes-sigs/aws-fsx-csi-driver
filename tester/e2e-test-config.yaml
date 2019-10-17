@@ -5,35 +5,6 @@ cluster:
     nodeCount: 3
     nodeSize: c5.large
     kubernetesVersion: 1.15.3
-    featureGates: |2
-        kubeAPIServer:
-          featureGates:
-            CSIDriverRegistry: "true"
-            CSINodeInfo: "true"
-            CSIBlockVolume: "true"
-            CSIMigration: "true"
-            CSIMigrationAWS: "true"
-            ExpandCSIVolumes: "true"
-            VolumeSnapshotDataSource: "true"
-            CSIInlineVolume: "true"
-        kubeControllerManager:
-          featureGates:
-            CSIDriverRegistry: "true"
-            CSINodeInfo: "true"
-            CSIBlockVolume: "true"
-            CSIMigration: "true"
-            CSIMigrationAWS: "true"
-            ExpandCSIVolumes: "true"
-            CSIInlineVolume: "true"
-        kubelet:
-          featureGates:
-            CSIDriverRegistry: "true"
-            CSINodeInfo: "true"
-            CSIBlockVolume: "true"
-            CSIMigration: "true"
-            CSIMigrationAWS: "true"
-            ExpandCSIVolumes: "true"
-            CSIInlineVolume: "true"
     iamPolicies: |2
         additionalPolicies:
           node: |
