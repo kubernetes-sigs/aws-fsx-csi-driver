@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fsx-app
+spec:
+  initContainers:
+  - name: set-lustre-cache
+    image: amazon/aws-fsx-csi-driver:latest
+    securityContext:
+      privileged: true
+    command: ["/sbin/lctl"]
+    args: ["set_param", "llite.*.max_cached_mb=32"]
+  containers:
+  - name: app
+    image: amazonlinux:2
+    command: ["/bin/sh"]
+    args: ["-c", "sleep 999999"]
+    volumeMounts:
+    - name: persistent-storage
+      mountPath: /data
+  volumes:
+  - name: persistent-storage
+    persistentVolumeClaim:
+      claimName: fsx-claim
