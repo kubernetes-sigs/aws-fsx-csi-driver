@@ -42,7 +42,7 @@ install: |
   IMAGE_TAG={{TEST_ID}}
   IMAGE_NAME=$AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/aws-fsx-csi-driver
 
-  sed -i'' "s,amazon/aws-fsx-csi-driver:latest,$IMAGE_NAME:$IMAGE_TAG," deploy/kubernetes/manifest.yaml
+  sed -i'' "s,amazon/aws-fsx-csi-driver:.*,$IMAGE_NAME:$IMAGE_TAG," deploy/kubernetes/manifest.yaml
   kubectl apply -f deploy/kubernetes/manifest.yaml
 
 uninstall: |
