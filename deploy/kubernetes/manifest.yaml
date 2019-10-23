@@ -21,7 +21,7 @@ spec:
         - name: fsx-plugin
           securityContext:
             privileged: true
-          image: amazon/aws-fsx-csi-driver:latest
+          image: amazon/aws-fsx-csi-driver:v0.2.0
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
@@ -169,7 +169,7 @@ spec:
           operator: Exists
       containers:
         - name: fsx-plugin
-          image: amazon/aws-fsx-csi-driver:latest
+          image: amazon/aws-fsx-csi-driver:v0.2.0
           args :
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
