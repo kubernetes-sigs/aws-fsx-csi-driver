@@ -1,4 +1,10 @@
 # v0.2.0
+[Documentation](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/blob/v0.2.0/docs/README.md)
+
+filename  | sha512 hash
+--------- | ------------
+[v0.2.0.zip](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/archive/v0.2.0.zip) | `0d0334ec09fa40d30ebe10e9eddd954920d2a15a6c494ccb67b180a9a727c3feaa39728335d473adc7ee8ffdd441c73f6d7498ac3c493f91dfceee58ef57694f`
+[v0.2.0.tar.gz](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/archive/v0.2.0.tar.gz) | `16ad40f9b098ee57dfc043990204ac97c90f7b82a5b70eba23e22173d2a9f3c84041498657b29d2db254c4a569e8d6264ecf062197fe4a39a7b38817bab51356`
 
 ## Changelog
 See [details](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/compare/v0.1.0...v0.2.0) for all the changes.
