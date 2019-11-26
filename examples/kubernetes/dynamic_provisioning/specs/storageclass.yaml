@@ -4,7 +4,7 @@ metadata:
   name: fsx-sc
 provisioner: fsx.csi.aws.com
 parameters:
-  subnetId: subnet-0d7b5e117ad7b4961
-  securityGroupIds: sg-05a37bfe01467059a
+  subnetId: subnet-0930cbd463b9688c5
+  securityGroupIds: sg-03a4b6bd8afb19051,sg-05a37bfe01467059a
 mountOptions:
   - flock
