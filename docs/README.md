@@ -2,8 +2,6 @@
 [![Coverage Status](https://coveralls.io/repos/github/kubernetes-sigs/aws-fsx-csi-driver/badge.svg?branch=master)](https://coveralls.io/github/kubernetes-sigs/aws-fsx-csi-driver?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-sigs/aws-fsx-csi-driver)](https://goreportcard.com/report/github.com/kubernetes-sigs/aws-fsx-csi-driver)
 
-**NOTE**: This driver is currently an ALPHA release. This means that there may potentially be backwards compatible breaking changes moving forward. Do NOT use this driver in a production environment in its current state.
-
 ## Amazon FSx for Lustre CSI Driver
 ### Overview
 
