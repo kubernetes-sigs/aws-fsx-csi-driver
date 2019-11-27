@@ -2,8 +2,6 @@
 [![Coverage Status](https://coveralls.io/repos/github/kubernetes-sigs/aws-fsx-csi-driver/badge.svg?branch=master)](https://coveralls.io/github/kubernetes-sigs/aws-fsx-csi-driver?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-sigs/aws-fsx-csi-driver)](https://goreportcard.com/report/github.com/kubernetes-sigs/aws-fsx-csi-driver)
 
-**NOTE**: This driver is currently an ALPHA release. This means that there may potentially be backwards compatible breaking changes moving forward. Do NOT use this driver in a production environment in its current state.
-
 ## Amazon FSx for Lustre CSI Driver
 ### Overview
 
@@ -108,7 +106,7 @@ Before the example, you need to:
 Please go through [CSI Spec](https://github.com/container-storage-interface/spec/blob/master/spec.md) and [General CSI driver development guideline](https://kubernetes-csi.github.io/docs/Development.html) to get some basic understanding of CSI driver before you start.
 
 ### Requirements
-* Golang 1.12.7+
+* Golang 1.13.4+
 
 ### Dependency
 Dependencies are managed through go module. To build the project, first turn on go mod using `export GO111MODULE=on`, to build the project run: `make`
