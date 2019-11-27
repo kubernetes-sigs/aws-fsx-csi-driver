@@ -41,6 +41,7 @@ var clusterName = flag.String("cluster-name", "", "the cluster name")
 var region = flag.String("region", "us-west-2", "the region")
 
 func init() {
+	testing.Init()
 	// k8s.io/kubernetes/test/e2e/framework requires env KUBECONFIG to be set
 	// it does not fall back to defaults
 	if os.Getenv(kubeconfigEnvVar) == "" {
