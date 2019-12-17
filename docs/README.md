@@ -74,8 +74,10 @@ kubectl apply -f secret.yaml
     {
       "Effect": "Allow",
       "Action": [
-        "s3:*",
-        "fsx:*"
+        "s3:ListBucket",
+        "fsx:CreateFileSystem",
+        "fsx:DeleteFileSystem",
+        "fsx:DescribeFileSystems"
       ],
       "Resource": ["*"]
     }
