@@ -87,7 +87,7 @@ kubectl apply -f secret.yaml
 
 #### Deploy driver
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-fsx-csi-driver/master/deploy/kubernetes/manifest.yaml
+kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/dev/?ref=master"
 ```
 
 ### Examples
