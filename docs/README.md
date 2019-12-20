@@ -72,6 +72,18 @@ kubectl apply -f secret.yaml
       "Resource": "arn:aws:iam::*:role/aws-service-role/s3.data-source.lustre.fsx.amazonaws.com/*"
     },
     {
+      "Action":"iam:CreateServiceLinkedRole",
+      "Effect":"Allow",
+      "Resource":"*",
+      "Condition":{
+        "StringLike":{
+          "iam:AWSServiceName":[
+            "fsx.amazonaws.com"
+          ]
+        }
+      }
+    },
+    {
       "Effect": "Allow",
       "Action": [
         "s3:ListBucket",
