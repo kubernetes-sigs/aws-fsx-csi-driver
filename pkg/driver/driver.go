@@ -48,9 +48,8 @@ type Driver struct {
 
 	cloud cloud.Cloud
 
-	nodeID   string
-	metadata cloud.MetadataService
-	mounter  Mounter
+	nodeID  string
+	mounter Mounter
 }
 
 func NewDriver(endpoint string) *Driver {

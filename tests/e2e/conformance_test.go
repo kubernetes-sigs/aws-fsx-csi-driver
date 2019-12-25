@@ -17,16 +17,12 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	fsx "github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/cloud"
 	fsxcsidriver "github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/driver"
 	. "github.com/onsi/ginkgo"
-	"k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/storage/testpatterns"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
@@ -47,15 +43,11 @@ func (v *fsxVolume) DeleteVolume() {
 }
 
 type fsxDriver struct {
-	driverName       string
-	subnetId         string
-	securityGroupIds []string
+	driverName string
 }
 
 var _ testsuites.TestDriver = &fsxDriver{}
 var _ testsuites.PreprovisionedPVTestDriver = &fsxDriver{}
-
-//var _ testsuites.DynamicPVTestDriver = &fsxDriver{}
 
 func InitFSxCSIDriver() testsuites.TestDriver {
 	return &fsxDriver{
@@ -141,39 +133,38 @@ func (e *fsxDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volu
 	return &pvSource, nil
 }
 
-func (e *fsxDriver) GetDynamicProvisionStorageClass(config *testsuites.PerTestConfig, fsType string) *storagev1.StorageClass {
-	c := NewCloud(*region)
-	instance, err := c.getNodeInstance(*clusterName)
-	if err != nil {
-		Fail(fmt.Sprintf("failed to get node instance %v", err))
-	}
-	securityGroupIds := getSecurityGroupIds(instance)
-	subnetId := *instance.SubnetId
+// TOOD: uncomment for testing dynamic provisioning
 
-	provisioner := e.driverName
-	parameters := map[string]string{
-		"subnetId":         subnetId,
-		"securityGroupIds": strings.Join(securityGroupIds, ","),
-	}
-
-	ns := config.Framework.Namespace.Name
-	suffix := fmt.Sprintf("%s-sc", e.driverName)
-
-	return &storagev1.StorageClass{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "StorageClass",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			// Name must be unique, so let's base it on namespace name and use GenerateName
-			Name: names.SimpleNameGenerator.GenerateName(ns + "-" + suffix),
-		},
-		Provisioner: provisioner,
-		Parameters:  parameters,
-	}
-}
-
-//func (e *fsxDriver) GetClaimSize() string {
-//	return "3600Gi"
+//var _ testsuites.DynamicPVTestDriver = &fsxDriver{}
+//func (e *fsxDriver) GetDynamicProvisionStorageClass(config *testsuites.PerTestConfig, fsType string) *storagev1.StorageClass {
+//	c := NewCloud(*region)
+//	instance, err := c.getNodeInstance(*clusterName)
+//	if err != nil {
+//		Fail(fmt.Sprintf("failed to get node instance %v", err))
+//	}
+//	securityGroupIds := getSecurityGroupIds(instance)
+//	subnetId := *instance.SubnetId
+//
+//	provisioner := e.driverName
+//	parameters := map[string]string{
+//		"subnetId":         subnetId,
+//		"securityGroupIds": strings.Join(securityGroupIds, ","),
+//	}
+//
+//	ns := config.Framework.Namespace.Name
+//	suffix := fmt.Sprintf("%s-sc", e.driverName)
+//
+//	return &storagev1.StorageClass{
+//		TypeMeta: metav1.TypeMeta{
+//			Kind: "StorageClass",
+//		},
+//		ObjectMeta: metav1.ObjectMeta{
+//			// Name must be unique, so let's base it on namespace name and use GenerateName
+//			Name: names.SimpleNameGenerator.GenerateName(ns + "-" + suffix),
+//		},
+//		Provisioner: provisioner,
+//		Parameters:  parameters,
+//	}
 //}
 
 // List of testSuites to be executed in below loop
