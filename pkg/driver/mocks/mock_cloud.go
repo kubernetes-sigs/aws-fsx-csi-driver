@@ -78,20 +78,6 @@ func (mr *MockCloudMockRecorder) DescribeFileSystem(arg0, arg1 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeFileSystem", reflect.TypeOf((*MockCloud)(nil).DescribeFileSystem), arg0, arg1)
 }
 
-// GetMetadata mocks base method
-func (m *MockCloud) GetMetadata() cloud.MetadataService {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMetadata")
-	ret0, _ := ret[0].(cloud.MetadataService)
-	return ret0
-}
-
-// GetMetadata indicates an expected call of GetMetadata
-func (mr *MockCloudMockRecorder) GetMetadata() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetadata", reflect.TypeOf((*MockCloud)(nil).GetMetadata))
-}
-
 // WaitForFileSystemAvailable mocks base method
 func (m *MockCloud) WaitForFileSystemAvailable(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()

@@ -48,8 +48,7 @@ func TestCreateFileSystem(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockFSx := mocks.NewMockFSx(mockCtl)
 				c := &cloud{
-					metadata: &metadata{"instanceID", "region", "az"},
-					fsx:      mockFSx,
+					fsx: mockFSx,
 				}
 
 				req := &FileSystemOptions{
@@ -97,8 +96,7 @@ func TestCreateFileSystem(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockFSx := mocks.NewMockFSx(mockCtl)
 				c := &cloud{
-					metadata: &metadata{"instanceID", "region", "az"},
-					fsx:      mockFSx,
+					fsx: mockFSx,
 				}
 
 				req := &FileSystemOptions{
@@ -157,8 +155,7 @@ func TestCreateFileSystem(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockFSx := mocks.NewMockFSx(mockCtl)
 				c := &cloud{
-					metadata: &metadata{"instanceID", "region", "az"},
-					fsx:      mockFSx,
+					fsx: mockFSx,
 				}
 
 				req := &FileSystemOptions{
@@ -184,8 +181,7 @@ func TestCreateFileSystem(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockFSx := mocks.NewMockFSx(mockCtl)
 				c := &cloud{
-					metadata: &metadata{"instanceID", "region", "az"},
-					fsx:      mockFSx,
+					fsx: mockFSx,
 				}
 
 				req := &FileSystemOptions{
@@ -212,8 +208,7 @@ func TestCreateFileSystem(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockFSx := mocks.NewMockFSx(mockCtl)
 				c := &cloud{
-					metadata: &metadata{"instanceID", "region", "az"},
-					fsx:      mockFSx,
+					fsx: mockFSx,
 				}
 
 				req := &FileSystemOptions{
@@ -236,8 +231,7 @@ func TestCreateFileSystem(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockFSx := mocks.NewMockFSx(mockCtl)
 				c := &cloud{
-					metadata: &metadata{"instanceID", "region", "az"},
-					fsx:      mockFSx,
+					fsx: mockFSx,
 				}
 
 				req := &FileSystemOptions{
@@ -277,8 +271,7 @@ func TestDeleteFileSystem(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockFSx := mocks.NewMockFSx(mockCtl)
 				c := &cloud{
-					metadata: &metadata{"instanceID", "region", "az"},
-					fsx:      mockFSx,
+					fsx: mockFSx,
 				}
 
 				output := &fsx.DeleteFileSystemOutput{}
@@ -298,8 +291,7 @@ func TestDeleteFileSystem(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockFSx := mocks.NewMockFSx(mockCtl)
 				c := &cloud{
-					metadata: &metadata{"instanceID", "region", "az"},
-					fsx:      mockFSx,
+					fsx: mockFSx,
 				}
 
 				ctx := context.Background()
@@ -337,8 +329,7 @@ func TestDescribeFileSystem(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockFSx := mocks.NewMockFSx(mockCtl)
 				c := &cloud{
-					metadata: &metadata{"instanceID", "region", "az"},
-					fsx:      mockFSx,
+					fsx: mockFSx,
 				}
 
 				output := &fsx.DescribeFileSystemsOutput{
@@ -366,8 +357,7 @@ func TestDescribeFileSystem(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockFSx := mocks.NewMockFSx(mockCtl)
 				c := &cloud{
-					metadata: &metadata{"instanceID", "region", "az"},
-					fsx:      mockFSx,
+					fsx: mockFSx,
 				}
 
 				dataRepositoryConfiguration := &fsx.DataRepositoryConfiguration{}
@@ -405,8 +395,7 @@ func TestDescribeFileSystem(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockFSx := mocks.NewMockFSx(mockCtl)
 				c := &cloud{
-					metadata: &metadata{"instanceID", "region", "az"},
-					fsx:      mockFSx,
+					fsx: mockFSx,
 				}
 
 				ctx := context.Background()

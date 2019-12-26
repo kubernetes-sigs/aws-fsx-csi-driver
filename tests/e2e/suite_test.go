@@ -18,10 +18,12 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
@@ -41,6 +43,7 @@ var clusterName = flag.String("cluster-name", "", "the cluster name")
 var region = flag.String("region", "us-west-2", "the region")
 
 func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
 	testing.Init()
 	// k8s.io/kubernetes/test/e2e/framework requires env KUBECONFIG to be set
 	// it does not fall back to defaults
@@ -56,6 +59,7 @@ func init() {
 	frameworkconfig.CopyFlags(frameworkconfig.Flags, flag.CommandLine)
 	framework.RegisterCommonFlags(flag.CommandLine)
 	framework.RegisterClusterFlags(flag.CommandLine)
+	framework.ClaimProvisionTimeout = 7 * time.Minute
 	flag.Parse()
 }
 

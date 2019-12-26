@@ -53,14 +53,17 @@ type Driver struct {
 }
 
 func NewDriver(endpoint string) *Driver {
-	cloud, err := cloud.NewCloud()
+	metadata, err := cloud.NewMetadata()
 	if err != nil {
 		klog.Fatalln(err)
 	}
 
+	region := metadata.GetRegion()
+	cloud := cloud.NewCloud(region)
+
 	return &Driver{
 		endpoint: endpoint,
-		nodeID:   cloud.GetMetadata().GetInstanceID(),
+		nodeID:   metadata.GetInstanceID(),
 		cloud:    cloud,
 		mounter:  newNodeMounter(),
 	}
