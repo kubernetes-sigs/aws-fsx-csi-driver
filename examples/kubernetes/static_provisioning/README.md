@@ -13,6 +13,8 @@ spec:
   volumeMode: Filesystem
   accessModes:
     - ReadWriteMany
+  mountOptions:
+    - flock
   persistentVolumeReclaimPolicy: Recycle
   storageClassName: fsx-sc
   csi:
