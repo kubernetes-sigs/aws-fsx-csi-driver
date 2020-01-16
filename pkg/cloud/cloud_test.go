@@ -37,13 +37,15 @@ func TestCreateFileSystem(t *testing.T) {
 		dnsname                = "test.fsx.us-west-2.amazoawd.com"
 		s3ImportPath           = "s3://fsx-s3-data-repository"
 		s3ExportPath           = "s3://fsx-s3-data-repository/export"
+		deploymentType         = fsx.LustreDeploymentTypeScratch2
+		mountName              = "fsx"
 	)
 	testCases := []struct {
 		name     string
 		testFunc func(t *testing.T)
 	}{
 		{
-			name: "success: normal",
+			name: "success: normal without deploymentType",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockFSx := mocks.NewMockFSx(mockCtl)
@@ -59,9 +61,12 @@ func TestCreateFileSystem(t *testing.T) {
 
 				output := &fsx.CreateFileSystemOutput{
 					FileSystem: &fsx.FileSystem{
-						FileSystemId:    aws.String(fileSystemId),
-						StorageCapacity: aws.Int64(volumeSizeGiB),
-						DNSName:         aws.String(dnsname),
+						FileSystemId:       aws.String(fileSystemId),
+						StorageCapacity:    aws.Int64(volumeSizeGiB),
+						DNSName:            aws.String(dnsname),
+						LustreConfiguration: &fsx.LustreFileSystemConfiguration{
+							MountName:      aws.String(mountName),
+						},
 					},
 				}
 				ctx := context.Background()
@@ -85,6 +90,66 @@ func TestCreateFileSystem(t *testing.T) {
 
 				if resp.DnsName != dnsname {
 					t.Fatalf("DnsName mismatches. actual: %v expected: %v", resp.DnsName, dnsname)
+				}
+
+				if resp.MountName != mountName {
+					t.Fatalf("MountName mismatches. actual: %v expected: %v", resp.MountName, mountName)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+				{
+			name: "success: normal with deploymentType",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &FileSystemOptions{
+					CapacityGiB:      volumeSizeGiB,
+					SubnetId:         subnetId,
+					SecurityGroupIds: securityGroupIds,
+					DeploymentType:   deploymentType,
+				}
+
+				output := &fsx.CreateFileSystemOutput{
+					FileSystem: &fsx.FileSystem{
+						FileSystemId:       aws.String(fileSystemId),
+						StorageCapacity:    aws.Int64(volumeSizeGiB),
+						DNSName:            aws.String(dnsname),
+						LustreConfiguration: &fsx.LustreFileSystemConfiguration{
+							MountName:      aws.String(mountName),
+						},
+					},
+				}
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				resp, err := c.CreateFileSystem(ctx, volumeName, req)
+				if err != nil {
+					t.Fatalf("CreateFileSystem is failed: %v", err)
+				}
+
+				if resp == nil {
+					t.Fatal("resp is nil")
+				}
+
+				if resp.FileSystemId != fileSystemId {
+					t.Fatalf("FileSystemId mismatches. actual: %v expected: %v", resp.FileSystemId, fileSystemId)
+				}
+
+				if resp.CapacityGiB != volumeSizeGiB {
+					t.Fatalf("CapacityGiB mismatches. actual: %v expected: %v", resp.CapacityGiB, volumeSizeGiB)
+				}
+
+				if resp.DnsName != dnsname {
+					t.Fatalf("DnsName mismatches. actual: %v expected: %v", resp.DnsName, dnsname)
+				}
+
+				if resp.MountName != mountName {
+					t.Fatalf("MountName mismatches. actual: %v expected: %v", resp.MountName, mountName)
 				}
 
 				mockCtl.Finish()
@@ -113,6 +178,7 @@ func TestCreateFileSystem(t *testing.T) {
 
 				lustreFileSystemConfiguration := &fsx.LustreFileSystemConfiguration{
 					DataRepositoryConfiguration: dataRepositoryConfiguration,
+					MountName:      aws.String(mountName),
 				}
 
 				output := &fsx.CreateFileSystemOutput{
@@ -144,6 +210,10 @@ func TestCreateFileSystem(t *testing.T) {
 
 				if resp.DnsName != dnsname {
 					t.Fatalf("DnsName mismatches. actual: %v expected: %v", resp.DnsName, dnsname)
+				}
+
+				if resp.MountName != mountName {
+					t.Fatalf("MountName mismatches. actual: %v expected: %v", resp.MountName, mountName)
 				}
 
 				mockCtl.Finish()
@@ -197,6 +267,33 @@ func TestCreateFileSystem(t *testing.T) {
 				_, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err == nil {
 					t.Fatalf("CreateFileSystem is not failed")
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "fail: the kms id can not be specified for some deployment type",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &FileSystemOptions{
+					CapacityGiB:      volumeSizeGiB,
+					SubnetId:         subnetId,
+					SecurityGroupIds: securityGroupIds,
+					DeploymentType:   deploymentType,
+					KmsKeyId:         "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe",
+				}
+
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystemWithContext failed"))
+				_, err := c.CreateFileSystem(ctx, volumeName, req)
+				if err == nil {
+					t.Fatal("CreateFileSystem is not failed")
 				}
 
 				mockCtl.Finish()
@@ -318,6 +415,7 @@ func TestDescribeFileSystem(t *testing.T) {
 		dnsname             = "test.fsx.us-west-2.amazoawd.com"
 		s3ImportPath        = "s3://fsx-s3-data-repository"
 		s3ExportPath        = "s3://fsx-s3-data-repository/export"
+		mountName           = "fsx"
 	)
 	testCases := []struct {
 		name     string
@@ -338,6 +436,9 @@ func TestDescribeFileSystem(t *testing.T) {
 							FileSystemId:    aws.String(fileSystemId),
 							StorageCapacity: aws.Int64(volumeSizeGiB),
 							DNSName:         aws.String(dnsname),
+							LustreConfiguration: &fsx.LustreFileSystemConfiguration{
+								MountName: aws.String(mountName),
+							},
 						},
 					},
 				}
@@ -366,6 +467,7 @@ func TestDescribeFileSystem(t *testing.T) {
 
 				lustreFileSystemConfiguration := &fsx.LustreFileSystemConfiguration{
 					DataRepositoryConfiguration: dataRepositoryConfiguration,
+					MountName: aws.String(mountName),
 				}
 
 				output := &fsx.DescribeFileSystemsOutput{

@@ -19,6 +19,7 @@ package driver
 import (
 	"context"
 	"errors"
+	"github.com/aws/aws-sdk-go/service/fsx"
 	"testing"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -36,7 +37,8 @@ func TestCreateVolume(t *testing.T) {
 		volumeSizeGiB    int64 = 1200
 		subnetId               = "subnet-056da83524edbe641"
 		securityGroupIds       = "sg-086f61ea73388fb6b,sg-0145e55e976000c9e"
-		dnsname                = "test.fsx.us-west-2.amazoawd.com"
+		dnsName                = "test.fsx.us-west-2.amazoawd.com"
+		mountName              = "random"
 		stdVolCap              = &csi.VolumeCapability{
 			AccessType: &csi.VolumeCapability_Mount{
 				Mount: &csi.VolumeCapability_MountVolume{},
@@ -76,7 +78,8 @@ func TestCreateVolume(t *testing.T) {
 				fs := &cloud.FileSystem{
 					FileSystemId: fileSystemId,
 					CapacityGiB:  volumeSizeGiB,
-					DnsName:      dnsname,
+					DnsName:      dnsName,
+					MountName:    mountName,
 				}
 				mockCloud.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(fs, nil)
 				mockCloud.EXPECT().WaitForFileSystemAvailable(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(nil)
@@ -98,13 +101,93 @@ func TestCreateVolume(t *testing.T) {
 					t.Fatalf("resp.Volume.CapacityGiB is zero")
 				}
 
-				name, exists := resp.Volume.VolumeContext["dnsname"]
+				dnsname, exists := resp.Volume.VolumeContext[volumeContextDnsName]
 				if !exists {
 					t.Fatal("dnsname is missing")
 				}
 
-				if name != dnsname {
-					t.Fatalf("dnaname mismatches. actual: %v expected: %v", name, dnsname)
+				if dnsname != dnsName {
+					t.Fatalf("dnsname mismatches. actual: %v expected: %v", dnsname, dnsName)
+				}
+
+				mountname, exists := resp.Volume.VolumeContext[volumeContextMountName]
+				if !exists {
+					t.Fatal("mountname is missing")
+				}
+
+				if mountname != mountName {
+					t.Fatalf("mountname mismatches. actual: %v expected: %v", mountname, mountName)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+				{
+			name: "success: normal with deploymentType",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					Parameters: map[string]string{
+						"subnetId":         subnetId,
+						"securityGroupIds": securityGroupIds,
+						"deploymentType"  : fsx.LustreDeploymentTypeScratch2,
+					},
+				}
+
+				ctx := context.Background()
+				fs := &cloud.FileSystem{
+					FileSystemId: fileSystemId,
+					CapacityGiB:  volumeSizeGiB,
+					DnsName:      dnsName,
+					MountName:    mountName,
+				}
+				mockCloud.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(fs, nil)
+				mockCloud.EXPECT().WaitForFileSystemAvailable(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(nil)
+
+				resp, err := driver.CreateVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("CreateVolume is failed: %v", err)
+				}
+
+				if resp.Volume == nil {
+					t.Fatal("resp.Volume is nil")
+				}
+
+				if resp.Volume.VolumeId != fileSystemId {
+					t.Fatalf("VolumeId mismatches. actual: %v expected: %v", resp.Volume.VolumeId, fileSystemId)
+				}
+
+				if resp.Volume.CapacityBytes == 0 {
+					t.Fatalf("resp.Volume.CapacityGiB is zero")
+				}
+
+				dnsname, exists := resp.Volume.VolumeContext[volumeContextDnsName]
+				if !exists {
+					t.Fatal("dnsname is missing")
+				}
+
+				if dnsname != dnsName {
+					t.Fatalf("dnsname mismatches. actual: %v expected: %v", dnsname, dnsName)
+				}
+
+				mountname, exists := resp.Volume.VolumeContext[volumeContextMountName]
+				if !exists {
+					t.Fatal("mountname is missing")
+				}
+
+				if mountname != mountName {
+					t.Fatalf("mountname mismatches. actual: %v expected: %v", mountname, mountName)
 				}
 
 				mockCtl.Finish()

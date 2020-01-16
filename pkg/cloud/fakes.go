@@ -59,6 +59,7 @@ func (c *FakeCloudProvider) CreateFileSystem(ctx context.Context, volumeName str
 		FileSystemId: fmt.Sprintf("fs-%d", random.Uint64()),
 		CapacityGiB:  fileSystemOptions.CapacityGiB,
 		DnsName:      "test.us-east-1.fsx.amazonaws.com",
+		MountName:    "random",
 	}
 	c.fileSystems[volumeName] = fs
 	return fs, nil

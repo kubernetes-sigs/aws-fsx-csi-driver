@@ -33,6 +33,9 @@ var (
 	controllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 	}
+
+	volumeContextDnsName string = "dnsname"
+	volumeContextMountName string = "mountname"
 )
 
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -53,19 +56,10 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	// create a new volume with idempotency
 	// idempotency is handled by `CreateFileSystem`
-	capRange := req.GetCapacityRange()
-	var volumeSizeGiB int64
-	if capRange == nil {
-		volumeSizeGiB = cloud.DefaultVolumeSize
-	} else {
-		volumeSizeGiB = util.RoundUpVolumeSize(capRange.GetRequiredBytes())
-	}
-
 	volumeParams := req.GetParameters()
 	subnetId := volumeParams["subnetId"]
 	securityGroupIds := volumeParams["securityGroupIds"]
 	fsOptions := &cloud.FileSystemOptions{
-		CapacityGiB:      volumeSizeGiB,
 		SubnetId:         subnetId,
 		SecurityGroupIds: strings.Split(securityGroupIds, ","),
 	}
@@ -76,6 +70,21 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	if val, ok := volumeParams["s3ExportPath"]; ok {
 		fsOptions.S3ExportPath = val
+	}
+
+	if val, ok := volumeParams["deploymentType"]; ok {
+		fsOptions.DeploymentType = val
+	}
+
+	if val, ok := volumeParams["kmsKeyId"]; ok {
+		fsOptions.KmsKeyId = val
+	}
+
+	capRange := req.GetCapacityRange()
+	if capRange == nil {
+		fsOptions.CapacityGiB = cloud.DefaultVolumeSize
+	} else {
+		fsOptions.CapacityGiB = util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fsOptions.DeploymentType)
 	}
 
 	fs, err := d.cloud.CreateFileSystem(ctx, volName, fsOptions)
@@ -223,7 +232,8 @@ func newCreateVolumeResponse(fs *cloud.FileSystem) *csi.CreateVolumeResponse {
 			VolumeId:      fs.FileSystemId,
 			CapacityBytes: util.GiBToBytes(fs.CapacityGiB),
 			VolumeContext: map[string]string{
-				"dnsname": fs.DnsName,
+				volumeContextDnsName: fs.DnsName,
+				volumeContextMountName: fs.MountName,
 			},
 		},
 	}
