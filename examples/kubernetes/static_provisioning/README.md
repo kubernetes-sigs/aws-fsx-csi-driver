@@ -16,7 +16,6 @@ spec:
   mountOptions:
     - flock
   persistentVolumeReclaimPolicy: Recycle
-  storageClassName: fsx-sc
   csi:
     driver: fsx.csi.aws.com
     volumeHandle: [FileSystemId]
@@ -30,9 +29,8 @@ Replace `volumeHandle` with `FileSystemId` and `dnsname` with `DNSName`. You can
 ```
 
 ### Deploy the Application
-Create PV, persistence volume claim (PVC), storageclass and the pod that consumes the PV:
+Create PV, persistent volume claim (PVC), and the pod that consumes the PV:
 ```sh
->> kubectl apply -f examples/kubernetes/static_provisioning/specs/storageclass.yaml
 >> kubectl apply -f examples/kubernetes/static_provisioning/specs/pv.yaml
 >> kubectl apply -f examples/kubernetes/static_provisioning/specs/claim.yaml
 >> kubectl apply -f examples/kubernetes/static_provisioning/specs/pod.yaml
