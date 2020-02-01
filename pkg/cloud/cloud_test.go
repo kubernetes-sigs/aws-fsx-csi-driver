@@ -29,16 +29,18 @@ import (
 
 func TestCreateFileSystem(t *testing.T) {
 	var (
-		volumeName             = "volumeName"
-		fileSystemId           = "fs-1234"
-		volumeSizeGiB    int64 = 1200
-		subnetId               = "subnet-056da83524edbe641"
-		securityGroupIds       = []string{"sg-086f61ea73388fb6b", "sg-0145e55e976000c9e"}
-		dnsname                = "test.fsx.us-west-2.amazoawd.com"
-		s3ImportPath           = "s3://fsx-s3-data-repository"
-		s3ExportPath           = "s3://fsx-s3-data-repository/export"
-		deploymentType         = fsx.LustreDeploymentTypeScratch2
-		mountName              = "fsx"
+		volumeName                     = "volumeName"
+		fileSystemId                   = "fs-1234"
+		volumeSizeGiB            int64 = 1200
+		subnetId                       = "subnet-056da83524edbe641"
+		securityGroupIds               = []string{"sg-086f61ea73388fb6b", "sg-0145e55e976000c9e"}
+		dnsname                        = "test.fsx.us-west-2.amazoawd.com"
+		s3ImportPath                   = "s3://fsx-s3-data-repository"
+		s3ExportPath                   = "s3://fsx-s3-data-repository/export"
+		deploymentType                 = fsx.LustreDeploymentTypeScratch2
+		mountName                      = "fsx"
+		kmsKeyId                       = "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe"
+		perUnitStorageThroughput int64 = 200
 	)
 	testCases := []struct {
 		name     string
@@ -273,7 +275,7 @@ func TestCreateFileSystem(t *testing.T) {
 			},
 		},
 		{
-			name: "fail: the kms id can not be specified for some deployment type",
+			name: "fail: the kmsKeyId can can only be specified for PERSISTENT_1 deployment type",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockFSx := mocks.NewMockFSx(mockCtl)
@@ -286,7 +288,34 @@ func TestCreateFileSystem(t *testing.T) {
 					SubnetId:         subnetId,
 					SecurityGroupIds: securityGroupIds,
 					DeploymentType:   deploymentType,
-					KmsKeyId:         "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe",
+					KmsKeyId:         kmsKeyId,
+				}
+
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystemWithContext failed"))
+				_, err := c.CreateFileSystem(ctx, volumeName, req)
+				if err == nil {
+					t.Fatal("CreateFileSystem is not failed")
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "fail: the perUnitStorageThroughput can only be specified for PERSISTENT_1 deployment type",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &FileSystemOptions{
+					CapacityGiB:      volumeSizeGiB,
+					SubnetId:         subnetId,
+					SecurityGroupIds: securityGroupIds,
+					DeploymentType:   deploymentType,
+					PerUnitStorageThroughput: perUnitStorageThroughput,
 				}
 
 				ctx := context.Background()

@@ -66,13 +66,14 @@ type FileSystem struct {
 
 // FileSystemOptions represents the options to create FSx for Lustre filesystem
 type FileSystemOptions struct {
-	CapacityGiB      int64
-	SubnetId         string
-	SecurityGroupIds []string
-	S3ImportPath     string
-	S3ExportPath     string
-	DeploymentType   string
-	KmsKeyId         string
+	CapacityGiB              int64
+	SubnetId                 string
+	SecurityGroupIds         []string
+	S3ImportPath             string
+	S3ExportPath             string
+	DeploymentType           string
+	KmsKeyId                 string
+	PerUnitStorageThroughput int64
 }
 
 // FSx abstracts FSx client to facilitate its mocking.
@@ -124,6 +125,10 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 
 	if fileSystemOptions.DeploymentType != "" {
 		lustreConfiguration.SetDeploymentType(fileSystemOptions.DeploymentType)
+	}
+
+	if fileSystemOptions.PerUnitStorageThroughput != 0 {
+		lustreConfiguration.SetPerUnitStorageThroughput(fileSystemOptions.PerUnitStorageThroughput)
 	}
 
 	input := &fsx.CreateFileSystemInput{

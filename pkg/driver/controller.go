@@ -18,6 +18,7 @@ package driver
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -33,9 +34,19 @@ var (
 	controllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 	}
+)
 
-	volumeContextDnsName string = "dnsname"
-	volumeContextMountName string = "mountname"
+const (
+	volumeContextDnsName                 = "dnsname"
+	volumeContextMountName               = "mountname"
+
+	volumeParamsSubnetId                 = "subnetId"
+	volumeParamsSecurityGroupIds         = "securityGroupIds"
+	volumeParamsS3ImportPath             = "s3ImportPath"
+	volumeParamsS3ExportPath             = "s3ExportPath"
+	volumeParamsDeploymentType           = "deploymentType"
+	volumeParamsKmsKeyId                 = "kmsKeyId"
+	volumeParamsPerUnitStorageThroughput = "perUnitStorageThroughput"
 )
 
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -57,27 +68,35 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	// create a new volume with idempotency
 	// idempotency is handled by `CreateFileSystem`
 	volumeParams := req.GetParameters()
-	subnetId := volumeParams["subnetId"]
-	securityGroupIds := volumeParams["securityGroupIds"]
+	subnetId := volumeParams[volumeParamsSubnetId]
+	securityGroupIds := volumeParams[volumeParamsSecurityGroupIds]
 	fsOptions := &cloud.FileSystemOptions{
 		SubnetId:         subnetId,
 		SecurityGroupIds: strings.Split(securityGroupIds, ","),
 	}
 
-	if val, ok := volumeParams["s3ImportPath"]; ok {
+	if val, ok := volumeParams[volumeParamsS3ImportPath]; ok {
 		fsOptions.S3ImportPath = val
 	}
 
-	if val, ok := volumeParams["s3ExportPath"]; ok {
+	if val, ok := volumeParams[volumeParamsS3ExportPath]; ok {
 		fsOptions.S3ExportPath = val
 	}
 
-	if val, ok := volumeParams["deploymentType"]; ok {
+	if val, ok := volumeParams[volumeParamsDeploymentType]; ok {
 		fsOptions.DeploymentType = val
 	}
 
-	if val, ok := volumeParams["kmsKeyId"]; ok {
+	if val, ok := volumeParams[volumeParamsKmsKeyId]; ok {
 		fsOptions.KmsKeyId = val
+	}
+
+	if val, ok := volumeParams[volumeParamsPerUnitStorageThroughput]; ok {
+		n, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "perUnitStorageThroughput must be a number")
+		}
+		fsOptions.PerUnitStorageThroughput = n
 	}
 
 	capRange := req.GetCapacityRange()
