@@ -4,12 +4,13 @@ metadata:
   name: fsx-pv
 spec:
   capacity:
-    storage: 5Gi
+    storage: 1200Gi
   volumeMode: Filesystem
   accessModes:
     - ReadWriteMany
-  persistentVolumeReclaimPolicy: Recycle
-  storageClassName: fsx-sc
+  mountOptions:
+    - flock
+  persistentVolumeReclaimPolicy: Retain
   csi:
     driver: fsx.csi.aws.com
     volumeHandle: fs-0199e5a63bd90f796
