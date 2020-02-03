@@ -12,10 +12,14 @@ provisioner: fsx.csi.aws.com
 parameters:
   subnetId: subnet-056da83524edbe641
   securityGroupIds: sg-086f61ea73388fb6b
+  deploymentType: PERSISTENT_1
 ```
 * subnetId - the subnet ID that the FSx for Lustre filesystem should be created inside.
-* securityGroupIds - a comman separated list of security group IDs that should be attached to the filesystem
- 
+* securityGroupIds - a common separated list of security group IDs that should be attached to the filesystem
+* deploymentType (Optional) - FSx for Lustre supports three deployment types, SCRATCH_1, SCRATCH_2 and PERSISTENT_1. Default: SCRATCH_1.
+* kmsKeyId (Optional) - for deployment type PERSISTENT_1, customer can specific a KMS key to use.
+* perUnitStorageThroughput (Optional) - for deployment type PERSISTENT_1, customer can specific the storage throughput. Default: 200.
+
 ### Edit [Persistent Volume Claim Spec](./specs/claim.yaml)
 ```
 apiVersion: v1
