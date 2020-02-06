@@ -22,8 +22,8 @@ parameters:
 * s3ImportPath(Optional) - S3 data repository you want to copy from S3 to persistent volume.
 * s3ExportPath(Optional) - S3 data repository you want to export new or modified files from persistent volume to S3.
 * deploymentType (Optional) - FSx for Lustre supports three deployment types, SCRATCH_1, SCRATCH_2 and PERSISTENT_1. Default: SCRATCH_1.
-* kmsKeyId (Optional) - for deployment type PERSISTENT_1, customer can specific a KMS key to use.
-* perUnitStorageThroughput (Optional) - for deployment type PERSISTENT_1, customer can specific the storage throughput. Default: 200.
+* kmsKeyId (Optional) - for deployment type PERSISTENT_1, customer can specify a KMS key to use.
+* perUnitStorageThroughput (Optional) - for deployment type PERSISTENT_1, customer can specify the storage throughput. Default: "200". Note that customer has to specify as a string here like "200" or "100" etc.
 
 Note:
 - S3 Bucket in s3ImportPath and s3ExportPath must be same, otherwise the driver can not create FSx for lustre successfully.
