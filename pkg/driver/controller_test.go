@@ -139,9 +139,9 @@ func TestCreateVolume(t *testing.T) {
 						stdVolCap,
 					},
 					Parameters: map[string]string{
-						volumeParamsSubnetId: subnetId,
+						volumeParamsSubnetId:         subnetId,
 						volumeParamsSecurityGroupIds: securityGroupIds,
-						volumeParamsDeploymentType: fsx.LustreDeploymentTypeScratch2,
+						volumeParamsDeploymentType:   fsx.LustreDeploymentTypeScratch2,
 					},
 				}
 
@@ -210,10 +210,10 @@ func TestCreateVolume(t *testing.T) {
 						stdVolCap,
 					},
 					Parameters: map[string]string{
-						volumeParamsSubnetId: subnetId,
-						volumeParamsSecurityGroupIds: securityGroupIds,
-						volumeParamsDeploymentType: fsx.LustreDeploymentTypePersistent1,
-						volumeParamsKmsKeyId: "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe",
+						volumeParamsSubnetId:                 subnetId,
+						volumeParamsSecurityGroupIds:         securityGroupIds,
+						volumeParamsDeploymentType:           fsx.LustreDeploymentTypePersistent1,
+						volumeParamsKmsKeyId:                 "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe",
 						volumeParamsPerUnitStorageThroughput: "200",
 					},
 				}
@@ -282,7 +282,7 @@ func TestCreateVolume(t *testing.T) {
 						stdVolCap,
 					},
 					Parameters: map[string]string{
-						volumeParamsSubnetId: subnetId,
+						volumeParamsSubnetId:         subnetId,
 						volumeParamsSecurityGroupIds: securityGroupIds,
 					},
 				}
@@ -312,8 +312,8 @@ func TestCreateVolume(t *testing.T) {
 						stdVolCap,
 					},
 					Parameters: map[string]string{
-						volumeParamsSubnetId: subnetId,
-						volumeParamsSecurityGroupIds: securityGroupIds,
+						volumeParamsSubnetId:                 subnetId,
+						volumeParamsSecurityGroupIds:         securityGroupIds,
 						volumeParamsPerUnitStorageThroughput: "notInteger",
 					},
 				}
@@ -341,7 +341,7 @@ func TestCreateVolume(t *testing.T) {
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
 					Parameters: map[string]string{
-						volumeParamsSubnetId: subnetId,
+						volumeParamsSubnetId:         subnetId,
 						volumeParamsSecurityGroupIds: securityGroupIds,
 					},
 				}
@@ -372,7 +372,7 @@ func TestCreateVolume(t *testing.T) {
 						stdVolCap,
 					},
 					Parameters: map[string]string{
-						volumeParamsSubnetId: subnetId,
+						volumeParamsSubnetId:         subnetId,
 						volumeParamsSecurityGroupIds: securityGroupIds,
 					},
 				}

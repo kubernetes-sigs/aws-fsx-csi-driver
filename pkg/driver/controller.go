@@ -37,8 +37,8 @@ var (
 )
 
 const (
-	volumeContextDnsName                 = "dnsname"
-	volumeContextMountName               = "mountname"
+	volumeContextDnsName   = "dnsname"
+	volumeContextMountName = "mountname"
 
 	volumeParamsSubnetId                 = "subnetId"
 	volumeParamsSecurityGroupIds         = "securityGroupIds"
@@ -251,7 +251,7 @@ func newCreateVolumeResponse(fs *cloud.FileSystem) *csi.CreateVolumeResponse {
 			VolumeId:      fs.FileSystemId,
 			CapacityBytes: util.GiBToBytes(fs.CapacityGiB),
 			VolumeContext: map[string]string{
-				volumeContextDnsName: fs.DnsName,
+				volumeContextDnsName:   fs.DnsName,
 				volumeContextMountName: fs.MountName,
 			},
 		},

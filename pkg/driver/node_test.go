@@ -64,7 +64,7 @@ func TestNodePublishVolume(t *testing.T) {
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId: "volumeId",
 					VolumeContext: map[string]string{
-						volumeContextDnsName: dnsname,
+						volumeContextDnsName:   dnsname,
 						volumeContextMountName: mountname,
 					},
 					VolumeCapability: stdVolCap,
@@ -130,7 +130,7 @@ func TestNodePublishVolume(t *testing.T) {
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId: "volumeId",
 					VolumeContext: map[string]string{
-						volumeContextDnsName: dnsname,
+						volumeContextDnsName:   dnsname,
 						volumeContextMountName: mountname,
 					},
 					VolumeCapability: stdVolCap,
@@ -165,7 +165,7 @@ func TestNodePublishVolume(t *testing.T) {
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId: "volumeId",
 					VolumeContext: map[string]string{
-						volumeContextDnsName: dnsname,
+						volumeContextDnsName:   dnsname,
 						volumeContextMountName: mountname,
 					},
 					VolumeCapability: &csi.VolumeCapability{
@@ -204,8 +204,8 @@ func TestNodePublishVolume(t *testing.T) {
 
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
-					VolumeId:         "volumeId",
-					VolumeContext:    map[string]string{
+					VolumeId: "volumeId",
+					VolumeContext: map[string]string{
 						volumeContextMountName: mountname,
 					},
 					VolumeCapability: stdVolCap,
@@ -235,7 +235,7 @@ func TestNodePublishVolume(t *testing.T) {
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId: "volumeId",
 					VolumeContext: map[string]string{
-						volumeContextDnsName: dnsname,
+						volumeContextDnsName:   dnsname,
 						volumeContextMountName: mountname,
 					},
 					VolumeCapability: stdVolCap,
@@ -264,7 +264,7 @@ func TestNodePublishVolume(t *testing.T) {
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId: "volumeId",
 					VolumeContext: map[string]string{
-						volumeContextDnsName: dnsname,
+						volumeContextDnsName:   dnsname,
 						volumeContextMountName: mountname,
 					},
 					TargetPath: targetPath,
@@ -293,7 +293,7 @@ func TestNodePublishVolume(t *testing.T) {
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId: "volumeId",
 					VolumeContext: map[string]string{
-						volumeContextDnsName: dnsname,
+						volumeContextDnsName:   dnsname,
 						volumeContextMountName: mountname,
 					},
 					VolumeCapability: &csi.VolumeCapability{
@@ -330,7 +330,7 @@ func TestNodePublishVolume(t *testing.T) {
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId: "volumeId",
 					VolumeContext: map[string]string{
-						volumeContextDnsName: dnsname,
+						volumeContextDnsName:   dnsname,
 						volumeContextMountName: mountname,
 					},
 					VolumeCapability: stdVolCap,
@@ -363,7 +363,7 @@ func TestNodePublishVolume(t *testing.T) {
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId: "volumeId",
 					VolumeContext: map[string]string{
-						volumeContextDnsName: dnsname,
+						volumeContextDnsName:   dnsname,
 						volumeContextMountName: mountname,
 					},
 					VolumeCapability: stdVolCap,

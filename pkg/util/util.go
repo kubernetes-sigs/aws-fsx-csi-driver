@@ -36,7 +36,7 @@ const (
 // of 2400 GiB for other DeploymentType
 func RoundUpVolumeSize(volumeSizeBytes int64, deploymentType string) int64 {
 	if deploymentType == fsx.LustreDeploymentTypeScratch1 ||
-			deploymentType == "" {
+		deploymentType == "" {
 		if volumeSizeBytes < 3600*GiB {
 			return roundUpSize(volumeSizeBytes, 1200*GiB) * 1200
 		} else {

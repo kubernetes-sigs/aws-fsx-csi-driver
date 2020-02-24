@@ -63,11 +63,11 @@ func TestCreateFileSystem(t *testing.T) {
 
 				output := &fsx.CreateFileSystemOutput{
 					FileSystem: &fsx.FileSystem{
-						FileSystemId:       aws.String(fileSystemId),
-						StorageCapacity:    aws.Int64(volumeSizeGiB),
-						DNSName:            aws.String(dnsname),
+						FileSystemId:    aws.String(fileSystemId),
+						StorageCapacity: aws.Int64(volumeSizeGiB),
+						DNSName:         aws.String(dnsname),
 						LustreConfiguration: &fsx.LustreFileSystemConfiguration{
-							MountName:      aws.String(mountName),
+							MountName: aws.String(mountName),
 						},
 					},
 				}
@@ -101,7 +101,7 @@ func TestCreateFileSystem(t *testing.T) {
 				mockCtl.Finish()
 			},
 		},
-				{
+		{
 			name: "success: normal with deploymentType",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
@@ -119,11 +119,11 @@ func TestCreateFileSystem(t *testing.T) {
 
 				output := &fsx.CreateFileSystemOutput{
 					FileSystem: &fsx.FileSystem{
-						FileSystemId:       aws.String(fileSystemId),
-						StorageCapacity:    aws.Int64(volumeSizeGiB),
-						DNSName:            aws.String(dnsname),
+						FileSystemId:    aws.String(fileSystemId),
+						StorageCapacity: aws.Int64(volumeSizeGiB),
+						DNSName:         aws.String(dnsname),
 						LustreConfiguration: &fsx.LustreFileSystemConfiguration{
-							MountName:      aws.String(mountName),
+							MountName: aws.String(mountName),
 						},
 					},
 				}
@@ -180,7 +180,7 @@ func TestCreateFileSystem(t *testing.T) {
 
 				lustreFileSystemConfiguration := &fsx.LustreFileSystemConfiguration{
 					DataRepositoryConfiguration: dataRepositoryConfiguration,
-					MountName:      aws.String(mountName),
+					MountName:                   aws.String(mountName),
 				}
 
 				output := &fsx.CreateFileSystemOutput{
@@ -311,10 +311,10 @@ func TestCreateFileSystem(t *testing.T) {
 				}
 
 				req := &FileSystemOptions{
-					CapacityGiB:      volumeSizeGiB,
-					SubnetId:         subnetId,
-					SecurityGroupIds: securityGroupIds,
-					DeploymentType:   deploymentType,
+					CapacityGiB:              volumeSizeGiB,
+					SubnetId:                 subnetId,
+					SecurityGroupIds:         securityGroupIds,
+					DeploymentType:           deploymentType,
 					PerUnitStorageThroughput: perUnitStorageThroughput,
 				}
 
@@ -496,7 +496,7 @@ func TestDescribeFileSystem(t *testing.T) {
 
 				lustreFileSystemConfiguration := &fsx.LustreFileSystemConfiguration{
 					DataRepositoryConfiguration: dataRepositoryConfiguration,
-					MountName: aws.String(mountName),
+					MountName:                   aws.String(mountName),
 				}
 
 				output := &fsx.DescribeFileSystemsOutput{
