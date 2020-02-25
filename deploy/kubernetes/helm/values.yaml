@@ -73,6 +73,8 @@ daemonset:
     securityContext:
       privileged: true
 
+    resources: {}
+
   csiDriverRegistrar:
     image:
       repository: quay.io/k8scsi/csi-node-driver-registrar
@@ -82,11 +84,17 @@ daemonset:
     extraArgs:
       - --v=5
 
+    securityContext: {}
+
+    resources: {}
+
   livenessProbe:
     image:
       repository: quay.io/k8scsi/livenessprobe
       tag: v1.1.0
       pullPolicy: Always
+
+    resources: {}
 
 nameOverride: ""
 fullnameOverride: ""

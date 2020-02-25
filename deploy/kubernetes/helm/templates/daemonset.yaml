@@ -46,7 +46,11 @@ spec:
             initialDelaySeconds: 10
             timeoutSeconds: 3
             periodSeconds: 2
+          resources:
+            {{- toYaml .Values.daemonset.fsxPlugin.resources | nindent 12 }}
         - name: csi-driver-registrar
+          securityContext:
+            {{- toYaml .Values.daemonset.csiDriverRegistrar.securityContext | nindent 12 }}
           image: "{{ .Values.daemonset.csiDriverRegistrar.image.repository }}:{{ .Values.daemonset.csiDriverRegistrar.image.tag }}"
           imagePullPolicy: {{ .Values.daemonset.csiDriverRegistrar.image.pullPolicy }}
           args:
@@ -67,6 +71,8 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
+          resources:
+            {{- toYaml .Values.daemonset.csiDriverRegistrar.resources | nindent 12 }}
         - name: liveness-probe
           imagePullPolicy: {{ .Values.daemonset.livenessProbe.image.pullPolicy }}
           image: "{{ .Values.daemonset.livenessProbe.image.repository }}:{{ .Values.daemonset.livenessProbe.image.tag }}"
@@ -76,6 +82,8 @@ spec:
           volumeMounts:
             - mountPath: /csi
               name: plugin-dir
+          resources:
+            {{- toYaml .Values.daemonset.livenessProbe.resources | nindent 12 }}
       volumes:
         - name: kubelet-dir
           hostPath:
