@@ -1,3 +1,7 @@
+
+# intellij idea
+.idea
+
 *.swp
 bin/
 vendor/
