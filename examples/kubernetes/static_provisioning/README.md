@@ -21,8 +21,9 @@ spec:
     volumeHandle: [FileSystemId]
     volumeAttributes:
       dnsname: [DNSName] 
+      mountname: [MountName]
 ```
-Replace `volumeHandle` with `FileSystemId` and `dnsname` with `DNSName`. You can get both `FileSystemId` and `DNSName` using AWS CLI:
+Replace `volumeHandle` with `FileSystemId`, `dnsname` with `DNSName` and `mountname` with `MountName`. You can get both `FileSystemId`, `DNSName` and `MountName` using AWS CLI:
 
 ```sh
 >> aws fsx describe-file-systems

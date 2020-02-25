@@ -18,6 +18,7 @@ package driver
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -33,6 +34,19 @@ var (
 	controllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 	}
+)
+
+const (
+	volumeContextDnsName   = "dnsname"
+	volumeContextMountName = "mountname"
+
+	volumeParamsSubnetId                 = "subnetId"
+	volumeParamsSecurityGroupIds         = "securityGroupIds"
+	volumeParamsS3ImportPath             = "s3ImportPath"
+	volumeParamsS3ExportPath             = "s3ExportPath"
+	volumeParamsDeploymentType           = "deploymentType"
+	volumeParamsKmsKeyId                 = "kmsKeyId"
+	volumeParamsPerUnitStorageThroughput = "perUnitStorageThroughput"
 )
 
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -53,29 +67,43 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	// create a new volume with idempotency
 	// idempotency is handled by `CreateFileSystem`
-	capRange := req.GetCapacityRange()
-	var volumeSizeGiB int64
-	if capRange == nil {
-		volumeSizeGiB = cloud.DefaultVolumeSize
-	} else {
-		volumeSizeGiB = util.RoundUpVolumeSize(capRange.GetRequiredBytes())
-	}
-
 	volumeParams := req.GetParameters()
-	subnetId := volumeParams["subnetId"]
-	securityGroupIds := volumeParams["securityGroupIds"]
+	subnetId := volumeParams[volumeParamsSubnetId]
+	securityGroupIds := volumeParams[volumeParamsSecurityGroupIds]
 	fsOptions := &cloud.FileSystemOptions{
-		CapacityGiB:      volumeSizeGiB,
 		SubnetId:         subnetId,
 		SecurityGroupIds: strings.Split(securityGroupIds, ","),
 	}
 
-	if val, ok := volumeParams["s3ImportPath"]; ok {
+	if val, ok := volumeParams[volumeParamsS3ImportPath]; ok {
 		fsOptions.S3ImportPath = val
 	}
 
-	if val, ok := volumeParams["s3ExportPath"]; ok {
+	if val, ok := volumeParams[volumeParamsS3ExportPath]; ok {
 		fsOptions.S3ExportPath = val
+	}
+
+	if val, ok := volumeParams[volumeParamsDeploymentType]; ok {
+		fsOptions.DeploymentType = val
+	}
+
+	if val, ok := volumeParams[volumeParamsKmsKeyId]; ok {
+		fsOptions.KmsKeyId = val
+	}
+
+	if val, ok := volumeParams[volumeParamsPerUnitStorageThroughput]; ok {
+		n, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "perUnitStorageThroughput must be a number")
+		}
+		fsOptions.PerUnitStorageThroughput = n
+	}
+
+	capRange := req.GetCapacityRange()
+	if capRange == nil {
+		fsOptions.CapacityGiB = cloud.DefaultVolumeSize
+	} else {
+		fsOptions.CapacityGiB = util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fsOptions.DeploymentType)
 	}
 
 	fs, err := d.cloud.CreateFileSystem(ctx, volName, fsOptions)
@@ -223,7 +251,8 @@ func newCreateVolumeResponse(fs *cloud.FileSystem) *csi.CreateVolumeResponse {
 			VolumeId:      fs.FileSystemId,
 			CapacityBytes: util.GiBToBytes(fs.CapacityGiB),
 			VolumeContext: map[string]string{
-				"dnsname": fs.DnsName,
+				volumeContextDnsName:   fs.DnsName,
+				volumeContextMountName: fs.MountName,
 			},
 		},
 	}

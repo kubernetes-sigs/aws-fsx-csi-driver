@@ -17,6 +17,7 @@ limitations under the License.
 package util
 
 import (
+	"github.com/aws/aws-sdk-go/service/fsx"
 	"testing"
 )
 
@@ -29,7 +30,7 @@ func TestGiBToBytes(t *testing.T) {
 	}
 }
 
-func TestRoundUpVolumeSize(t *testing.T) {
+func TestRoundUpVolumeSizeEmptyOrScratch1DeploymentType(t *testing.T) {
 	testCases := []struct {
 		name        string
 		sizeInBytes int64
@@ -74,7 +75,79 @@ func TestRoundUpVolumeSize(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := RoundUpVolumeSize(tc.sizeInBytes)
+			actual := RoundUpVolumeSize(tc.sizeInBytes, "")
+			if actual != tc.expected {
+				t.Fatalf("RoundUpVolumeSize got wrong result. actual: %d, expected: %d", actual, tc.expected)
+			}
+		})
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := RoundUpVolumeSize(tc.sizeInBytes, fsx.LustreDeploymentTypeScratch1)
+			if actual != tc.expected {
+				t.Fatalf("RoundUpVolumeSize got wrong result. actual: %d, expected: %d", actual, tc.expected)
+			}
+		})
+	}
+}
+
+func TestRoundUpVolumeSizeOtherDeploymentType(t *testing.T) {
+	testCases := []struct {
+		name        string
+		sizeInBytes int64
+		expected    int64
+	}{
+		{
+			name:        "Roundup 1 byte",
+			sizeInBytes: 1,
+			expected:    1200,
+		},
+		{
+			name:        "Roundup 1 Gib",
+			sizeInBytes: 1 * GiB,
+			expected:    1200,
+		},
+		{
+			name:        "Roundup 1000 Gib",
+			sizeInBytes: 1000 * GiB,
+			expected:    1200,
+		},
+		{
+			name:        "Roundup 2000 Gib",
+			sizeInBytes: 2000 * GiB,
+			expected:    2400,
+		},
+		{
+			name:        "Roundup 2400 Gib",
+			sizeInBytes: 2400 * GiB,
+			expected:    2400,
+		},
+		{
+			name:        "Roundup 2400 Gib + 1 Byte",
+			sizeInBytes: 2400*GiB + 1,
+			expected:    4800,
+		},
+		{
+			name:        "Roundup 3600 Gib",
+			sizeInBytes: 3600 * GiB,
+			expected:    4800,
+		},
+		{
+			name:        "Roundup 4800 Gib",
+			sizeInBytes: 4800 * GiB,
+			expected:    4800,
+		},
+		{
+			name:        "Roundup 4800 Gib + 1 Byte",
+			sizeInBytes: 4800*GiB + 1,
+			expected:    7200,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := RoundUpVolumeSize(tc.sizeInBytes, fsx.LustreDeploymentTypeScratch2)
 			if actual != tc.expected {
 				t.Fatalf("RoundUpVolumeSize got wrong result. actual: %d, expected: %d", actual, tc.expected)
 			}

@@ -6,5 +6,6 @@ provisioner: fsx.csi.aws.com
 parameters:
   subnetId: subnet-0d7b5e117ad7b4961
   securityGroupIds: sg-05a37bfe01467059a
+  deploymentType: SCRATCH_2
 mountOptions:
   - flock

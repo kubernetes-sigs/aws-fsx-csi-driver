@@ -61,15 +61,19 @@ type FileSystem struct {
 	FileSystemId string
 	CapacityGiB  int64
 	DnsName      string
+	MountName    string
 }
 
 // FileSystemOptions represents the options to create FSx for Lustre filesystem
 type FileSystemOptions struct {
-	CapacityGiB      int64
-	SubnetId         string
-	SecurityGroupIds []string
-	S3ImportPath     string
-	S3ExportPath     string
+	CapacityGiB              int64
+	SubnetId                 string
+	SecurityGroupIds         []string
+	S3ImportPath             string
+	S3ExportPath             string
+	DeploymentType           string
+	KmsKeyId                 string
+	PerUnitStorageThroughput int64
 }
 
 // FSx abstracts FSx client to facilitate its mocking.
@@ -119,6 +123,14 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		lustreConfiguration.SetExportPath(fileSystemOptions.S3ExportPath)
 	}
 
+	if fileSystemOptions.DeploymentType != "" {
+		lustreConfiguration.SetDeploymentType(fileSystemOptions.DeploymentType)
+	}
+
+	if fileSystemOptions.PerUnitStorageThroughput != 0 {
+		lustreConfiguration.SetPerUnitStorageThroughput(fileSystemOptions.PerUnitStorageThroughput)
+	}
+
 	input := &fsx.CreateFileSystemInput{
 		ClientRequestToken:  aws.String(volumeName),
 		FileSystemType:      aws.String("LUSTRE"),
@@ -134,6 +146,10 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		},
 	}
 
+	if fileSystemOptions.KmsKeyId != "" {
+		input.KmsKeyId = aws.String(fileSystemOptions.KmsKeyId)
+	}
+
 	output, err := c.fsx.CreateFileSystemWithContext(ctx, input)
 	if err != nil {
 		if isIncompatibleParameter(err) {
@@ -142,10 +158,16 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		return nil, fmt.Errorf("CreateFileSystem failed: %v", err)
 	}
 
+	mountName := "fsx"
+	if output.FileSystem.LustreConfiguration.MountName != nil {
+		mountName = *output.FileSystem.LustreConfiguration.MountName
+	}
+
 	return &FileSystem{
 		FileSystemId: *output.FileSystem.FileSystemId,
 		CapacityGiB:  *output.FileSystem.StorageCapacity,
 		DnsName:      *output.FileSystem.DNSName,
+		MountName:    mountName,
 	}, nil
 }
 
@@ -168,10 +190,16 @@ func (c *cloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (*F
 		return nil, err
 	}
 
+	mountName := "fsx"
+	if fs.LustreConfiguration.MountName != nil {
+		mountName = *fs.LustreConfiguration.MountName
+	}
+
 	return &FileSystem{
 		FileSystemId: *fs.FileSystemId,
 		CapacityGiB:  *fs.StorageCapacity,
 		DnsName:      *fs.DNSName,
+		MountName:    mountName,
 	}, nil
 }
 

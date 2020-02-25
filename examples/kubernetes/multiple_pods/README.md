@@ -11,9 +11,13 @@ provisioner: fsx.csi.aws.com
 parameters:
   subnetId: subnet-056da83524edbe641
   securityGroupIds: sg-086f61ea73388fb6b
+  deploymentType: SCRATCH_2
 ```
 * subnetId - the subnet ID that the FSx for Lustre filesystem should be created inside.
 * securityGroupIds - a comman separated list of security group IDs that should be attached to the filesystem
+* deploymentType (Optional) - FSx for Lustre supports three deployment types, SCRATCH_1, SCRATCH_2 and PERSISTENT_1. Default: SCRATCH_1.
+* kmsKeyId (Optional) - for deployment type PERSISTENT_1, customer can specify a KMS key to use.
+* perUnitStorageThroughput (Optional) - for deployment type PERSISTENT_1, customer can specify the storage throughput. Default: "200". Note that customer has to specify as a string here like "200" or "100" etc.
 
 ### Deploy the Application
 Create PV, persistence volume claim (PVC), storageclass and the pods that consume the PV:

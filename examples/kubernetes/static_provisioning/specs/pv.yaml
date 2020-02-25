@@ -16,3 +16,4 @@ spec:
     volumeHandle: fs-0199e5a63bd90f796
     volumeAttributes:
       dnsname: fs-0199e5a63bd90f796.fsx.us-east-1.amazonaws.com
+      mountname: fsx

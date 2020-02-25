@@ -48,12 +48,18 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	}
 
 	context := req.GetVolumeContext()
-	dnsname := context["dnsname"]
+	dnsname := context[volumeContextDnsName]
+	mountname := context[volumeContextMountName]
+
 	if len(dnsname) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "dnsname is not provided")
 	}
 
-	source := fmt.Sprintf("%s@tcp:/fsx", dnsname)
+	if len(mountname) == 0 {
+		mountname = "fsx"
+	}
+
+	source := fmt.Sprintf("%s@tcp:/%s", dnsname, mountname)
 
 	target := req.GetTargetPath()
 	if len(target) == 0 {
