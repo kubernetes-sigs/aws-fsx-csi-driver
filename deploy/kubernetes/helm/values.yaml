@@ -1,0 +1,100 @@
+# Default values for helm.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+controller:
+  replicaCount: 2
+
+  nodeSelector:
+    beta.kubernetes.io/os: linux
+
+  podSecurityContext: {}
+  # fsGroup: 2000
+
+  fsxPlugin:
+    image:
+      repository: amazon/aws-fsx-csi-driver
+      tag: latest
+      pullPolicy: IfNotPresent
+
+    extraArgs:
+      - --logtostderr
+      - --v=5
+
+    securityContext: {}
+      # capabilities:
+      #   drop:
+      #   - ALL
+      # readOnlyRootFilesystem: true
+      # runAsNonRoot: true
+    # runAsUser: 1000
+
+    resources: {}
+
+  csiProvisioner:
+    image:
+      repository: quay.io/k8scsi/csi-provisioner
+      tag: v1.3.0
+      pullPolicy: IfNotPresent
+
+    extraArgs:
+      - --timeout=5m
+      - --v=5
+      - --enable-leader-election
+      - --leader-election-type=leases
+
+    securityContext: {}
+      # capabilities:
+      #   drop:
+      #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+    resources: {}
+
+daemonset:
+  podSecurityContext: {}
+  # fsGroup: 2000
+
+  nodeSelector:
+    beta.kubernetes.io/os: linux
+
+  fsxPlugin:
+    image:
+      repository: amazon/aws-fsx-csi-driver
+      tag: latest
+      pullPolicy: IfNotPresent
+
+    extraArgs:
+      - --logtostderr
+      - --v=5
+
+    securityContext:
+      privileged: true
+
+  csiDriverRegistrar:
+    image:
+      repository: quay.io/k8scsi/csi-node-driver-registrar
+      tag: v1.1.0
+      pullPolicy: IfNotPresent
+
+    extraArgs:
+      - --v=5
+
+  livenessProbe:
+    image:
+      repository: quay.io/k8scsi/livenessprobe
+      tag: v1.1.0
+      pullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  annotations: {}
+  ## Enable if EKS IAM for SA is used
+  #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/fsx-csi-role
+  name: fsx-csi-controller-sa
