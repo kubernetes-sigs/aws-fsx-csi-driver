@@ -1,3 +1,21 @@
+# v0.3.0
+[Documentation](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/blob/v0.3.0/docs/README.md)
+
+## Changelog
+See [details](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/compare/v0.2.0...v0.3.0) for all the changes.
+
+### Notable changes
+* Add support for FSx for lustre create API deployment type ([#130](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/130), @chyz198)
+* Update aws sdk for new fsx API and run go mod tidy ([#131](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/131), @wongma7)
+* Fix static provisioning example ([#129](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/129), @wongma7)
+* Update static provisioning example to include flock mountOption ([#128](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/128), @irlevesque)
+* Add conformance tests ([#111](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/111), @leakingtapan)
+* Fix paths to dynamic_provisioning_s3 manifests ([#119](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/119), @nathanweeks)
+* Add iam:CreateServiceLinkedRole for fsx.amazonaws.com service ([#123](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/123), @leakingtapan)
+* Switch to use kustomize ([#122](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/122), @leakingtapan)
+* Scope down recommended IAM policy ([#121](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/121), @leakingtapan)
+* Fix golangci-lint to 1.21.0 ([#114](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/114), @leakingtapan)
+
 # v0.2.0
 [Documentation](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/blob/v0.2.0/docs/README.md)
 
