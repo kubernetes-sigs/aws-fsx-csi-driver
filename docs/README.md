@@ -11,6 +11,7 @@ The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storag
 | AWS FSx for Lustre CSI Driver \ CSI Version       | v0.3.0| v1.1.0 |
 |---------------------------------------------------|-------|--------|
 | master branch                                     | no    | yes    |
+| v0.3.0                                            | no    | yes    |
 | v0.2.0                                            | no    | yes    |
 | v0.1.0                                            | yes   | no     |
 
@@ -27,6 +28,7 @@ Following sections are Kubernetes specific. If you are Kubernetes user, use foll
 | AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 | v1.14 | v1.15 |
 |---------------------------------------------------|-------|-------|-------|-------|-------|
 | master branch                                     | no    | no    | no    | yes   | yes   |
+| v0.3.0                                            | no    | no    | no    | yes   | yes   |
 | v0.2.0                                            | no    | no    | no    | yes   | yes   |
 | v0.1.0                                            | yes   | yes   | yes   | no    | no    |
 
@@ -34,6 +36,7 @@ Following sections are Kubernetes specific. If you are Kubernetes user, use foll
 |FSx CSI Driver Version     | Image                               |
 |---------------------------|-------------------------------------|
 |master branch              |amazon/aws-fsx-csi-driver:latest     |
+|v0.3.0                     |amazon/aws-fsx-csi-driver:v0.3.0     |
 |v0.2.0                     |amazon/aws-fsx-csi-driver:v0.2.0     |
 |v0.1.0                     |amazon/aws-fsx-csi-driver:v0.1.0     |
 
@@ -105,7 +108,7 @@ kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernete
 ### Examples
 Before the example, you need to:
 * Get yourself familiar with how to setup Kubernetes on AWS and [create FSx for Lustre filesystem](https://docs.aws.amazon.com/fsx/latest/LustreGuide/getting-started.html#getting-started-step1) if you are using static provisioning.
-* When creating FSx for Lustre file system, make sure its VPC is accessible from Kuberenetes cluster's VPC and network traffic is allowed by security group. 
+* When creating FSx for Lustre file system, make sure its VPC is accessible from Kuberenetes cluster's VPC and network traffic is allowed by security group.
   * For FSx for Lustre VPC, you can either create FSx for lustre filesystem inside the same VPC as Kubernetes cluster or using VPC peering.
   * For security group, make sure port 988 is allowed for the security groups that are attached the lustre filesystem ENI.
 * Install FSx for Lustre CSI driver following the [Installation](README.md#Installation) steps.
@@ -131,4 +134,4 @@ Dependencies are managed through go module. To build the project, first turn on 
 * To execute e2e tests, run: `make test-e2e`
 
 ## License
-This library is licensed under the Apache 2.0 License. 
+This library is licensed under the Apache 2.0 License.
