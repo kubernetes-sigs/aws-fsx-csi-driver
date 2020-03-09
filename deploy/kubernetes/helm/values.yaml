@@ -2,7 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-controller:
+controllerService:
   replicaCount: 2
 
   nodeSelector:
@@ -53,7 +53,7 @@ controller:
 
     resources: {}
 
-daemonset:
+nodeService:
   podSecurityContext: {}
   # fsGroup: 2000
 

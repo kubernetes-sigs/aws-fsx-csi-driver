@@ -14,17 +14,17 @@ spec:
         {{- include "helm.selectorLabels" . | nindent 8 }}-daemonset
     spec:
       securityContext:
-        {{- toYaml .Values.daemonset.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.nodeService.podSecurityContext | nindent 8 }}
       hostNetwork: true
       containers:
         - name: fsx-plugin
           securityContext:
-            {{- toYaml .Values.daemonset.fsxPlugin.securityContext | nindent 12 }}
-          image: "{{ .Values.daemonset.fsxPlugin.image.repository }}:{{ .Values.daemonset.fsxPlugin.image.tag }}"
-          imagePullPolicy: {{ .Values.daemonset.fsxPlugin.image.pullPolicy }}
+            {{- toYaml .Values.nodeService.fsxPlugin.securityContext | nindent 12 }}
+          image: "{{ .Values.nodeService.fsxPlugin.image.repository }}:{{ .Values.nodeService.fsxPlugin.image.tag }}"
+          imagePullPolicy: {{ .Values.nodeService.fsxPlugin.image.pullPolicy }}
           args:
             - --endpoint=$(CSI_ENDPOINT)
-            {{- toYaml .Values.daemonset.fsxPlugin.extraArgs | nindent 12 }}
+            {{- toYaml .Values.nodeService.fsxPlugin.extraArgs | nindent 12 }}
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
@@ -47,16 +47,16 @@ spec:
             timeoutSeconds: 3
             periodSeconds: 2
           resources:
-            {{- toYaml .Values.daemonset.fsxPlugin.resources | nindent 12 }}
+            {{- toYaml .Values.nodeService.fsxPlugin.resources | nindent 12 }}
         - name: csi-driver-registrar
           securityContext:
-            {{- toYaml .Values.daemonset.csiDriverRegistrar.securityContext | nindent 12 }}
-          image: "{{ .Values.daemonset.csiDriverRegistrar.image.repository }}:{{ .Values.daemonset.csiDriverRegistrar.image.tag }}"
-          imagePullPolicy: {{ .Values.daemonset.csiDriverRegistrar.image.pullPolicy }}
+            {{- toYaml .Values.nodeService.csiDriverRegistrar.securityContext | nindent 12 }}
+          image: "{{ .Values.nodeService.csiDriverRegistrar.image.repository }}:{{ .Values.nodeService.csiDriverRegistrar.image.tag }}"
+          imagePullPolicy: {{ .Values.nodeService.csiDriverRegistrar.image.pullPolicy }}
           args:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
-            {{- toYaml .Values.daemonset.csiDriverRegistrar.extraArgs | nindent 12 }}
+            {{- toYaml .Values.nodeService.csiDriverRegistrar.extraArgs | nindent 12 }}
           env:
             - name: ADDRESS
               value: /csi/csi.sock
@@ -72,10 +72,10 @@ spec:
             - name: registration-dir
               mountPath: /registration
           resources:
-            {{- toYaml .Values.daemonset.csiDriverRegistrar.resources | nindent 12 }}
+            {{- toYaml .Values.nodeService.csiDriverRegistrar.resources | nindent 12 }}
         - name: liveness-probe
-          imagePullPolicy: {{ .Values.daemonset.livenessProbe.image.pullPolicy }}
-          image: "{{ .Values.daemonset.livenessProbe.image.repository }}:{{ .Values.daemonset.livenessProbe.image.tag }}"
+          imagePullPolicy: {{ .Values.nodeService.livenessProbe.image.pullPolicy }}
+          image: "{{ .Values.nodeService.livenessProbe.image.repository }}:{{ .Values.nodeService.livenessProbe.image.tag }}"
           args:
             - --csi-address=/csi/csi.sock
             - --health-port=9810
@@ -83,7 +83,7 @@ spec:
             - mountPath: /csi
               name: plugin-dir
           resources:
-            {{- toYaml .Values.daemonset.livenessProbe.resources | nindent 12 }}
+            {{- toYaml .Values.nodeService.livenessProbe.resources | nindent 12 }}
       volumes:
         - name: kubelet-dir
           hostPath:
@@ -97,7 +97,7 @@ spec:
           hostPath:
             path: /var/lib/kubelet/plugins/fsx.csi.aws.com/
             type: DirectoryOrCreate
-      {{- with .Values.daemonset.nodeSelector }}
+      {{- with .Values.nodeService.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
