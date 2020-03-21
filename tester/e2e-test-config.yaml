@@ -53,7 +53,7 @@ uninstall: |
   kubectl delete -k deploy/kubernetes/overlays/dev/
 
 test: |
-  go get -u github.com/onsi/ginkgo/ginkgo
+  go get github.com/onsi/ginkgo/ginkgo
   export KUBECONFIG=$HOME/.kube/config
   cluster_name=test-cluster-{{TEST_ID}}.k8s.local
   skip="\[Disruptive\]|should.provision.storage.with.mount.options|should.not.mount./.map.unused.volumes.in.a.pod|should unmount if pod is force deleted while kubelet is down"
