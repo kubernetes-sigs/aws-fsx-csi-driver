@@ -39,18 +39,30 @@ build: |
   docker push $IMAGE_NAME:$IMAGE_TAG
 
 install: |
+  HELM_VERSION=3.1.1
+  
+  echo "Installing Helm version: ${HELM_VERSION}"
+  wget "https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz"
+  tar -zxvf "helm-v${HELM_VERSION}-linux-amd64.tar.gz"
+  mv linux-amd64/helm /usr/local/bin/helm
+
   echo "Deploying driver"
   AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
   IMAGE_TAG={{TEST_ID}}
   IMAGE_NAME=$AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/aws-fsx-csi-driver
 
-  sed -i'' "s,chengpan/aws-fsx-csi-driver,$IMAGE_NAME," deploy/kubernetes/overlays/dev/kustomization.yaml
-  sed -i'' "s,newTag: latest,newTag: \"$IMAGE_TAG\"," deploy/kubernetes/overlays/dev/kustomization.yaml
-  kubectl apply -k deploy/kubernetes/overlays/dev/
+  helm upgrade aws-fsx-csi-driver \
+      --install deploy/kubernetes/helm/ \
+      --namespace kube-system \
+      -f deploy/kubernetes/helm/values.yaml \
+      --set controllerService.fsxPlugin.image.repository=$IMAGE_NAME \
+      --set controllerService.fsxPlugin.image.tag=$IMAGE_TAG \
+      --set nodeService.fsxPlugin.image.repository=$IMAGE_NAME \
+      --set nodeService.fsxPlugin.image.tag=$IMAGE_TAG
 
 uninstall: |
   echo "Removing driver"
-  kubectl delete -k deploy/kubernetes/overlays/dev/
+  helm delete aws-fsx-csi-driver --namespace kube-system
 
 test: |
   go get github.com/onsi/ginkgo/ginkgo

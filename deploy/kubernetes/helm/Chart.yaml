@@ -1,0 +1,11 @@
+apiVersion: v2
+name: aws-fsx-csi-driver
+description: The Amazon FSx for Lustre Container Storage Interface (CSI) Driver implements CSI specification for container orchestrators (CO) to manage lifecycle of Amazon FSx for Lustre filesystems.
+type: application
+version: 0.1.0
+appVersion: latest
+keywords:
+  - aws-fsx-csi-driver
+  - aws
+  - fsx
+  - network file system

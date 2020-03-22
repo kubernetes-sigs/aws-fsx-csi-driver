@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "helm.fullname" . }}-daemonset
+  labels:
+    {{- include "helm.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "helm.selectorLabels" . | nindent 6 }}-daemonset
+  template:
+    metadata:
+      labels:
+        {{- include "helm.selectorLabels" . | nindent 8 }}-daemonset
+    spec:
+      securityContext:
+        {{- toYaml .Values.nodeService.podSecurityContext | nindent 8 }}
+      hostNetwork: true
+      containers:
+        - name: fsx-plugin
+          securityContext:
+            {{- toYaml .Values.nodeService.fsxPlugin.securityContext | nindent 12 }}
+          image: "{{ .Values.nodeService.fsxPlugin.image.repository }}:{{ .Values.nodeService.fsxPlugin.image.tag }}"
+          imagePullPolicy: {{ .Values.nodeService.fsxPlugin.image.pullPolicy }}
+          args:
+            - --endpoint=$(CSI_ENDPOINT)
+            {{- toYaml .Values.nodeService.fsxPlugin.extraArgs | nindent 12 }}
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:/csi/csi.sock
+          volumeMounts:
+            - name: kubelet-dir
+              mountPath: /var/lib/kubelet
+              mountPropagation: "Bidirectional"
+            - name: plugin-dir
+              mountPath: /csi
+          ports:
+            - containerPort: 9810
+              name: healthz
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /healthz
+              port: healthz
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 2
+          resources:
+            {{- toYaml .Values.nodeService.fsxPlugin.resources | nindent 12 }}
+        - name: csi-driver-registrar
+          securityContext:
+            {{- toYaml .Values.nodeService.csiDriverRegistrar.securityContext | nindent 12 }}
+          image: "{{ .Values.nodeService.csiDriverRegistrar.image.repository }}:{{ .Values.nodeService.csiDriverRegistrar.image.tag }}"
+          imagePullPolicy: {{ .Values.nodeService.csiDriverRegistrar.image.pullPolicy }}
+          args:
+            - --csi-address=$(ADDRESS)
+            - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
+            {{- toYaml .Values.nodeService.csiDriverRegistrar.extraArgs | nindent 12 }}
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+            - name: DRIVER_REG_SOCK_PATH
+              value: /var/lib/kubelet/plugins/fsx.csi.aws.com/csi.sock
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi
+            - name: registration-dir
+              mountPath: /registration
+          resources:
+            {{- toYaml .Values.nodeService.csiDriverRegistrar.resources | nindent 12 }}
+        - name: liveness-probe
+          imagePullPolicy: {{ .Values.nodeService.livenessProbe.image.pullPolicy }}
+          image: "{{ .Values.nodeService.livenessProbe.image.repository }}:{{ .Values.nodeService.livenessProbe.image.tag }}"
+          args:
+            - --csi-address=/csi/csi.sock
+            - --health-port=9810
+          volumeMounts:
+            - mountPath: /csi
+              name: plugin-dir
+          resources:
+            {{- toYaml .Values.nodeService.livenessProbe.resources | nindent 12 }}
+      volumes:
+        - name: kubelet-dir
+          hostPath:
+            path: /var/lib/kubelet
+            type: Directory
+        - name: registration-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins_registry/
+            type: Directory
+        - name: plugin-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins/fsx.csi.aws.com/
+            type: DirectoryOrCreate
+      {{- with .Values.nodeService.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

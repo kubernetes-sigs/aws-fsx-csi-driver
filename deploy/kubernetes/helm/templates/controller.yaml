@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "helm.fullname" . }}-controller
+  labels:
+    {{- include "helm.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.controllerService.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "helm.selectorLabels" . | nindent 6 }}-controller
+  template:
+    metadata:
+      labels:
+        {{- include "helm.selectorLabels" . | nindent 8 }}-controller
+    spec:
+      serviceAccountName: {{ include "helm.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.controllerService.podSecurityContext | nindent 8 }}
+      priorityClassName: system-cluster-critical
+      tolerations:
+          - key: CriticalAddonsOnly
+            operator: Exists
+      containers:
+        - name: fsx-plugin
+          securityContext:
+            {{- toYaml .Values.controllerService.fsxPlugin.securityContext | nindent 12 }}
+          image: "{{ .Values.controllerService.fsxPlugin.image.repository }}:{{ .Values.controllerService.fsxPlugin.image.tag }}"
+          imagePullPolicy: {{ .Values.controllerService.fsxPlugin.image.pullPolicy }}
+          args:
+            - --endpoint=$(CSI_ENDPOINT)
+            {{- toYaml .Values.controllerService.fsxPlugin.extraArgs | nindent 12 }}
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secret
+                  key: key_id
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secret
+                  key: access_key
+                  optional: true
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+          resources:
+            {{- toYaml .Values.controllerService.fsxPlugin.resources | nindent 12 }}
+        - name: csi-provisioner
+          image: "{{ .Values.controllerService.csiProvisioner.image.repository }}:{{ .Values.controllerService.csiProvisioner.image.tag }}"
+          args:
+            - --csi-address=$(ADDRESS)
+            {{- toYaml .Values.controllerService.csiProvisioner.extraArgs | nindent 12 }}
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+          resources:
+            {{- toYaml .Values.controllerService.csiProvisioner.resources | nindent 12 }}
+
+      volumes:
+        - name: socket-dir
+          emptyDir: {}
+      {{- with .Values.controllerService.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
