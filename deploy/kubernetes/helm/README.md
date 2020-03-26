@@ -30,7 +30,7 @@ The following table lists the configurable parameters of the aws-fsx-csi-driver 
 | Parameter                                             | Description                                                   | Default                                    |
 | ------------------------------------------------------| ------------------------------------------------------------- | ------------------------------------------ |
 | `controllerService.replicaCount`                      | Num of replicas for controller                                | `2`                                        |
-| `controllerService.nodeSelector`                      | Controllers node selector                                     | `beta.kubernetes.io/os: linux`             |
+| `controllerService.nodeSelector`                      | Controllers node selector                                     | `kubernetes.io/os: linux`             |
 | `controllerService.podSecurityContext`                | Security context for controller pods                          | `{}`                                       |
 |                                                       |                                                               |                                            |
 | `controllerService.fsxPlugin.image.repository`        | aws-fsx-csi-driver image name                                 | `amazon/aws-fsx-csi-driver`                |
@@ -47,7 +47,7 @@ The following table lists the configurable parameters of the aws-fsx-csi-driver 
 | `controllerService.csiProvisioner.securityContext`    | Security context for the container                            | `{}`                                       |
 | `controllerService.csiProvisioner.resources`          | CPU/Memory resource requests/limits                           | `{}`                                       |
 |                                                       |                                                               |                                            |
-| `controllerService.nodeSelector`                      | Controllers node selector                                     | `beta.kubernetes.io/os: linux`             |
+| `controllerService.nodeSelector`                      | Controllers node selector                                     | `kubernetes.io/os: linux`             |
 | `nodeService.podSecurityContext`                      | Security context for controller pods                          | `{}`                                       |
 |                                                       |                                                               |                                            |
 | `nodeService.fsxPlugin.image.repository`              | aws-fsx-csi-driver image name                                 | `amazon/aws-fsx-csi-driver`                |
