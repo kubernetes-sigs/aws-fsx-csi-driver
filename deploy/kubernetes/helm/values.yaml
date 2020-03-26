@@ -6,7 +6,7 @@ controllerService:
   replicaCount: 2
 
   nodeSelector:
-    beta.kubernetes.io/os: linux
+    kubernetes.io/os: linux
 
   podSecurityContext: {}
   # fsGroup: 2000
@@ -58,7 +58,7 @@ nodeService:
   # fsGroup: 2000
 
   nodeSelector:
-    beta.kubernetes.io/os: linux
+    kubernetes.io/os: linux
 
   fsxPlugin:
     image:

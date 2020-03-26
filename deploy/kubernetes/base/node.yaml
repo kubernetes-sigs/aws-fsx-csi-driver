@@ -15,7 +15,7 @@ spec:
         app: fsx-csi-node
     spec:
       nodeSelector:
-        beta.kubernetes.io/os: linux
+        kubernetes.io/os: linux
       hostNetwork: true
       containers:
         - name: fsx-plugin

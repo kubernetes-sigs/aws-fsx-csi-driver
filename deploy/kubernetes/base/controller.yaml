@@ -15,7 +15,7 @@ spec:
         app: fsx-csi-controller
     spec:
       nodeSelector:
-        beta.kubernetes.io/os: linux
+        kubernetes.io/os: linux
       serviceAccount: fsx-csi-controller-sa
       priorityClassName: system-cluster-critical
       tolerations:
