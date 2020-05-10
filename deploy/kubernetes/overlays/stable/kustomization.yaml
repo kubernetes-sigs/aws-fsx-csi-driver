@@ -4,14 +4,10 @@ bases:
 - ../../base
 images:
 - name: amazon/aws-fsx-csi-driver
-  newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/aws-fsx-csi-driver
   newTag: v0.3.0
 - name: quay.io/k8scsi/csi-provisioner
-  newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-provisioner
   newTag: v1.3.0
 - name: quay.io/k8scsi/livenessprobe
-  newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-liveness-probe
   newTag: v1.1.0
 - name: quay.io/k8scsi/csi-node-driver-registrar
-  newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-node-driver-registrar
   newTag: v1.1.0
