@@ -52,9 +52,9 @@ install: |
   IMAGE_NAME=$AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/aws-fsx-csi-driver
 
   helm upgrade aws-fsx-csi-driver \
-      --install deploy/kubernetes/helm/ \
+      --install helm/ \
       --namespace kube-system \
-      -f deploy/kubernetes/helm/values.yaml \
+      -f helm/values.yaml \
       --set controllerService.fsxPlugin.image.repository=$IMAGE_NAME \
       --set controllerService.fsxPlugin.image.tag=$IMAGE_TAG \
       --set nodeService.fsxPlugin.image.repository=$IMAGE_NAME \
