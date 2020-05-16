@@ -14,7 +14,7 @@ controllerService:
   fsxPlugin:
     image:
       repository: amazon/aws-fsx-csi-driver
-      tag: latest
+      tag: v0.3.0
       pullPolicy: IfNotPresent
 
     extraArgs:
@@ -63,7 +63,7 @@ nodeService:
   fsxPlugin:
     image:
       repository: amazon/aws-fsx-csi-driver
-      tag: latest
+      tag: v0.3.0
       pullPolicy: IfNotPresent
 
     extraArgs:
