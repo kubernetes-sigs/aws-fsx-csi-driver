@@ -14,6 +14,12 @@
 
 FROM golang:1.13.4-stretch as builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-fsx-csi-driver
+
+# Cache go modules
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+
 ADD . .
 RUN make
 
