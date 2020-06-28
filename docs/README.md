@@ -105,6 +105,11 @@ kubectl apply -f secret.yaml
 kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/dev/?ref=master"
 ```
 
+Alternatively, you could also install the driver using helm:
+```sh
+helm repo add aws-fsx-csi-driver https://kubernetes-sigs.github.io/aws-fsx-csi-driver/
+helm install aws-fsx-csi-driver aws-fsx-csi-driver/aws-fsx-csi-driver
+```
 ### Examples
 Before the example, you need to:
 * Get yourself familiar with how to setup Kubernetes on AWS and [create FSx for Lustre filesystem](https://docs.aws.amazon.com/fsx/latest/LustreGuide/getting-started.html#getting-started-step1) if you are using static provisioning.
