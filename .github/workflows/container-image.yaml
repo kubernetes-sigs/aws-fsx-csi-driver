@@ -8,18 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Set up Docker Buildx
-      id: buildx
-      uses: crazy-max/ghaction-docker-buildx@v3
-      with:
-        buildx-version: latest
-        qemu-version: latest
     - name: Build container image
       run: |
-        docker buildx build \
-          -t aws-fsx-csi-driver \
-          --platform=linux/arm64,linux/amd64 \
-          --output="type=image,push=false" .
+        docker build -t aws-fsx-csi-driver .
     - name: Push to Github registry
       run: |
         USER=$(echo $GITHUB_REPOSITORY | cut -d'/' -f1)
@@ -31,10 +22,8 @@ jobs:
           TAG=$BRANCH
         fi
         docker login docker.pkg.github.com -u $USER -p ${{ secrets.REGISTRY_TOKEN }}
-        docker buildx build \
-          -t docker.pkg.github.com/$GITHUB_REPOSITORY/$IMAGE:$TAG \
-          --platform=linux/arm64,linux/amd64 \
-          --output="type=image,push=true" .
+        docker tag aws-fsx-csi-driver docker.pkg.github.com/$GITHUB_REPOSITORY/$IMAGE:$TAG
+        docker push docker.pkg.github.com/$GITHUB_REPOSITORY/$IMAGE:$TAG
     - name: Push to Dockerhub registry
       run: |
         BRANCH=$(echo $GITHUB_REF | cut -d'/' -f3)
@@ -45,8 +34,5 @@ jobs:
           TAG=$BRANCH
         fi
         docker login -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_TOKEN }}
-        docker buildx build \
-          -t $REPO:$TAG \
-          --platform=linux/arm64,linux/amd64 \
-          --output="type=image,push=true" .
-
+        docker tag aws-fsx-csi-driver $REPO:$TAG
+        docker push $REPO:$TAG
