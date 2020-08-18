@@ -47,8 +47,6 @@ const (
 	volumeParamsDeploymentType           = "deploymentType"
 	volumeParamsKmsKeyId                 = "kmsKeyId"
 	volumeParamsPerUnitStorageThroughput = "perUnitStorageThroughput"
-	volumeParamsStorageType              = "storageType"
-	volumeParamsDriveCacheType           = "driveCacheType"
 )
 
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -93,14 +91,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		fsOptions.KmsKeyId = val
 	}
 
-	if val, ok := volumeParams[volumeParamsStorageType]; ok {
-		fsOptions.StorageType = val
-	}
-
-	if val, ok := volumeParams[volumeParamsDriveCacheType]; ok {
-		fsOptions.DriveCacheType = val
-	}
-
 	if val, ok := volumeParams[volumeParamsPerUnitStorageThroughput]; ok {
 		n, err := strconv.ParseInt(val, 10, 64)
 		if err != nil {
@@ -113,7 +103,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	if capRange == nil {
 		fsOptions.CapacityGiB = cloud.DefaultVolumeSize
 	} else {
-		fsOptions.CapacityGiB = util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fsOptions.DeploymentType, fsOptions.StorageType, fsOptions.PerUnitStorageThroughput)
+		fsOptions.CapacityGiB = util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fsOptions.DeploymentType)
 	}
 
 	fs, err := d.cloud.CreateFileSystem(ctx, volName, fsOptions)

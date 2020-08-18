@@ -74,8 +74,6 @@ type FileSystemOptions struct {
 	DeploymentType           string
 	KmsKeyId                 string
 	PerUnitStorageThroughput int64
-	StorageType              string
-	DriveCacheType           string
 }
 
 // FSx abstracts FSx client to facilitate its mocking.
@@ -129,10 +127,6 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		lustreConfiguration.SetDeploymentType(fileSystemOptions.DeploymentType)
 	}
 
-	if fileSystemOptions.DriveCacheType != "" {
-		lustreConfiguration.SetDriveCacheType(fileSystemOptions.DriveCacheType)
-	}
-
 	if fileSystemOptions.PerUnitStorageThroughput != 0 {
 		lustreConfiguration.SetPerUnitStorageThroughput(fileSystemOptions.PerUnitStorageThroughput)
 	}
@@ -144,7 +138,6 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		StorageCapacity:     aws.Int64(fileSystemOptions.CapacityGiB),
 		SubnetIds:           []*string{aws.String(fileSystemOptions.SubnetId)},
 		SecurityGroupIds:    aws.StringSlice(fileSystemOptions.SecurityGroupIds),
-		StorageType:         aws.String(fileSystemOptions.StorageType),
 		Tags: []*fsx.Tag{
 			{
 				Key:   aws.String(VolumeNameTagKey),

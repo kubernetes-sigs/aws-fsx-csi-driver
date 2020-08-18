@@ -75,7 +75,7 @@ func TestRoundUpVolumeSizeEmptyOrScratch1DeploymentType(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := RoundUpVolumeSize(tc.sizeInBytes, "", "", 0)
+			actual := RoundUpVolumeSize(tc.sizeInBytes, "")
 			if actual != tc.expected {
 				t.Fatalf("RoundUpVolumeSize got wrong result. actual: %d, expected: %d", actual, tc.expected)
 			}
@@ -84,7 +84,7 @@ func TestRoundUpVolumeSizeEmptyOrScratch1DeploymentType(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := RoundUpVolumeSize(tc.sizeInBytes, fsx.LustreDeploymentTypeScratch1, "", 0)
+			actual := RoundUpVolumeSize(tc.sizeInBytes, fsx.LustreDeploymentTypeScratch1)
 			if actual != tc.expected {
 				t.Fatalf("RoundUpVolumeSize got wrong result. actual: %d, expected: %d", actual, tc.expected)
 			}
@@ -147,103 +147,7 @@ func TestRoundUpVolumeSizeOtherDeploymentType(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := RoundUpVolumeSize(tc.sizeInBytes, fsx.LustreDeploymentTypeScratch2, "", 0)
-			if actual != tc.expected {
-				t.Fatalf("RoundUpVolumeSize got wrong result. actual: %d, expected: %d", actual, tc.expected)
-			}
-		})
-	}
-}
-
-func TestRoundUpVolumeSizeHddStorageType12Throughput(t *testing.T) {
-	testCases := []struct {
-		name        string
-		sizeInBytes int64
-		expected    int64
-	}{
-		{
-			name:        "Roundup 1 byte",
-			sizeInBytes: 1,
-			expected:    6000,
-		},
-		{
-			name:        "Roundup 1 Gib",
-			sizeInBytes: 1 * GiB,
-			expected:    6000,
-		},
-		{
-			name:        "Roundup 1000 Gib",
-			sizeInBytes: 1000 * GiB,
-			expected:    6000,
-		},
-		{
-			name:        "Roundup 2000 Gib",
-			sizeInBytes: 2000 * GiB,
-			expected:    6000,
-		},
-		{
-			name:        "Roundup 6000 Gib",
-			sizeInBytes: 6000 * GiB,
-			expected:    6000,
-		},
-		{
-			name:        "Roundup 6000 Gib + 1 Byte",
-			sizeInBytes: 6000*GiB + 1,
-			expected:    12000,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			actual := RoundUpVolumeSize(tc.sizeInBytes, fsx.LustreDeploymentTypePersistent1, fsx.StorageTypeHdd, 12)
-			if actual != tc.expected {
-				t.Fatalf("RoundUpVolumeSize got wrong result. actual: %d, expected: %d", actual, tc.expected)
-			}
-		})
-	}
-}
-
-func TestRoundUpVolumeSizeHddStorageType40Throughput(t *testing.T) {
-	testCases := []struct {
-		name        string
-		sizeInBytes int64
-		expected    int64
-	}{
-		{
-			name:        "Roundup 1 byte",
-			sizeInBytes: 1,
-			expected:    1800,
-		},
-		{
-			name:        "Roundup 1 Gib",
-			sizeInBytes: 1 * GiB,
-			expected:    1800,
-		},
-		{
-			name:        "Roundup 1000 Gib",
-			sizeInBytes: 1000 * GiB,
-			expected:    1800,
-		},
-		{
-			name:        "Roundup 2000 Gib",
-			sizeInBytes: 2000 * GiB,
-			expected:    3600,
-		},
-		{
-			name:        "Roundup 6000 Gib",
-			sizeInBytes: 6000 * GiB,
-			expected:    7200,
-		},
-		{
-			name:        "Roundup 6000 Gib + 1 Byte",
-			sizeInBytes: 6000*GiB + 1,
-			expected:    7200,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			actual := RoundUpVolumeSize(tc.sizeInBytes, fsx.LustreDeploymentTypePersistent1, fsx.StorageTypeHdd, 40)
+			actual := RoundUpVolumeSize(tc.sizeInBytes, fsx.LustreDeploymentTypeScratch2)
 			if actual != tc.expected {
 				t.Fatalf("RoundUpVolumeSize got wrong result. actual: %d, expected: %d", actual, tc.expected)
 			}

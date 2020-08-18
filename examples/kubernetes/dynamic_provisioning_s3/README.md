@@ -24,8 +24,6 @@ parameters:
 * deploymentType (Optional) - FSx for Lustre supports three deployment types, SCRATCH_1, SCRATCH_2 and PERSISTENT_1. Default: SCRATCH_1.
 * kmsKeyId (Optional) - for deployment type PERSISTENT_1, customer can specify a KMS key to use.
 * perUnitStorageThroughput (Optional) - for deployment type PERSISTENT_1, customer can specify the storage throughput. Default: "200". Note that customer has to specify as a string here like "200" or "100" etc.
-* storageType (Optional) - for deployment type PERSISTENT_1, customer can specify the storage type, either SSD or HDD. Default: "SSD"
-* driveCacheType (Required if storageType is "HDD") - for HDD PERSISTENT_1, specify the type of drive cache, either NONE or READ.
 
 Note:
 - S3 Bucket in s3ImportPath and s3ExportPath must be same, otherwise the driver can not create FSx for lustre successfully.
@@ -46,7 +44,7 @@ spec:
     requests:
       storage: 1200Gi
 ```
-Update `spec.resource.requests.storage` with the storage capacity to request. The storage capacity value will be rounded up to 1200 GiB, 2400 GiB, or a multiple of 3600 GiB for SSD. If the storageType is specified as HDD, the storage capacity will be rounded up to 6000 GiB or a multiple of 6000 GiB if the perUnitStorageThroughput is 12, or rounded up to 1800 or a multiple of 1800 if the perUnitStorageThroughput is 40.
+Update `spec.resource.requests.storage` with the storage capacity to request. The storage capacity value will be rounded up to 1200 GiB, 2400 GiB, or a multiple of 3600 GiB.
 
 ### Deploy the Application
 Create PVC, storageclass and the pod that consumes the PV:

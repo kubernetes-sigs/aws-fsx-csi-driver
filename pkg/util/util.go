@@ -30,36 +30,25 @@ const (
 	GiB = 1024 * 1024 * 1024
 )
 
-// RoundUpVolumeSize rounds the volume size in bytes up to
-// 1200 GiB, 2400 GiB, or multiples of 3600 GiB for DeploymentType SCRATCH_1,
-// to 1200 GiB or multiples of 2400 GiB for DeploymentType SCRATCH_2 or for
-// DeploymentType PERSISTENT_1 and StorageType SSD, multiples of 6000 GiB for
-// DeploymentType PERSISTENT_1, StorageType HDD, and PerUnitStorageThroughput 12,
-// and multiples of 1800 GiB for DeploymentType PERSISTENT_1, StorageType HDD, and
-// PerUnitStorageThroughput 40.
-func RoundUpVolumeSize(volumeSizeBytes int64, deploymentType string, storageType string, perUnitStorageThroughput int64) int64 {
-    if storageType == fsx.StorageTypeHdd {
-        if perUnitStorageThroughput == 12 {
-            return roundUpSize(volumeSizeBytes, 6000*GiB) * 6000
-        } else {
-            return roundUpSize(volumeSizeBytes, 1800*GiB) * 1800
-        }
-    } else {
-        if deploymentType == fsx.LustreDeploymentTypeScratch1 ||
-            deploymentType == "" {
-            if volumeSizeBytes < 3600*GiB {
-                return roundUpSize(volumeSizeBytes, 1200*GiB) * 1200
-            } else {
-                return roundUpSize(volumeSizeBytes, 3600*GiB) * 3600
-            }
-        } else {
-            if volumeSizeBytes < 2400*GiB {
-                return roundUpSize(volumeSizeBytes, 1200*GiB) * 1200
-            } else {
-                return roundUpSize(volumeSizeBytes, 2400*GiB) * 2400
-            }
-        }
-    }
+// RoundUpVolumeSize rounds up the volume size in bytes upto
+// 1200 GiB, 2400 GiB, or multiplications of 3600 GiB in the
+// unit of GiB for DeploymentType SCRATCH_1, or multiplications
+// of 2400 GiB for other DeploymentType
+func RoundUpVolumeSize(volumeSizeBytes int64, deploymentType string) int64 {
+	if deploymentType == fsx.LustreDeploymentTypeScratch1 ||
+		deploymentType == "" {
+		if volumeSizeBytes < 3600*GiB {
+			return roundUpSize(volumeSizeBytes, 1200*GiB) * 1200
+		} else {
+			return roundUpSize(volumeSizeBytes, 3600*GiB) * 3600
+		}
+	} else {
+		if volumeSizeBytes < 2400*GiB {
+			return roundUpSize(volumeSizeBytes, 1200*GiB) * 1200
+		} else {
+			return roundUpSize(volumeSizeBytes, 2400*GiB) * 2400
+		}
+	}
 }
 
 // GiBToBytes converts GiB to Bytes
