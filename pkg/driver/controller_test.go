@@ -215,9 +215,6 @@ func TestCreateVolume(t *testing.T) {
 						volumeParamsDeploymentType:           fsx.LustreDeploymentTypePersistent1,
 						volumeParamsKmsKeyId:                 "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe",
 						volumeParamsPerUnitStorageThroughput: "200",
-						volumeParamsAutomaticBackupRetentionDays: "1",
-						volumeParamsDailyAutomaticBackupStartTime: "00:00",
-						volumeParamsCopyTagsToBackups: "true",
 					},
 				}
 

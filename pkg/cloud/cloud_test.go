@@ -42,9 +42,6 @@ func TestCreateFileSystem(t *testing.T) {
 		mountName                      = "fsx"
 		kmsKeyId                       = "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe"
 		perUnitStorageThroughput int64 = 200
-		DailyAutomaticBackupStartTime  = "00:00:00"
-		AutomaticBackupRetentionDays  int64 = 1
-		CopyTagsToBackups              = true
 	)
 	testCases := []struct {
 		name     string
@@ -378,70 +375,6 @@ func TestCreateFileSystem(t *testing.T) {
 				_, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err == nil {
 					t.Fatal("CreateFileSystem is not failed")
-				}
-
-				mockCtl.Finish()
-			},
-		},
-		{
-			name: "success: Create PERSISTENT file system with scheduled backup",
-			testFunc: func(t *testing.T) {
-				mockCtl := gomock.NewController(t)
-				mockFSx := mocks.NewMockFSx(mockCtl)
-				c := &cloud{
-					fsx: mockFSx,
-				}
-
-				req := &FileSystemOptions{
-					CapacityGiB:                  volumeSizeGiB,
-					SubnetId:                     subnetId,
-					SecurityGroupIds:             securityGroupIds,
-					AutomaticBackupRetentionDays: AutomaticBackupRetentionDays,
-					DailyAutomaticBackupStartTime: DailyAutomaticBackupStartTime,
-					CopyTagsToBackups:            CopyTagsToBackups,
-				}
-
-
-				lustreFileSystemConfiguration := &fsx.LustreFileSystemConfiguration{
-					MountName:                   aws.String(mountName),
-					AutomaticBackupRetentionDays: aws.Int64(AutomaticBackupRetentionDays),
-					DailyAutomaticBackupStartTime: aws.String(DailyAutomaticBackupStartTime),
-					CopyTagsToBackups:            aws.Bool(CopyTagsToBackups),
-				}
-
-				output := &fsx.CreateFileSystemOutput{
-					FileSystem: &fsx.FileSystem{
-						FileSystemId:        aws.String(fileSystemId),
-						StorageCapacity:     aws.Int64(volumeSizeGiB),
-						DNSName:             aws.String(dnsname),
-						LustreConfiguration: lustreFileSystemConfiguration,
-					},
-				}
-				ctx := context.Background()
-				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
-				resp, err := c.CreateFileSystem(ctx, volumeName, req)
-				if err != nil {
-					t.Fatalf("CreateFileSystem is failed: %v", err)
-				}
-
-				if resp == nil {
-					t.Fatal("resp is nil")
-				}
-
-				if resp.FileSystemId != fileSystemId {
-					t.Fatalf("FileSystemId mismatches. actual: %v expected: %v", resp.FileSystemId, fileSystemId)
-				}
-
-				if resp.CapacityGiB != volumeSizeGiB {
-					t.Fatalf("CapacityGiB mismatches. actual: %v expected: %v", resp.CapacityGiB, volumeSizeGiB)
-				}
-
-				if resp.DnsName != dnsname {
-					t.Fatalf("DnsName mismatches. actual: %v expected: %v", resp.DnsName, dnsname)
-				}
-
-				if resp.MountName != mountName {
-					t.Fatalf("MountName mismatches. actual: %v expected: %v", resp.MountName, mountName)
 				}
 
 				mockCtl.Finish()
