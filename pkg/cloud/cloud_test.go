@@ -29,18 +29,21 @@ import (
 
 func TestCreateFileSystem(t *testing.T) {
 	var (
-		volumeName                     = "volumeName"
-		fileSystemId                   = "fs-1234"
-		volumeSizeGiB            int64 = 1200
-		subnetId                       = "subnet-056da83524edbe641"
-		securityGroupIds               = []string{"sg-086f61ea73388fb6b", "sg-0145e55e976000c9e"}
-		dnsname                        = "test.fsx.us-west-2.amazoawd.com"
-		s3ImportPath                   = "s3://fsx-s3-data-repository"
-		s3ExportPath                   = "s3://fsx-s3-data-repository/export"
-		deploymentType                 = fsx.LustreDeploymentTypeScratch2
-		mountName                      = "fsx"
-		kmsKeyId                       = "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe"
-		perUnitStorageThroughput int64 = 200
+		volumeName                          = "volumeName"
+		fileSystemId                        = "fs-1234"
+		volumeSizeGiB                 int64 = 1200
+		subnetId                            = "subnet-056da83524edbe641"
+		securityGroupIds                    = []string{"sg-086f61ea73388fb6b", "sg-0145e55e976000c9e"}
+		dnsname                             = "test.fsx.us-west-2.amazoawd.com"
+		s3ImportPath                        = "s3://fsx-s3-data-repository"
+		s3ExportPath                        = "s3://fsx-s3-data-repository/export"
+		deploymentType                      = fsx.LustreDeploymentTypeScratch2
+		mountName                           = "fsx"
+		kmsKeyId                            = "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe"
+		perUnitStorageThroughput      int64 = 200
+		DailyAutomaticBackupStartTime       = "00:00:00"
+		AutomaticBackupRetentionDays  int64 = 1
+		CopyTagsToBackups                   = true
 	)
 	testCases := []struct {
 		name     string
@@ -371,6 +374,69 @@ func TestCreateFileSystem(t *testing.T) {
 				_, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err == nil {
 					t.Fatal("CreateFileSystem is not failed")
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "success: Create PERSISTENT file system with scheduled backup",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &FileSystemOptions{
+					CapacityGiB:                   volumeSizeGiB,
+					SubnetId:                      subnetId,
+					SecurityGroupIds:              securityGroupIds,
+					AutomaticBackupRetentionDays:  AutomaticBackupRetentionDays,
+					DailyAutomaticBackupStartTime: DailyAutomaticBackupStartTime,
+					CopyTagsToBackups:             CopyTagsToBackups,
+				}
+
+				lustreFileSystemConfiguration := &fsx.LustreFileSystemConfiguration{
+					MountName:                     aws.String(mountName),
+					AutomaticBackupRetentionDays:  aws.Int64(AutomaticBackupRetentionDays),
+					DailyAutomaticBackupStartTime: aws.String(DailyAutomaticBackupStartTime),
+					CopyTagsToBackups:             aws.Bool(CopyTagsToBackups),
+				}
+
+				output := &fsx.CreateFileSystemOutput{
+					FileSystem: &fsx.FileSystem{
+						FileSystemId:        aws.String(fileSystemId),
+						StorageCapacity:     aws.Int64(volumeSizeGiB),
+						DNSName:             aws.String(dnsname),
+						LustreConfiguration: lustreFileSystemConfiguration,
+					},
+				}
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				resp, err := c.CreateFileSystem(ctx, volumeName, req)
+				if err != nil {
+					t.Fatalf("CreateFileSystem is failed: %v", err)
+				}
+
+				if resp == nil {
+					t.Fatal("resp is nil")
+				}
+
+				if resp.FileSystemId != fileSystemId {
+					t.Fatalf("FileSystemId mismatches. actual: %v expected: %v", resp.FileSystemId, fileSystemId)
+				}
+
+				if resp.CapacityGiB != volumeSizeGiB {
+					t.Fatalf("CapacityGiB mismatches. actual: %v expected: %v", resp.CapacityGiB, volumeSizeGiB)
+				}
+
+				if resp.DnsName != dnsname {
+					t.Fatalf("DnsName mismatches. actual: %v expected: %v", resp.DnsName, dnsname)
+				}
+
+				if resp.MountName != mountName {
+					t.Fatalf("MountName mismatches. actual: %v expected: %v", resp.MountName, mountName)
 				}
 
 				mockCtl.Finish()
