@@ -69,7 +69,6 @@ type FileSystemOptions struct {
 	CapacityGiB                   int64
 	SubnetId                      string
 	SecurityGroupIds              []string
-	AutoImportPolicy              string
 	S3ImportPath                  string
 	S3ExportPath                  string
 	DeploymentType                string
@@ -118,10 +117,6 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 	}
 
 	lustreConfiguration := &fsx.CreateFileSystemLustreConfiguration{}
-
-	if fileSystemOptions.AutoImportPolicy != "" {
-		lustreConfiguration.SetAutoImportPolicy(fileSystemOptions.AutoImportPolicy)
-	}
 
 	if fileSystemOptions.S3ImportPath != "" {
 		lustreConfiguration.SetImportPath(fileSystemOptions.S3ImportPath)
