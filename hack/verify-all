@@ -17,6 +17,7 @@
 set -euo pipefail
 
 PKG_ROOT=$(git rev-parse --show-toplevel)
+GOPROXY='direct go get vbom.ml/util'
 
 ${PKG_ROOT}/hack/verify-gofmt
 ${PKG_ROOT}/hack/verify-govet
