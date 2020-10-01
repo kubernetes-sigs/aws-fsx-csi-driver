@@ -35,6 +35,7 @@ func TestCreateFileSystem(t *testing.T) {
 		subnetId                       = "subnet-056da83524edbe641"
 		securityGroupIds               = []string{"sg-086f61ea73388fb6b", "sg-0145e55e976000c9e"}
 		dnsname                        = "test.fsx.us-west-2.amazoawd.com"
+		autoImportPolicy               = "NEW_CHANGED"
 		s3ImportPath                   = "s3://fsx-s3-data-repository"
 		s3ExportPath                   = "s3://fsx-s3-data-repository/export"
 		deploymentType                 = fsx.LustreDeploymentTypeScratch2
@@ -170,11 +171,13 @@ func TestCreateFileSystem(t *testing.T) {
 					CapacityGiB:      volumeSizeGiB,
 					SubnetId:         subnetId,
 					SecurityGroupIds: securityGroupIds,
+					AutoImportPolicy: autoImportPolicy,
 					S3ImportPath:     s3ImportPath,
 					S3ExportPath:     s3ExportPath,
 				}
 
 				dataRepositoryConfiguration := &fsx.DataRepositoryConfiguration{}
+				dataRepositoryConfiguration.SetAutoImportPolicy(autoImportPolicy)
 				dataRepositoryConfiguration.SetImportPath(s3ImportPath)
 				dataRepositoryConfiguration.SetExportPath(s3ExportPath)
 
@@ -260,6 +263,7 @@ func TestCreateFileSystem(t *testing.T) {
 					CapacityGiB:      volumeSizeGiB,
 					SubnetId:         subnetId,
 					SecurityGroupIds: securityGroupIds,
+					AutoImportPolicy: autoImportPolicy,
 					S3ImportPath:     "s3://bucket1/import",
 					S3ExportPath:     "s3://bucket2/export",
 				}
@@ -439,12 +443,13 @@ func TestDeleteFileSystem(t *testing.T) {
 
 func TestDescribeFileSystem(t *testing.T) {
 	var (
-		fileSystemId        = "fs-1234"
-		volumeSizeGiB int64 = 1200
-		dnsname             = "test.fsx.us-west-2.amazoawd.com"
-		s3ImportPath        = "s3://fsx-s3-data-repository"
-		s3ExportPath        = "s3://fsx-s3-data-repository/export"
-		mountName           = "fsx"
+		fileSystemId           = "fs-1234"
+		volumeSizeGiB    int64 = 1200
+		dnsname                = "test.fsx.us-west-2.amazoawd.com"
+		autoImportPolicy       = "NEW_CHANGED"
+		s3ImportPath           = "s3://fsx-s3-data-repository"
+		s3ExportPath           = "s3://fsx-s3-data-repository/export"
+		mountName              = "fsx"
 	)
 	testCases := []struct {
 		name     string
@@ -491,6 +496,7 @@ func TestDescribeFileSystem(t *testing.T) {
 				}
 
 				dataRepositoryConfiguration := &fsx.DataRepositoryConfiguration{}
+				dataRepositoryConfiguration.SetAutoImportPolicy(autoImportPolicy)
 				dataRepositoryConfiguration.SetImportPath(s3ImportPath)
 				dataRepositoryConfiguration.SetExportPath(s3ExportPath)
 

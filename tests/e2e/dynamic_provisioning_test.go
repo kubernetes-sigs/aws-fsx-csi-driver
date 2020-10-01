@@ -158,6 +158,7 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning with s3 data repository", f
 						Parameters: map[string]string{
 							"subnetId":         subnetId,
 							"securityGroupIds": strings.Join(securityGroupIds, ","),
+							"autoImportPolicy": "NONE",
 							"s3ImportPath":     fmt.Sprintf("s3://%s", bucketName),
 							"s3ExportPath":     fmt.Sprintf("s3://%s/export", bucketName),
 						},

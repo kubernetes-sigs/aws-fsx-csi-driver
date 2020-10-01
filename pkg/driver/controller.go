@@ -42,6 +42,7 @@ const (
 
 	volumeParamsSubnetId                 = "subnetId"
 	volumeParamsSecurityGroupIds         = "securityGroupIds"
+	volumeParamsAutoImportPolicy         = "autoImportPolicy"
 	volumeParamsS3ImportPath             = "s3ImportPath"
 	volumeParamsS3ExportPath             = "s3ExportPath"
 	volumeParamsDeploymentType           = "deploymentType"
@@ -73,6 +74,10 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	fsOptions := &cloud.FileSystemOptions{
 		SubnetId:         subnetId,
 		SecurityGroupIds: strings.Split(securityGroupIds, ","),
+	}
+
+	if val, ok := volumeParams[volumeParamsAutoImportPolicy]; ok {
+		fsOptions.AutoImportPolicy = val
 	}
 
 	if val, ok := volumeParams[volumeParamsS3ImportPath]; ok {
