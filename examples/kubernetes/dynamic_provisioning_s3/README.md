@@ -13,12 +13,14 @@ provisioner: fsx.csi.aws.com
 parameters:
   subnetId: subnet-056da83524edbe641
   securityGroupIds: sg-086f61ea73388fb6b
+  autoImportPolicy: NONE
   s3ImportPath: s3://ml-training-data-000
   s3ExportPath: s3://ml-training-data-000/export
   deploymentType: SCRATCH_2
 ```
 * subnetId - the subnet ID that the FSx for Lustre filesystem should be created inside.
 * securityGroupIds - a common separated list of security group IDs that should be attached to the filesystem.
+* autoImportPolicy - the policy FSx will follow that determines how the filesystem is automatically updated with changes made in the linked data repository. For a list of acceptable policies, please view the official FSx for Lustre documentation: https://docs.aws.amazon.com/fsx/latest/APIReference/API_CreateFileSystemLustreConfiguration.html
 * s3ImportPath(Optional) - S3 data repository you want to copy from S3 to persistent volume.
 * s3ExportPath(Optional) - S3 data repository you want to export new or modified files from persistent volume to S3.
 * deploymentType (Optional) - FSx for Lustre supports three deployment types, SCRATCH_1, SCRATCH_2 and PERSISTENT_1. Default: SCRATCH_1.
@@ -29,6 +31,7 @@ Note:
 - S3 Bucket in s3ImportPath and s3ExportPath must be same, otherwise the driver can not create FSx for lustre successfully.
 - s3ImportPath can stand alone and a random path will be created automatically like `s3://ml-training-data-000/FSxLustre20190308T012310Z`.
 - s3ExportPath can not be given without specifying S3ImportPath.
+- autoImportPolicy can not be given without specifying S3ImportPath.
 
 ### Edit [Persistent Volume Claim Spec](./specs/claim.yaml)
 ```
