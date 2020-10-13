@@ -9,6 +9,6 @@ parameters:
   deploymentType: PERSISTENT_1
   automaticBackupRetentionDays: "1"
   dailyAutomaticBackupStartTime: "00:00"
-  copyTagsToBackups: "true
+  copyTagsToBackups: "true"
 mountOptions:
   - flock
