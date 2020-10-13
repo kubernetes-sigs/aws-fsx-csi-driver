@@ -66,15 +66,18 @@ type FileSystem struct {
 
 // FileSystemOptions represents the options to create FSx for Lustre filesystem
 type FileSystemOptions struct {
-	CapacityGiB              int64
-	SubnetId                 string
-	SecurityGroupIds         []string
-	AutoImportPolicy         string
-	S3ImportPath             string
-	S3ExportPath             string
-	DeploymentType           string
-	KmsKeyId                 string
-	PerUnitStorageThroughput int64
+	CapacityGiB                   int64
+	SubnetId                      string
+	SecurityGroupIds              []string
+	AutoImportPolicy              string
+	S3ImportPath                  string
+	S3ExportPath                  string
+	DeploymentType                string
+	KmsKeyId                      string
+	PerUnitStorageThroughput      int64
+	DailyAutomaticBackupStartTime string
+	AutomaticBackupRetentionDays  int64
+	CopyTagsToBackups             bool
 }
 
 // FSx abstracts FSx client to facilitate its mocking.
@@ -134,6 +137,17 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 
 	if fileSystemOptions.PerUnitStorageThroughput != 0 {
 		lustreConfiguration.SetPerUnitStorageThroughput(fileSystemOptions.PerUnitStorageThroughput)
+	}
+
+	if fileSystemOptions.AutomaticBackupRetentionDays != 0 {
+		lustreConfiguration.SetAutomaticBackupRetentionDays(fileSystemOptions.AutomaticBackupRetentionDays)
+		if fileSystemOptions.DailyAutomaticBackupStartTime != "" {
+			lustreConfiguration.SetDailyAutomaticBackupStartTime(fileSystemOptions.DailyAutomaticBackupStartTime)
+		}
+	}
+
+	if fileSystemOptions.CopyTagsToBackups {
+		lustreConfiguration.SetCopyTagsToBackups(true)
 	}
 
 	input := &fsx.CreateFileSystemInput{

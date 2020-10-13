@@ -7,5 +7,8 @@ parameters:
   subnetId: subnet-0930cbd463b9688c5
   securityGroupIds: sg-03a4b6bd8afb19051,sg-05a37bfe01467059a
   deploymentType: PERSISTENT_1
+  automaticBackupRetentionDays: "1"
+  dailyAutomaticBackupStartTime: "00:00"
+  copyTagsToBackups: "true"
 mountOptions:
   - flock

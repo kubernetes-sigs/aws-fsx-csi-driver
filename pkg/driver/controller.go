@@ -37,17 +37,19 @@ var (
 )
 
 const (
-	volumeContextDnsName   = "dnsname"
-	volumeContextMountName = "mountname"
-
-	volumeParamsSubnetId                 = "subnetId"
-	volumeParamsSecurityGroupIds         = "securityGroupIds"
-	volumeParamsAutoImportPolicy         = "autoImportPolicy"
-	volumeParamsS3ImportPath             = "s3ImportPath"
-	volumeParamsS3ExportPath             = "s3ExportPath"
-	volumeParamsDeploymentType           = "deploymentType"
-	volumeParamsKmsKeyId                 = "kmsKeyId"
-	volumeParamsPerUnitStorageThroughput = "perUnitStorageThroughput"
+	volumeContextDnsName                      = "dnsname"
+	volumeContextMountName                    = "mountname"
+	volumeParamsSubnetId                      = "subnetId"
+	volumeParamsSecurityGroupIds              = "securityGroupIds"
+	volumeParamsAutoImportPolicy              = "autoImportPolicy"
+	volumeParamsS3ImportPath                  = "s3ImportPath"
+	volumeParamsS3ExportPath                  = "s3ExportPath"
+	volumeParamsDeploymentType                = "deploymentType"
+	volumeParamsKmsKeyId                      = "kmsKeyId"
+	volumeParamsPerUnitStorageThroughput      = "perUnitStorageThroughput"
+	volumeParamsAutomaticBackupRetentionDays  = "automaticBackupRetentionDays"
+	volumeParamsDailyAutomaticBackupStartTime = "dailyAutomaticBackupStartTime"
+	volumeParamsCopyTagsToBackups             = "copyTagsToBackups"
 )
 
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -94,6 +96,26 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	if val, ok := volumeParams[volumeParamsKmsKeyId]; ok {
 		fsOptions.KmsKeyId = val
+	}
+
+	if val, ok := volumeParams[volumeParamsDailyAutomaticBackupStartTime]; ok {
+		fsOptions.DailyAutomaticBackupStartTime = val
+	}
+
+	if val, ok := volumeParams[volumeParamsAutomaticBackupRetentionDays]; ok {
+		n, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "automaticBackupRetentionDays must be a number")
+		}
+		fsOptions.AutomaticBackupRetentionDays = n
+	}
+
+	if val, ok := volumeParams[volumeParamsCopyTagsToBackups]; ok {
+		b, err := strconv.ParseBool(val)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "copyTagsToBackups must be a bool")
+		}
+		fsOptions.CopyTagsToBackups = b
 	}
 
 	if val, ok := volumeParams[volumeParamsPerUnitStorageThroughput]; ok {
