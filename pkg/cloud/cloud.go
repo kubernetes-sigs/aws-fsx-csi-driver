@@ -75,6 +75,8 @@ type FileSystemOptions struct {
 	DeploymentType                string
 	KmsKeyId                      string
 	PerUnitStorageThroughput      int64
+	StorageType                   string
+	DriveCacheType                string
 	DailyAutomaticBackupStartTime string
 	AutomaticBackupRetentionDays  int64
 	CopyTagsToBackups             bool
@@ -135,6 +137,10 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		lustreConfiguration.SetDeploymentType(fileSystemOptions.DeploymentType)
 	}
 
+	if fileSystemOptions.DriveCacheType != "" {
+		lustreConfiguration.SetDriveCacheType(fileSystemOptions.DriveCacheType)
+	}
+
 	if fileSystemOptions.PerUnitStorageThroughput != 0 {
 		lustreConfiguration.SetPerUnitStorageThroughput(fileSystemOptions.PerUnitStorageThroughput)
 	}
@@ -165,6 +171,9 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		},
 	}
 
+	if fileSystemOptions.StorageType != "" {
+		input.StorageType = aws.String(fileSystemOptions.StorageType)
+	}
 	if fileSystemOptions.KmsKeyId != "" {
 		input.KmsKeyId = aws.String(fileSystemOptions.KmsKeyId)
 	}
