@@ -28,19 +28,13 @@ import (
 )
 
 var (
-	nodeCaps = []csi.NodeServiceCapability_RPC_Type{}
+	nodeCaps = []csi.NodeServiceCapability_RPC_Type{
+		csi.NodeServiceCapability_RPC_STAGE_UNSTAGE_VOLUME,
+	}
 )
 
 func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
-}
-
-func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
-}
-
-func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
-	klog.V(4).Infof("NodePublishVolume: called with args %+v", req)
+	klog.V(4).Infof("NodeStageVolume: called with args %+v", req)
 
 	volumeID := req.GetVolumeId()
 	if len(volumeID) == 0 {
@@ -61,9 +55,9 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 
 	source := fmt.Sprintf("%s@tcp:/%s", dnsname, mountname)
 
-	target := req.GetTargetPath()
-	if len(target) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Target path not provided")
+	stagingTarget := req.GetStagingTargetPath()
+	if len(stagingTarget) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Staging Target path not provided")
 	}
 
 	volCap := req.GetVolumeCapability()
@@ -76,9 +70,6 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	}
 
 	mountOptions := []string{}
-	if req.GetReadonly() {
-		mountOptions = append(mountOptions, "ro")
-	}
 
 	if m := volCap.GetMount(); m != nil {
 		hasOption := func(options []string, opt string) bool {
@@ -95,15 +86,73 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 			}
 		}
 	}
+	klog.V(5).Infof("NodeStageVolume: creating dir %s", stagingTarget)
+	if err := d.mounter.MakeDir(stagingTarget); err != nil {
+		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", stagingTarget, err)
+	}
+
+	klog.V(5).Infof("NodeStageVolume: lustre mounting %s at %s with options %v", source, stagingTarget, mountOptions)
+	if err := d.mounter.Mount(source, stagingTarget, "lustre", mountOptions); err != nil {
+		os.Remove(stagingTarget)
+		return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", source, stagingTarget, err)
+	}
+
+	return &csi.NodeStageVolumeResponse{}, nil
+}
+
+func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
+	klog.V(4).Infof("NodeUnstageVolume: called with args %+v", req)
+
+	volumeID := req.GetVolumeId()
+	if len(volumeID) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
+	}
+
+	stagingTarget := req.GetStagingTargetPath()
+	if len(stagingTarget) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Staging Target path not provided")
+	}
+
+	klog.V(5).Infof("NodeUnstageVolume: unmounting %s", stagingTarget)
+	err := d.mounter.Unmount(stagingTarget)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", stagingTarget, err)
+	}
+
+	return &csi.NodeUnstageVolumeResponse{}, nil
+}
+
+func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
+	klog.V(4).Infof("NodePublishVolume: called with args %+v", req)
+
+	target := req.GetTargetPath()
+	if len(target) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Target path not provided")
+	}
+
+	stagingTarget := req.GetStagingTargetPath()
+	if len(stagingTarget) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Staging Target path not provided")
+	}
+	mountOptions := []string{"bind"}
+	if req.GetReadonly() {
+		mountOptions = append(mountOptions, "ro")
+	}
+
 	klog.V(5).Infof("NodePublishVolume: creating dir %s", target)
 	if err := d.mounter.MakeDir(target); err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
 	}
 
-	klog.V(5).Infof("NodePublishVolume: mounting %s at %s with options %v", source, target, mountOptions)
-	if err := d.mounter.Mount(source, target, "lustre", mountOptions); err != nil {
+	klog.V(5).Infof("NodePublishVolume: creating staging dir %s", stagingTarget)
+	if err := d.mounter.MakeDir(stagingTarget); err != nil {
+		return nil, status.Errorf(codes.Internal, "Could not create lustre dir %q: %v", stagingTarget, err)
+	}
+
+	klog.V(5).Infof("NodePublishVolume: bind mounting %s at %s", stagingTarget, target)
+	if err := d.mounter.Mount(stagingTarget, target, "", mountOptions); err != nil {
 		os.Remove(target)
-		return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", source, target, err)
+		return nil, status.Errorf(codes.Internal, "Could not bind mount %q at %q: %v", stagingTarget, target, err)
 	}
 
 	return &csi.NodePublishVolumeResponse{}, nil
@@ -116,6 +165,7 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
 	}
+
 	target := req.GetTargetPath()
 	if len(target) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Target path not provided")

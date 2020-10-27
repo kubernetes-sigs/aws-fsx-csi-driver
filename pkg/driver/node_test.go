@@ -29,12 +29,13 @@ import (
 func TestNodePublishVolume(t *testing.T) {
 
 	var (
-		endpoint   = "endpoint"
-		nodeID     = "nodeID"
-		dnsname    = "fs-0a2d0632b5ff567e9.fsx.us-west-2.amazonaws.com"
-		mountname  = "random"
-		targetPath = "/target/path"
-		stdVolCap  = &csi.VolumeCapability{
+		endpoint          = "endpoint"
+		nodeID            = "nodeID"
+		dnsname           = "fs-0a2d0632b5ff567e9.fsx.us-west-2.amazonaws.com"
+		mountname         = "random"
+		targetPath        = "/target/path"
+		stagingTargetPath = "/staging/target/path"
+		stdVolCap         = &csi.VolumeCapability{
 			AccessType: &csi.VolumeCapability_Mount{
 				Mount: &csi.VolumeCapability_MountVolume{},
 			},
@@ -44,350 +45,132 @@ func TestNodePublishVolume(t *testing.T) {
 		}
 	)
 
+	mockDriver := func(mockCtrl *gomock.Controller) (*Driver, *mocks.MockMounter) {
+		mockMounter := mocks.NewMockMounter(mockCtrl)
+		driver := &Driver{
+			endpoint: endpoint,
+			nodeID:   nodeID,
+			mounter:  mockMounter,
+		}
+		return driver, mockMounter
+	}
+
+	successfulDriverWithOptions := func(mountOptions []string) func(*gomock.Controller) *Driver {
+		return func(mockCtrl *gomock.Controller) *Driver {
+			driver, mockMounter := mockDriver(mockCtrl)
+			mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
+			mockMounter.EXPECT().MakeDir(gomock.Eq(stagingTargetPath)).Return(nil)
+			mockMounter.EXPECT().Mount(gomock.Eq(stagingTargetPath), gomock.Eq(targetPath), gomock.Eq(""), gomock.Eq(mountOptions)).Return(nil)
+			return driver
+		}
+	}
+
+	standardRequest := func() *csi.NodePublishVolumeRequest {
+		return &csi.NodePublishVolumeRequest{
+			VolumeId: "volumeId",
+			VolumeContext: map[string]string{
+				volumeContextDnsName:   dnsname,
+				volumeContextMountName: mountname,
+			},
+			VolumeCapability:  stdVolCap,
+			TargetPath:        targetPath,
+			StagingTargetPath: stagingTargetPath,
+		}
+	}
+
 	testCases := []struct {
-		name     string
-		testFunc func(t *testing.T)
+		name        string
+		driver      func(mockCtrl *gomock.Controller) *Driver
+		request     func() *csi.NodePublishVolumeRequest
+		expectError bool
 	}{
 		{
-			name: "success: normal",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-				source := dnsname + "@tcp:/" + mountname
-
-				ctx := context.Background()
-				req := &csi.NodePublishVolumeRequest{
-					VolumeId: "volumeId",
-					VolumeContext: map[string]string{
-						volumeContextDnsName:   dnsname,
-						volumeContextMountName: mountname,
-					},
-					VolumeCapability: stdVolCap,
-					TargetPath:       targetPath,
-				}
-
-				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
-				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("lustre"), gomock.Any()).Return(nil)
-				_, err := driver.NodePublishVolume(ctx, req)
-				if err != nil {
-					t.Fatalf("NodePublishVolume is failed: %v", err)
-				}
-
-				mockCtrl.Finish()
+			name:   "success: normal",
+			driver: successfulDriverWithOptions([]string{"bind"}),
+			request: func() *csi.NodePublishVolumeRequest {
+				req := standardRequest()
+				return req
 			},
 		},
 		{
-			name: "success: missing mountname for static provisioning, default 'fsx' used",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-				source := dnsname + "@tcp:/fsx"
-
-				ctx := context.Background()
-				req := &csi.NodePublishVolumeRequest{
-					VolumeId: "volumeId",
-					VolumeContext: map[string]string{
-						volumeContextDnsName: dnsname,
-					},
-					VolumeCapability: stdVolCap,
-					TargetPath:       targetPath,
-				}
-
-				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
-				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("lustre"), gomock.Any()).Return(nil)
-				_, err := driver.NodePublishVolume(ctx, req)
-				if err != nil {
-					t.Fatalf("NodePublishVolume is failed: %v", err)
-				}
-
-				mockCtrl.Finish()
-			},
-		},
-		{
-			name: "success: normal with read only mount",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-
-				source := dnsname + "@tcp:/" + mountname
-
-				ctx := context.Background()
-				req := &csi.NodePublishVolumeRequest{
-					VolumeId: "volumeId",
-					VolumeContext: map[string]string{
-						volumeContextDnsName:   dnsname,
-						volumeContextMountName: mountname,
-					},
-					VolumeCapability: stdVolCap,
-					TargetPath:       targetPath,
-					Readonly:         true,
-				}
-
-				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
-				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("lustre"), gomock.Eq([]string{"ro"})).Return(nil)
-				_, err := driver.NodePublishVolume(ctx, req)
-				if err != nil {
-					t.Fatalf("NodePublishVolume is failed: %v", err)
-				}
-
-				mockCtrl.Finish()
-			},
-		},
-		{
-			name: "success: normal with flock mount options",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-
-				source := dnsname + "@tcp:/" + mountname
-
-				ctx := context.Background()
-				req := &csi.NodePublishVolumeRequest{
-					VolumeId: "volumeId",
-					VolumeContext: map[string]string{
-						volumeContextDnsName:   dnsname,
-						volumeContextMountName: mountname,
-					},
-					VolumeCapability: &csi.VolumeCapability{
-						AccessType: &csi.VolumeCapability_Mount{
-							Mount: &csi.VolumeCapability_MountVolume{
-								MountFlags: []string{"flock"},
-							},
-						},
-						AccessMode: &csi.VolumeCapability_AccessMode{
-							Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
-						},
-					},
-					TargetPath: targetPath,
-				}
-
-				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
-				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("lustre"), gomock.Eq([]string{"flock"})).Return(nil)
-				_, err := driver.NodePublishVolume(ctx, req)
-				if err != nil {
-					t.Fatalf("NodePublishVolume is failed: %v", err)
-				}
-
-				mockCtrl.Finish()
-			},
-		},
-		{
-			name: "fail: missing dns name",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-
-				ctx := context.Background()
-				req := &csi.NodePublishVolumeRequest{
-					VolumeId: "volumeId",
-					VolumeContext: map[string]string{
-						volumeContextMountName: mountname,
-					},
-					VolumeCapability: stdVolCap,
-					TargetPath:       targetPath,
-				}
-
-				_, err := driver.NodePublishVolume(ctx, req)
-				if err == nil {
-					t.Fatalf("NodePublishVolume is not failed: %v", err)
-				}
-
-				mockCtrl.Finish()
+			name:   "success: normal with read only mount",
+			driver: successfulDriverWithOptions([]string{"bind", "ro"}),
+			request: func() *csi.NodePublishVolumeRequest {
+				req := standardRequest()
+				req.Readonly = true
+				return req
 			},
 		},
 		{
 			name: "fail: missing target path",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-
-				ctx := context.Background()
-				req := &csi.NodePublishVolumeRequest{
-					VolumeId: "volumeId",
-					VolumeContext: map[string]string{
-						volumeContextDnsName:   dnsname,
-						volumeContextMountName: mountname,
-					},
-					VolumeCapability: stdVolCap,
-				}
-
-				_, err := driver.NodePublishVolume(ctx, req)
-				if err == nil {
-					t.Fatalf("NodePublishVolume is not failed: %v", err)
-				}
-
-				mockCtrl.Finish()
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, _ := mockDriver(mockCtrl)
+				return driver
 			},
+			request: func() *csi.NodePublishVolumeRequest {
+				req := standardRequest()
+				req.TargetPath = ""
+				return req
+			},
+			expectError: true,
 		},
 		{
-			name: "fail: missing volume capability",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-
-				ctx := context.Background()
-				req := &csi.NodePublishVolumeRequest{
-					VolumeId: "volumeId",
-					VolumeContext: map[string]string{
-						volumeContextDnsName:   dnsname,
-						volumeContextMountName: mountname,
-					},
-					TargetPath: targetPath,
-				}
-
-				_, err := driver.NodePublishVolume(ctx, req)
-				if err == nil {
-					t.Fatalf("NodePublishVolume is not failed: %v", err)
-				}
-
-				mockCtrl.Finish()
+			name: "fail: missing staging target path",
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, _ := mockDriver(mockCtrl)
+				return driver
 			},
-		},
-		{
-			name: "fail: unsupported volume capability",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-
-				ctx := context.Background()
-				req := &csi.NodePublishVolumeRequest{
-					VolumeId: "volumeId",
-					VolumeContext: map[string]string{
-						volumeContextDnsName:   dnsname,
-						volumeContextMountName: mountname,
-					},
-					VolumeCapability: &csi.VolumeCapability{
-						AccessType: &csi.VolumeCapability_Mount{
-							Mount: &csi.VolumeCapability_MountVolume{},
-						},
-						AccessMode: &csi.VolumeCapability_AccessMode{
-							Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_READER_ONLY,
-						},
-					},
-					TargetPath: targetPath,
-				}
-
-				_, err := driver.NodePublishVolume(ctx, req)
-				if err == nil {
-					t.Fatalf("NodePublishVolume is not failed: %v", err)
-				}
-
-				mockCtrl.Finish()
+			request: func() *csi.NodePublishVolumeRequest {
+				req := standardRequest()
+				req.StagingTargetPath = ""
+				return req
 			},
+			expectError: true,
 		},
 		{
 			name: "fail: mounter failed to MakeDir",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-
-				ctx := context.Background()
-				req := &csi.NodePublishVolumeRequest{
-					VolumeId: "volumeId",
-					VolumeContext: map[string]string{
-						volumeContextDnsName:   dnsname,
-						volumeContextMountName: mountname,
-					},
-					VolumeCapability: stdVolCap,
-					TargetPath:       targetPath,
-				}
-
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, mockMounter := mockDriver(mockCtrl)
 				err := fmt.Errorf("failed to MakeDir")
 				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(err)
 
-				_, err = driver.NodePublishVolume(ctx, req)
-				if err == nil {
-					t.Fatalf("NodePublishVolume is not failed: %v", err)
-				}
-
-				mockCtrl.Finish()
+				return driver
 			},
+			request:     standardRequest,
+			expectError: true,
 		},
 		{
 			name: "fail: mounter failed to Mount",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-
-				ctx := context.Background()
-				req := &csi.NodePublishVolumeRequest{
-					VolumeId: "volumeId",
-					VolumeContext: map[string]string{
-						volumeContextDnsName:   dnsname,
-						volumeContextMountName: mountname,
-					},
-					VolumeCapability: stdVolCap,
-					TargetPath:       targetPath,
-				}
-
-				source := dnsname + "@tcp:/" + mountname
-
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, mockMounter := mockDriver(mockCtrl)
 				err := fmt.Errorf("failed to Mount")
 				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
-				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("lustre"), gomock.Any()).Return(err)
+				mockMounter.EXPECT().MakeDir(gomock.Eq(stagingTargetPath)).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(stagingTargetPath), gomock.Eq(targetPath), gomock.Eq(""), gomock.Eq([]string{"bind"})).Return(err)
 
-				_, err = driver.NodePublishVolume(ctx, req)
-				if err == nil {
-					t.Fatalf("NodePublishVolume is not failed: %v", err)
-				}
-
-				mockCtrl.Finish()
+				return driver
 			},
+			request:     standardRequest,
+			expectError: true,
 		},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, tc.testFunc)
+		t.Run(tc.name, func(t *testing.T) {
+			var (
+				mockCtrl = gomock.NewController(t)
+				driver   = tc.driver(mockCtrl)
+				req      = tc.request()
+				ctx      = context.Background()
+			)
+			_, err := driver.NodePublishVolume(ctx, req)
+			if tc.expectError && err == nil {
+				t.Fatalf("NodePublishVolume is not failed: %v", err)
+			} else if !tc.expectError && err != nil {
+				t.Fatalf("NodePublishVolume is failed: %v", err)
+			}
+			mockCtrl.Finish()
+		})
 	}
 }
 
@@ -399,85 +182,345 @@ func TestNodeUnpublishVolume(t *testing.T) {
 		targetPath = "/target/path"
 	)
 
+	mockDriver := func(mockCtrl *gomock.Controller) (*Driver, *mocks.MockMounter) {
+		mockMounter := mocks.NewMockMounter(mockCtrl)
+		driver := &Driver{
+			endpoint: endpoint,
+			nodeID:   nodeID,
+			mounter:  mockMounter,
+		}
+		return driver, mockMounter
+	}
+
+	standardRequest := func() *csi.NodeUnpublishVolumeRequest {
+		return &csi.NodeUnpublishVolumeRequest{
+			VolumeId:   "volumeId",
+			TargetPath: targetPath,
+		}
+	}
+
 	testCases := []struct {
-		name     string
-		testFunc func(t *testing.T)
+		name        string
+		driver      func(mockCtrl *gomock.Controller) *Driver
+		request     func() *csi.NodeUnpublishVolumeRequest
+		expectError bool
 	}{
 		{
 			name: "success: normal",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-
-				ctx := context.Background()
-				req := &csi.NodeUnpublishVolumeRequest{
-					VolumeId:   "volumeId",
-					TargetPath: targetPath,
-				}
-
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, mockMounter := mockDriver(mockCtrl)
 				mockMounter.EXPECT().Unmount(gomock.Eq(targetPath)).Return(nil)
-
-				_, err := driver.NodeUnpublishVolume(ctx, req)
-				if err != nil {
-					t.Fatalf("NodeUnpublishVolume is failed: %v", err)
-				}
+				return driver
 			},
+			request: standardRequest,
 		},
 		{
 			name: "fail: targetPath is missing",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-
-				ctx := context.Background()
-				req := &csi.NodeUnpublishVolumeRequest{
-					VolumeId: "volumeId",
-				}
-
-				_, err := driver.NodeUnpublishVolume(ctx, req)
-				if err == nil {
-					t.Fatalf("NodeUnpublishVolume is not failed: %v", err)
-				}
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, _ := mockDriver(mockCtrl)
+				return driver
 			},
+			request: func() *csi.NodeUnpublishVolumeRequest {
+				req := standardRequest()
+				req.TargetPath = ""
+				return req
+			},
+			expectError: true,
 		},
 		{
 			name: "fail: mounter failed to umount",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-
-				ctx := context.Background()
-				req := &csi.NodeUnpublishVolumeRequest{
-					VolumeId:   "volumeId",
-					TargetPath: targetPath,
-				}
-
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, mockMounter := mockDriver(mockCtrl)
 				mountErr := fmt.Errorf("Unmount failed")
 				mockMounter.EXPECT().Unmount(gomock.Eq(targetPath)).Return(mountErr)
-
-				_, err := driver.NodeUnpublishVolume(ctx, req)
-				if err == nil {
-					t.Fatalf("NodeUnpublishVolume is not failed: %v", err)
-				}
+				return driver
 			},
+			request:     standardRequest,
+			expectError: true,
 		},
 	}
 	for _, tc := range testCases {
-		t.Run(tc.name, tc.testFunc)
+		t.Run(tc.name, func(t *testing.T) {
+			var (
+				mockCtrl = gomock.NewController(t)
+				driver   = tc.driver(mockCtrl)
+				req      = tc.request()
+				ctx      = context.Background()
+			)
+			_, err := driver.NodeUnpublishVolume(ctx, req)
+			if tc.expectError && err == nil {
+				t.Fatalf("NodeUnpublishVolume is not failed: %v", err)
+			} else if !tc.expectError && err != nil {
+				t.Fatalf("NodeUnpublishVolume is failed: %v", err)
+			}
+			mockCtrl.Finish()
+		})
+	}
+}
+
+func TestNodeStageVolume(t *testing.T) {
+
+	var (
+		endpoint          = "endpoint"
+		nodeID            = "nodeID"
+		dnsname           = "fs-0a2d0632b5ff567e9.fsx.us-west-2.amazonaws.com"
+		mountname         = "random"
+		stagingTargetPath = "/staging/target/path"
+		lustreSource      = dnsname + "@tcp:/" + mountname
+	)
+
+	mockDriver := func(mockCtrl *gomock.Controller) (*Driver, *mocks.MockMounter) {
+		mockMounter := mocks.NewMockMounter(mockCtrl)
+		driver := &Driver{
+			endpoint: endpoint,
+			nodeID:   nodeID,
+			mounter:  mockMounter,
+		}
+		return driver, mockMounter
+	}
+
+	successfulDriverWithOptions := func(mountOptions []string) func(*gomock.Controller) *Driver {
+		return func(mockCtrl *gomock.Controller) *Driver {
+			driver, mockMounter := mockDriver(mockCtrl)
+			mockMounter.EXPECT().MakeDir(gomock.Eq(stagingTargetPath)).Return(nil)
+			mockMounter.EXPECT().Mount(gomock.Eq(lustreSource), gomock.Eq(stagingTargetPath), gomock.Eq("lustre"), gomock.Eq(mountOptions)).Return(nil)
+			return driver
+		}
+	}
+
+	standardRequest := func() *csi.NodeStageVolumeRequest {
+		return &csi.NodeStageVolumeRequest{
+			VolumeId: "volumeId",
+			VolumeContext: map[string]string{
+				volumeContextDnsName:   dnsname,
+				volumeContextMountName: mountname,
+			},
+			StagingTargetPath: stagingTargetPath,
+			VolumeCapability: &csi.VolumeCapability{
+				AccessType: &csi.VolumeCapability_Mount{
+					Mount: &csi.VolumeCapability_MountVolume{},
+				},
+				AccessMode: &csi.VolumeCapability_AccessMode{
+					Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+				},
+			},
+		}
+	}
+
+	testCases := []struct {
+		name        string
+		driver      func(mockCtrl *gomock.Controller) *Driver
+		request     func() *csi.NodeStageVolumeRequest
+		expectError bool
+	}{
+		{
+			name:    "success: normal",
+			driver:  successfulDriverWithOptions([]string{}),
+			request: standardRequest,
+		},
+		{
+			name:   "success: normal with flock mount options",
+			driver: successfulDriverWithOptions([]string{"flock"}),
+			request: func() *csi.NodeStageVolumeRequest {
+				req := standardRequest()
+				(req.VolumeCapability.AccessType).(*csi.VolumeCapability_Mount).Mount.MountFlags = []string{"flock"}
+				return req
+			},
+		},
+		{
+			name: "fail: missing dns name",
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, _ := mockDriver(mockCtrl)
+				return driver
+			},
+			request: func() *csi.NodeStageVolumeRequest {
+				req := standardRequest()
+				req.VolumeContext[volumeContextDnsName] = ""
+				return req
+			},
+			expectError: true,
+		},
+		{
+			name: "fail: missing staging target path",
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, _ := mockDriver(mockCtrl)
+				return driver
+			},
+			request: func() *csi.NodeStageVolumeRequest {
+				req := standardRequest()
+				req.StagingTargetPath = ""
+				return req
+			},
+			expectError: true,
+		},
+		{
+			name: "fail: mounter failed to MakeDir",
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, mockMounter := mockDriver(mockCtrl)
+				err := fmt.Errorf("failed to MakeDir")
+				mockMounter.EXPECT().MakeDir(gomock.Eq(stagingTargetPath)).Return(err)
+
+				return driver
+			},
+			request:     standardRequest,
+			expectError: true,
+		},
+		{
+			name: "success: missing mountname for static provisioning, default 'fsx' used",
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, mockMounter := mockDriver(mockCtrl)
+				source := dnsname + "@tcp:/fsx"
+				mockMounter.EXPECT().MakeDir(gomock.Eq(stagingTargetPath)).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(stagingTargetPath), gomock.Eq("lustre"), gomock.Any()).Return(nil)
+
+				return driver
+			},
+			request: func() *csi.NodeStageVolumeRequest {
+				req := standardRequest()
+				req.VolumeContext[volumeContextMountName] = ""
+				return req
+			},
+		},
+		{
+			name: "fail: mounter failed to Mount",
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, mockMounter := mockDriver(mockCtrl)
+				err := fmt.Errorf("failed to Mount")
+				mockMounter.EXPECT().MakeDir(gomock.Eq(stagingTargetPath)).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(lustreSource), gomock.Eq(stagingTargetPath), gomock.Eq("lustre"), gomock.Eq([]string{})).Return(err)
+
+				return driver
+			},
+			request:     standardRequest,
+			expectError: true,
+		},
+		{
+			name: "fail: missing volume capability",
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, _ := mockDriver(mockCtrl)
+				return driver
+			},
+			request: func() *csi.NodeStageVolumeRequest {
+				req := standardRequest()
+				req.VolumeCapability = &csi.VolumeCapability{}
+				return req
+			},
+			expectError: true,
+		},
+		{
+			name: "fail: unsupported volume capability",
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, _ := mockDriver(mockCtrl)
+				return driver
+			},
+			request: func() *csi.NodeStageVolumeRequest {
+				req := standardRequest()
+				req.VolumeCapability.AccessMode.Mode = csi.VolumeCapability_AccessMode_SINGLE_NODE_READER_ONLY
+				return req
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var (
+				mockCtrl = gomock.NewController(t)
+				driver   = tc.driver(mockCtrl)
+				req      = tc.request()
+				ctx      = context.Background()
+			)
+			_, err := driver.NodeStageVolume(ctx, req)
+			if tc.expectError && err == nil {
+				t.Fatalf("NodeStageVolume is not failed: %v", err)
+			} else if !tc.expectError && err != nil {
+				t.Fatalf("NodeStageVolume is failed: %v", err)
+			}
+			mockCtrl.Finish()
+		})
+	}
+}
+
+func TestNodeUnstageVolume(t *testing.T) {
+
+	var (
+		endpoint          = "endpoint"
+		nodeID            = "nodeID"
+		stagingTargetPath = "/staging/target/path"
+	)
+
+	mockDriver := func(mockCtrl *gomock.Controller) (*Driver, *mocks.MockMounter) {
+		mockMounter := mocks.NewMockMounter(mockCtrl)
+		driver := &Driver{
+			endpoint: endpoint,
+			nodeID:   nodeID,
+			mounter:  mockMounter,
+		}
+		return driver, mockMounter
+	}
+
+	standardRequest := func() *csi.NodeUnstageVolumeRequest {
+		return &csi.NodeUnstageVolumeRequest{
+			VolumeId:          "volumeId",
+			StagingTargetPath: stagingTargetPath,
+		}
+	}
+
+	testCases := []struct {
+		name        string
+		driver      func(mockCtrl *gomock.Controller) *Driver
+		request     func() *csi.NodeUnstageVolumeRequest
+		expectError bool
+	}{
+		{
+			name: "success: normal",
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, mockMounter := mockDriver(mockCtrl)
+				mockMounter.EXPECT().Unmount(gomock.Eq(stagingTargetPath)).Return(nil)
+				return driver
+			},
+			request: standardRequest,
+		},
+		{
+			name: "fail: stagingTargetPath is missing",
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, _ := mockDriver(mockCtrl)
+				return driver
+			},
+			request: func() *csi.NodeUnstageVolumeRequest {
+				req := standardRequest()
+				req.StagingTargetPath = ""
+				return req
+			},
+			expectError: true,
+		},
+		{
+			name: "fail: mounter failed to umount",
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, mockMounter := mockDriver(mockCtrl)
+				mountErr := fmt.Errorf("Unmount failed")
+				mockMounter.EXPECT().Unmount(gomock.Eq(stagingTargetPath)).Return(mountErr)
+				return driver
+			},
+			request:     standardRequest,
+			expectError: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var (
+				mockCtrl = gomock.NewController(t)
+				driver   = tc.driver(mockCtrl)
+				req      = tc.request()
+				ctx      = context.Background()
+			)
+			_, err := driver.NodeUnstageVolume(ctx, req)
+			if tc.expectError && err == nil {
+				t.Fatalf("NodeUnstageVolume is not failed: %v", err)
+			} else if !tc.expectError && err != nil {
+				t.Fatalf("NodeUnstageVolume is failed: %v", err)
+			}
+			mockCtrl.Finish()
+		})
 	}
 }
