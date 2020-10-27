@@ -1,0 +1,9 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: fsx-sc-0d3a
+provisioner: fsx.csi.aws.com
+parameters:
+  fileSystemId: fs-0d3a9c1160a2ef4ad
+mountOptions:
+  - flock
