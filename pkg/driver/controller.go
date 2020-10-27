@@ -37,6 +37,7 @@ var (
 )
 
 const (
+	volumeContextSubPath                      = "subpath"
 	volumeContextDnsName                      = "dnsname"
 	volumeContextMountName                    = "mountname"
 	volumeParamsSubnetId                      = "subnetId"

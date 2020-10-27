@@ -138,6 +138,11 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	if req.GetReadonly() {
 		mountOptions = append(mountOptions, "ro")
 	}
+	context := req.GetVolumeContext()
+	subpath := context[volumeContextSubPath]
+	if subpath != "" {
+		stagingTarget = fmt.Sprintf("%s/%s", stagingTarget, subpath)
+	}
 
 	klog.V(5).Infof("NodePublishVolume: creating dir %s", target)
 	if err := d.mounter.MakeDir(target); err != nil {

@@ -34,6 +34,7 @@ func TestNodePublishVolume(t *testing.T) {
 		dnsname           = "fs-0a2d0632b5ff567e9.fsx.us-west-2.amazonaws.com"
 		mountname         = "random"
 		targetPath        = "/target/path"
+		subpath           = "subpath"
 		stagingTargetPath = "/staging/target/path"
 		stdVolCap         = &csi.VolumeCapability{
 			AccessType: &csi.VolumeCapability_Mount{
@@ -89,6 +90,23 @@ func TestNodePublishVolume(t *testing.T) {
 			driver: successfulDriverWithOptions([]string{"bind"}),
 			request: func() *csi.NodePublishVolumeRequest {
 				req := standardRequest()
+				return req
+			},
+		},
+		{
+			name: "success: with subpath",
+			driver: func(mockCtrl *gomock.Controller) *Driver {
+				driver, mockMounter := mockDriver(mockCtrl)
+				stagingPathWithSubPath := "/staging/target/path/subpath"
+				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
+				mockMounter.EXPECT().MakeDir(gomock.Eq(stagingPathWithSubPath)).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(stagingPathWithSubPath), gomock.Eq(targetPath), gomock.Eq(""), gomock.Eq([]string{"bind"})).Return(nil)
+
+				return driver
+			},
+			request: func() *csi.NodePublishVolumeRequest {
+				req := standardRequest()
+				req.VolumeContext[volumeContextSubPath] = subpath
 				return req
 			},
 		},
