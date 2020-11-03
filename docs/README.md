@@ -11,6 +11,7 @@ The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storag
 | AWS FSx for Lustre CSI Driver \ CSI Version       | v0.3.0| v1.1.0 |
 |---------------------------------------------------|-------|--------|
 | master branch                                     | no    | yes    |
+| v0.4.0                                            | no    | yes    |
 | v0.3.0                                            | no    | yes    |
 | v0.2.0                                            | no    | yes    |
 | v0.1.0                                            | yes   | no     |
@@ -25,17 +26,19 @@ The following CSI interfaces are implemented:
 Following sections are Kubernetes specific. If you are Kubernetes user, use followings for driver features, installation steps and examples.
 
 ### Kubernetes Version Compability Matrix
-| AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 | v1.14 | v1.15 |
-|---------------------------------------------------|-------|-------|-------|-------|-------|
-| master branch                                     | no    | no    | no    | yes   | yes   |
-| v0.3.0                                            | no    | no    | no    | yes   | yes   |
-| v0.2.0                                            | no    | no    | no    | yes   | yes   |
-| v0.1.0                                            | yes   | yes   | yes   | no    | no    |
+| AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 | v1.14 | v1.15+ |
+|---------------------------------------------------|-------|-------|-------|-------|--------|
+| master branch                                     | no    | no    | no    | yes   | yes    |
+| v0.4.0                                            | no    | no    | no    | yes   | yes    |
+| v0.3.0                                            | no    | no    | no    | yes   | yes    |
+| v0.2.0                                            | no    | no    | no    | yes   | yes    |
+| v0.1.0                                            | yes   | yes   | yes   | no    | no     |
 
 ### Container Images
 |FSx CSI Driver Version     | Image                               |
 |---------------------------|-------------------------------------|
 |master branch              |amazon/aws-fsx-csi-driver:latest     |
+|v0.4.0                     |amazon/aws-fsx-csi-driver:v0.4.0     |
 |v0.3.0                     |amazon/aws-fsx-csi-driver:v0.3.0     |
 |v0.2.0                     |amazon/aws-fsx-csi-driver:v0.2.0     |
 |v0.1.0                     |amazon/aws-fsx-csi-driver:v0.1.0     |

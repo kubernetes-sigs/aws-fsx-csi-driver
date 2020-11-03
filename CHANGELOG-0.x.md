@@ -1,3 +1,8 @@
+# v0.4.0
+
+## Changelog
+See [details](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/compare/v0.3.0...v0.4.0) for all the changes.
+
 # v0.3.0
 [Documentation](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/blob/v0.3.0/docs/README.md)
 

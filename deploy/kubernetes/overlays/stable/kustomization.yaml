@@ -4,7 +4,7 @@ bases:
 - ../../base
 images:
 - name: amazon/aws-fsx-csi-driver
-  newTag: v0.3.0
+  newTag: v0.4.0
 - name: quay.io/k8scsi/csi-provisioner
   newTag: v1.3.0
 - name: quay.io/k8scsi/livenessprobe
