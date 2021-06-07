@@ -220,6 +220,7 @@ func TestCreateVolume(t *testing.T) {
 						volumeParamsAutomaticBackupRetentionDays:  "1",
 						volumeParamsDailyAutomaticBackupStartTime: "00:00",
 						volumeParamsCopyTagsToBackups:             "true",
+						volumeParamsDataCompressionType:           "LZ4",
 					},
 				}
 

@@ -25,6 +25,7 @@ parameters:
 * automaticBackupRetentionDays (Optional) - The number of days to retain automatic backups. The default is to retain backups for 7 days. Setting this value to 0 disables the creation of automatic backups. The maximum retention period for backups is 35 days
 * dailyAutomaticBackupStartTime (Optional) - The preferred time to take daily automatic backups, formatted HH:MM in the UTC time zone.
 * copyTagsToBackups (Optional) - A boolean flag indicating whether tags for the file system should be copied to backups. This value defaults to false. If it's set to true, all tags for the file system are copied to all automatic and user-initiated backups where the user doesn't specify tags. If this value is true, and you specify one or more tags, only the specified tags are copied to backups. If you specify one or more tags when creating a user-initiated backup, no tags are copied from the file system, regardless of this value.
+* dataCompressionType (Optional) - FSx for Lustre supports data compression via LZ4 algorithm. Compression is disabled when the value is set to NONE. The default value is NONE 
 
 ### Edit [Persistent Volume Claim Spec](./specs/claim.yaml)
 ```
