@@ -80,6 +80,7 @@ type FileSystemOptions struct {
 	DailyAutomaticBackupStartTime string
 	AutomaticBackupRetentionDays  int64
 	CopyTagsToBackups             bool
+	DataCompressionType           string
 }
 
 // FSx abstracts FSx client to facilitate its mocking.
@@ -154,6 +155,10 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 
 	if fileSystemOptions.CopyTagsToBackups {
 		lustreConfiguration.SetCopyTagsToBackups(true)
+	}
+
+	if fileSystemOptions.DataCompressionType != "" {
+		lustreConfiguration.SetDataCompressionType(fileSystemOptions.DataCompressionType)
 	}
 
 	input := &fsx.CreateFileSystemInput{

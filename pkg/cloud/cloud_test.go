@@ -45,6 +45,8 @@ func TestCreateFileSystem(t *testing.T) {
 		DailyAutomaticBackupStartTime       = "00:00:00"
 		AutomaticBackupRetentionDays  int64 = 1
 		CopyTagsToBackups                   = true
+		dataCompressionTypeNone             = "NONE"
+		dataCompressionTypeLZ4              = "LZ4"
 	)
 	testCases := []struct {
 		name     string
@@ -584,6 +586,146 @@ func TestCreateFileSystem(t *testing.T) {
 
 				if resp.MountName != mountName {
 					t.Fatalf("MountName mismatches. actual: %v expected: %v", resp.MountName, mountName)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "success: normal with NONE DataCompressionType",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &FileSystemOptions{
+					CapacityGiB:         volumeSizeGiB,
+					SubnetId:            subnetId,
+					SecurityGroupIds:    securityGroupIds,
+					DataCompressionType: dataCompressionTypeNone,
+				}
+
+				output := &fsx.CreateFileSystemOutput{
+					FileSystem: &fsx.FileSystem{
+						FileSystemId:    aws.String(fileSystemId),
+						StorageCapacity: aws.Int64(volumeSizeGiB),
+						DNSName:         aws.String(dnsname),
+						LustreConfiguration: &fsx.LustreFileSystemConfiguration{
+							MountName:           aws.String(mountName),
+							DataCompressionType: aws.String(dataCompressionTypeNone),
+						},
+					},
+				}
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				resp, err := c.CreateFileSystem(ctx, volumeName, req)
+				if err != nil {
+					t.Fatalf("CreateFileSystem is failed: %v", err)
+				}
+
+				if resp == nil {
+					t.Fatal("resp is nil")
+				}
+
+				if resp.FileSystemId != fileSystemId {
+					t.Fatalf("FileSystemId mismatches. actual: %v expected: %v", resp.FileSystemId, fileSystemId)
+				}
+
+				if resp.CapacityGiB != volumeSizeGiB {
+					t.Fatalf("CapacityGiB mismatches. actual: %v expected: %v", resp.CapacityGiB, volumeSizeGiB)
+				}
+
+				if resp.DnsName != dnsname {
+					t.Fatalf("DnsName mismatches. actual: %v expected: %v", resp.DnsName, dnsname)
+				}
+
+				if resp.MountName != mountName {
+					t.Fatalf("MountName mismatches. actual: %v expected: %v", resp.MountName, mountName)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "success: normal with LZ4 DataCompressionType",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &FileSystemOptions{
+					CapacityGiB:         volumeSizeGiB,
+					SubnetId:            subnetId,
+					SecurityGroupIds:    securityGroupIds,
+					DataCompressionType: dataCompressionTypeLZ4,
+				}
+
+				output := &fsx.CreateFileSystemOutput{
+					FileSystem: &fsx.FileSystem{
+						FileSystemId:    aws.String(fileSystemId),
+						StorageCapacity: aws.Int64(volumeSizeGiB),
+						DNSName:         aws.String(dnsname),
+						LustreConfiguration: &fsx.LustreFileSystemConfiguration{
+							MountName:           aws.String(mountName),
+							DataCompressionType: aws.String(dataCompressionTypeLZ4),
+						},
+					},
+				}
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				resp, err := c.CreateFileSystem(ctx, volumeName, req)
+				if err != nil {
+					t.Fatalf("CreateFileSystem is failed: %v", err)
+				}
+
+				if resp == nil {
+					t.Fatal("resp is nil")
+				}
+
+				if resp.FileSystemId != fileSystemId {
+					t.Fatalf("FileSystemId mismatches. actual: %v expected: %v", resp.FileSystemId, fileSystemId)
+				}
+
+				if resp.CapacityGiB != volumeSizeGiB {
+					t.Fatalf("CapacityGiB mismatches. actual: %v expected: %v", resp.CapacityGiB, volumeSizeGiB)
+				}
+
+				if resp.DnsName != dnsname {
+					t.Fatalf("DnsName mismatches. actual: %v expected: %v", resp.DnsName, dnsname)
+				}
+
+				if resp.MountName != mountName {
+					t.Fatalf("MountName mismatches. actual: %v expected: %v", resp.MountName, mountName)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "fail: invalid DataCompressionType",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &FileSystemOptions{
+					CapacityGiB:         volumeSizeGiB,
+					SubnetId:            subnetId,
+					SecurityGroupIds:    securityGroupIds,
+					DataCompressionType: "ZFS",
+				}
+
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystemWithContext failed"))
+				_, err := c.CreateFileSystem(ctx, volumeName, req)
+				if err == nil {
+					t.Fatal("CreateFileSystem is not failed")
 				}
 
 				mockCtl.Finish()
