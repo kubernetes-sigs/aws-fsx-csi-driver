@@ -47,8 +47,18 @@ nodeService:
 
     resources: {}
 
+  dnsPolicy: ""
+  dnsConfig: {}
+    # Example config which uses the AWS nameservers
+    # dnsPolicy: "None"
+    # dnsConfig:
+    #   nameservers:
+    #     - 169.254.169.253
+
 nameOverride: ""
 fullnameOverride: ""
+
+imagePullSecrets: []
 
 serviceAccount:
   # Specifies whether a service account should be created

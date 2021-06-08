@@ -14,6 +14,19 @@ spec:
         {{- include "helm.selectorLabels" . | nindent 8 }}-daemonset
     spec:
       hostNetwork: true
+      {{- if .Values.nodeService.dnsPolicy }}
+      dnsPolicy: "{{ .Values.nodeService.dnsPolicy }}"
+      {{- end }}
+      {{- with .Values.nodeService.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
       containers:
         - name: fsx-plugin
           securityContext:
