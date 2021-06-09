@@ -28,6 +28,8 @@ parameters:
 * perUnitStorageThroughput (Optional) - for deployment type PERSISTENT_1, customer can specify the storage throughput. Default: "200". Note that customer has to specify as a string here like "200" or "100" etc.
 * storageType (Optional) - for deployment type PERSISTENT_1, customer can specify the storage type, either SSD or HDD. Default: "SSD"
 * driveCacheType (Required if storageType is "HDD") - for HDD PERSISTENT_1, specify the type of drive cache, either NONE or READ.
+* dataCompressionType (Optional) - sets the data compression configuration for the file system, either NONE or LZ4. Default: "NONE"
+
 
 Note:
 - S3 Bucket in s3ImportPath and s3ExportPath must be same, otherwise the driver can not create FSx for lustre successfully.
