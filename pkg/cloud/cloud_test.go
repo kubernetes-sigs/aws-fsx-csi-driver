@@ -39,6 +39,7 @@ func TestCreateFileSystem(t *testing.T) {
 		s3ImportPath                        = "s3://fsx-s3-data-repository"
 		s3ExportPath                        = "s3://fsx-s3-data-repository/export"
 		deploymentType                      = fsx.LustreDeploymentTypeScratch2
+		dataCompressionType                 = "LZ4"
 		mountName                           = "fsx"
 		kmsKeyId                            = "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe"
 		perUnitStorageThroughput      int64 = 200

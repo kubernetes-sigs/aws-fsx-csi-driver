@@ -76,6 +76,7 @@ type FileSystemOptions struct {
 	KmsKeyId                      string
 	PerUnitStorageThroughput      int64
 	StorageType                   string
+	DataCompressionType           string
 	DriveCacheType                string
 	DailyAutomaticBackupStartTime string
 	AutomaticBackupRetentionDays  int64
@@ -140,6 +141,10 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 
 	if fileSystemOptions.DriveCacheType != "" {
 		lustreConfiguration.SetDriveCacheType(fileSystemOptions.DriveCacheType)
+	}
+
+	if fileSystemOptions.DataCompressionType != "" {
+		lustreConfiguration.SetDataCompressionType(fileSystemOptions.DataCompressionType)
 	}
 
 	if fileSystemOptions.PerUnitStorageThroughput != 0 {

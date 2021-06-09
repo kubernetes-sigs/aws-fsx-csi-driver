@@ -45,6 +45,7 @@ const (
 	volumeParamsS3ImportPath                  = "s3ImportPath"
 	volumeParamsS3ExportPath                  = "s3ExportPath"
 	volumeParamsDeploymentType                = "deploymentType"
+	volumeParamsDataCompressionType           = "dataCompressionType"
 	volumeParamsKmsKeyId                      = "kmsKeyId"
 	volumeParamsPerUnitStorageThroughput      = "perUnitStorageThroughput"
 	volumeParamsStorageType                   = "storageType"
@@ -95,6 +96,10 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	if val, ok := volumeParams[volumeParamsDeploymentType]; ok {
 		fsOptions.DeploymentType = val
+	}
+
+	if val, ok := volumeParams[volumeParamsDataCompressionType]; ok {
+		fsOptions.DataCompressionType = val
 	}
 
 	if val, ok := volumeParams[volumeParamsKmsKeyId]; ok {
