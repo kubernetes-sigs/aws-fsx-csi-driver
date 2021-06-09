@@ -25,8 +25,8 @@ spec:
         - name: fsx-plugin
           securityContext:
             {{- toYaml .Values.controllerService.fsxPlugin.securityContext | nindent 12 }}
-          image: "{{ .Values.controllerService.fsxPlugin.image.repository }}:{{ .Values.controllerService.fsxPlugin.image.tag }}"
-          imagePullPolicy: {{ .Values.controllerService.fsxPlugin.image.pullPolicy }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - --endpoint=$(CSI_ENDPOINT)
             {{- toYaml .Values.controllerService.fsxPlugin.extraArgs | nindent 12 }}
