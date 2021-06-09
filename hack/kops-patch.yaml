@@ -1,0 +1,24 @@
+spec:
+  additionalPolicies:
+    node: |
+      [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "iam:CreateServiceLinkedRole",
+            "iam:AttachRolePolicy",
+            "iam:PutRolePolicy"
+          ],
+          "Resource": "arn:aws:iam::*:role/aws-service-role/s3.data-source.lustre.fsx.amazonaws.com/*"
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:ListBucket",
+            "fsx:CreateFileSystem",
+            "fsx:DeleteFileSystem",
+            "fsx:DescribeFileSystems"
+          ],
+          "Resource": ["*"]
+        }
+      ]
