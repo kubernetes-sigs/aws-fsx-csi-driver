@@ -19,8 +19,9 @@ package driver
 import (
 	"context"
 	"errors"
-	"github.com/aws/aws-sdk-go/service/fsx"
 	"testing"
+
+	"github.com/aws/aws-sdk-go/service/fsx"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
@@ -221,6 +222,79 @@ func TestCreateVolume(t *testing.T) {
 						volumeParamsDailyAutomaticBackupStartTime: "00:00",
 						volumeParamsCopyTagsToBackups:             "true",
 						volumeParamsDataCompressionType:           "LZ4",
+					},
+				}
+
+				ctx := context.Background()
+				fs := &cloud.FileSystem{
+					FileSystemId: fileSystemId,
+					CapacityGiB:  volumeSizeGiB,
+					DnsName:      dnsName,
+					MountName:    mountName,
+				}
+				mockCloud.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(fs, nil)
+				mockCloud.EXPECT().WaitForFileSystemAvailable(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(nil)
+
+				resp, err := driver.CreateVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("CreateVolume is failed: %v", err)
+				}
+
+				if resp.Volume == nil {
+					t.Fatal("resp.Volume is nil")
+				}
+
+				if resp.Volume.VolumeId != fileSystemId {
+					t.Fatalf("VolumeId mismatches. actual: %v expected: %v", resp.Volume.VolumeId, fileSystemId)
+				}
+
+				if resp.Volume.CapacityBytes == 0 {
+					t.Fatalf("resp.Volume.CapacityGiB is zero")
+				}
+
+				dnsname, exists := resp.Volume.VolumeContext[volumeContextDnsName]
+				if !exists {
+					t.Fatal("dnsname is missing")
+				}
+
+				if dnsname != dnsName {
+					t.Fatalf("dnsname mismatches. actual: %v expected: %v", dnsname, dnsName)
+				}
+
+				mountname, exists := resp.Volume.VolumeContext[volumeContextMountName]
+				if !exists {
+					t.Fatal("mountname is missing")
+				}
+
+				if mountname != mountName {
+					t.Fatalf("mountname mismatches. actual: %v expected: %v", mountname, mountName)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "success: normal with dataCompression LZ4",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					Parameters: map[string]string{
+						volumeParamsSubnetId:            subnetId,
+						volumeParamsSecurityGroupIds:    securityGroupIds,
+						volumeParamsDeploymentType:      fsx.LustreDeploymentTypeScratch2,
+						volumeParamsStorageType:         fsx.StorageTypeSsd,
+						volumeParamsDataCompressionType: fsx.DataCompressionTypeLz4,
 					},
 				}
 

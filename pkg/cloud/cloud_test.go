@@ -282,6 +282,130 @@ func TestCreateFileSystem(t *testing.T) {
 			},
 		},
 		{
+			name: "success: normal with dataCompression LZ4",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &FileSystemOptions{
+					CapacityGiB:         volumeSizeGiB,
+					SubnetId:            subnetId,
+					SecurityGroupIds:    securityGroupIds,
+					DeploymentType:      fsx.LustreDeploymentTypePersistent1,
+					StorageType:         fsx.StorageTypeHdd,
+					DataCompressionType: dataCompressionType,
+					DriveCacheType:      fsx.DriveCacheTypeNone,
+				}
+
+				output := &fsx.CreateFileSystemOutput{
+					FileSystem: &fsx.FileSystem{
+						FileSystemId:    aws.String(fileSystemId),
+						StorageCapacity: aws.Int64(volumeSizeGiB),
+						DNSName:         aws.String(dnsname),
+						LustreConfiguration: &fsx.LustreFileSystemConfiguration{
+							MountName:           aws.String(mountName),
+							DeploymentType:      aws.String(fsx.LustreDeploymentTypePersistent1),
+							DataCompressionType: aws.String(fsx.DataCompressionTypeLz4),
+							DriveCacheType:      aws.String(fsx.DriveCacheTypeNone),
+						},
+					},
+				}
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				resp, err := c.CreateFileSystem(ctx, volumeName, req)
+				if err != nil {
+					t.Fatalf("CreateFileSystem is failed: %v", err)
+				}
+
+				if resp == nil {
+					t.Fatal("resp is nil")
+				}
+
+				if resp.FileSystemId != fileSystemId {
+					t.Fatalf("FileSystemId mismatches. actual: %v expected: %v", resp.FileSystemId, fileSystemId)
+				}
+
+				if resp.CapacityGiB != volumeSizeGiB {
+					t.Fatalf("CapacityGiB mismatches. actual: %v expected: %v", resp.CapacityGiB, volumeSizeGiB)
+				}
+
+				if resp.DnsName != dnsname {
+					t.Fatalf("DnsName mismatches. actual: %v expected: %v", resp.DnsName, dnsname)
+				}
+
+				if resp.MountName != mountName {
+					t.Fatalf("MountName mismatches. actual: %v expected: %v", resp.MountName, mountName)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "success: normal with dataCompression None",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &FileSystemOptions{
+					CapacityGiB:         volumeSizeGiB,
+					SubnetId:            subnetId,
+					SecurityGroupIds:    securityGroupIds,
+					DeploymentType:      fsx.LustreDeploymentTypePersistent1,
+					StorageType:         fsx.StorageTypeHdd,
+					DataCompressionType: fsx.DataCompressionTypeNone,
+					DriveCacheType:      fsx.DriveCacheTypeNone,
+				}
+
+				output := &fsx.CreateFileSystemOutput{
+					FileSystem: &fsx.FileSystem{
+						FileSystemId:    aws.String(fileSystemId),
+						StorageCapacity: aws.Int64(volumeSizeGiB),
+						DNSName:         aws.String(dnsname),
+						LustreConfiguration: &fsx.LustreFileSystemConfiguration{
+							MountName:           aws.String(mountName),
+							DeploymentType:      aws.String(fsx.LustreDeploymentTypePersistent1),
+							DataCompressionType: aws.String(fsx.DataCompressionTypeNone),
+							DriveCacheType:      aws.String(fsx.DriveCacheTypeNone),
+						},
+					},
+				}
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				resp, err := c.CreateFileSystem(ctx, volumeName, req)
+				if err != nil {
+					t.Fatalf("CreateFileSystem is failed: %v", err)
+				}
+
+				if resp == nil {
+					t.Fatal("resp is nil")
+				}
+
+				if resp.FileSystemId != fileSystemId {
+					t.Fatalf("FileSystemId mismatches. actual: %v expected: %v", resp.FileSystemId, fileSystemId)
+				}
+
+				if resp.CapacityGiB != volumeSizeGiB {
+					t.Fatalf("CapacityGiB mismatches. actual: %v expected: %v", resp.CapacityGiB, volumeSizeGiB)
+				}
+
+				if resp.DnsName != dnsname {
+					t.Fatalf("DnsName mismatches. actual: %v expected: %v", resp.DnsName, dnsname)
+				}
+
+				if resp.MountName != mountName {
+					t.Fatalf("MountName mismatches. actual: %v expected: %v", resp.MountName, mountName)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "failure: incompatible deploymentType and storageTypeHdd",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
