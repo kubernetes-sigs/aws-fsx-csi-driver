@@ -235,16 +235,16 @@ func (c *cloud) WaitForFileSystemAvailable(ctx context.Context, fileSystemId str
 	var (
 		// interval to check if filesystem is ready
 		// needs to be shorter than the provisioner timeout
-		checkInterval = 15 * time.Second
+		checkInterval = 30 * time.Second
 		// FSx for lustre filesystem creation time is around 5 mins
-		checkTimeout = 7 * time.Minute
+		checkTimeout = 10 * time.Minute
 	)
 	err := wait.Poll(checkInterval, checkTimeout, func() (done bool, err error) {
 		fs, err := c.getFileSystem(ctx, fileSystemId)
 		if err != nil {
 			return true, err
 		}
-		klog.V(4).Infof("WaitForFileSystemAvailable filesystem status is: %v", *fs.Lifecycle)
+		klog.V(2).Infof("WaitForFileSystemAvailable filesystem %q status is: %q", fileSystemId, *fs.Lifecycle)
 		switch *fs.Lifecycle {
 		case "AVAILABLE":
 			return true, nil
