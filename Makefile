@@ -48,6 +48,7 @@ test-e2e:
 	NODE_COUNT=1 \
 	TEST_PATH=./tests/e2e/... \
 	GINKGO_FOCUS=".*" \
+	GINKGO_SKIP="subPath.should.be.able.to.unmount.after.the.subpath.directory.is.deleted" \
 	./hack/e2e/run.sh
 
 .PHONY: image
