@@ -44,7 +44,8 @@ test-e2e:
 	CONTAINER_NAME=fsx-plugin \
 	TEST_EXTRA_FLAGS='--cluster-name=$$CLUSTER_NAME' \
 	AWS_REGION=us-west-2 \
-	AWS_AVAILABILITY_ZONES=us-west-2a,us-west-2b,us-west-2c \
+	AWS_AVAILABILITY_ZONES=us-west-2a \
+	NODE_COUNT=1 \
 	TEST_PATH=./tests/e2e/... \
 	GINKGO_FOCUS=".*" \
 	./hack/e2e/run.sh
