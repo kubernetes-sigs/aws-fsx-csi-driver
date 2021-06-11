@@ -13,82 +13,36 @@ controllerService:
   nodeSelector:
     kubernetes.io/os: linux
 
-  podSecurityContext: {}
-  # fsGroup: 2000
-
   fsxPlugin:
-    extraArgs:
-      - --logtostderr
-      - --v=5
-
-    securityContext:
-      {}
-      # capabilities:
-      #   drop:
-      #   - ALL
-      # readOnlyRootFilesystem: true
-      # runAsNonRoot: true
-    # runAsUser: 1000
-
     resources: {}
 
   csiProvisioner:
     image:
-      repository: quay.io/k8scsi/csi-provisioner
-      tag: v1.3.0
+      repository: k8s.gcr.io/sig-storage/csi-provisioner
+      tag: v2.1.1
       pullPolicy: IfNotPresent
-
-    extraArgs:
-      - --timeout=5m
-      - --v=5
-      - --enable-leader-election
-      - --leader-election-type=leases
-
-    securityContext:
-      {}
-      # capabilities:
-      #   drop:
-      #   - ALL
-    # readOnlyRootFilesystem: true
-    # runAsNonRoot: true
-    # runAsUser: 1000
 
     resources: {}
 
 nodeService:
-  podSecurityContext: {}
-  # fsGroup: 2000
-
   nodeSelector:
     kubernetes.io/os: linux
 
   fsxPlugin:
-    extraArgs:
-      - --logtostderr
-      - --v=5
-
-    securityContext:
-      privileged: true
-
     resources: {}
 
   csiDriverRegistrar:
     image:
-      repository: quay.io/k8scsi/csi-node-driver-registrar
-      tag: v1.1.0
+      repository: k8s.gcr.io/sig-storage/csi-node-driver-registrar
+      tag: v2.1.0
       pullPolicy: IfNotPresent
-
-    extraArgs:
-      - --v=5
-
-    securityContext: {}
 
     resources: {}
 
   livenessProbe:
     image:
-      repository: quay.io/k8scsi/livenessprobe
-      tag: v1.1.0
+      repository: k8s.gcr.io/sig-storage/livenessprobe
+      tag: v2.2.0
       pullPolicy: Always
 
     resources: {}

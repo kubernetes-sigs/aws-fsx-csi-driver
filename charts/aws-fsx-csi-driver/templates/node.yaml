@@ -13,18 +13,15 @@ spec:
       labels:
         {{- include "helm.selectorLabels" . | nindent 8 }}-daemonset
     spec:
-      securityContext:
-        {{- toYaml .Values.nodeService.podSecurityContext | nindent 8 }}
       hostNetwork: true
       containers:
         - name: fsx-plugin
           securityContext:
-            {{- toYaml .Values.nodeService.fsxPlugin.securityContext | nindent 12 }}
+            privileged: true
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - --endpoint=$(CSI_ENDPOINT)
-            {{- toYaml .Values.nodeService.fsxPlugin.extraArgs | nindent 12 }}
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
@@ -49,14 +46,11 @@ spec:
           resources:
             {{- toYaml .Values.nodeService.fsxPlugin.resources | nindent 12 }}
         - name: csi-driver-registrar
-          securityContext:
-            {{- toYaml .Values.nodeService.csiDriverRegistrar.securityContext | nindent 12 }}
           image: "{{ .Values.nodeService.csiDriverRegistrar.image.repository }}:{{ .Values.nodeService.csiDriverRegistrar.image.tag }}"
           imagePullPolicy: {{ .Values.nodeService.csiDriverRegistrar.image.pullPolicy }}
           args:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
-            {{- toYaml .Values.nodeService.csiDriverRegistrar.extraArgs | nindent 12 }}
           env:
             - name: ADDRESS
               value: /csi/csi.sock
