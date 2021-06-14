@@ -40,8 +40,16 @@ test:
 
 .PHONY: test-e2e
 test-e2e:
-	go get github.com/aws/aws-k8s-tester/e2e/tester/cmd/k8s-e2e-tester@master
-	TESTCONFIG=./tester/e2e-test-config.yaml ${GOPATH}/bin/k8s-e2e-tester
+	DRIVER_NAME=aws-fsx-csi-driver \
+	CONTAINER_NAME=fsx-plugin \
+	TEST_EXTRA_FLAGS='--cluster-name=$$CLUSTER_NAME' \
+	AWS_REGION=us-west-2 \
+	AWS_AVAILABILITY_ZONES=us-west-2a \
+	NODE_COUNT=1 \
+	TEST_PATH=./tests/e2e/... \
+	GINKGO_FOCUS=".*" \
+	GINKGO_SKIP="subPath.should.be.able.to.unmount.after.the.subpath.directory.is.deleted|\[Disruptive\]|\[Serial\]" \
+	./hack/e2e/run.sh
 
 .PHONY: image
 image:

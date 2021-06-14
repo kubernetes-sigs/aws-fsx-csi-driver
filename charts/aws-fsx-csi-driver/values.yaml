@@ -1,0 +1,59 @@
+# Default values for helm.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  repository: amazon/aws-fsx-csi-driver
+  tag: v0.4.0
+  pullPolicy: IfNotPresent
+
+controllerService:
+  replicaCount: 2
+
+  nodeSelector:
+    kubernetes.io/os: linux
+
+  fsxPlugin:
+    resources: {}
+
+  csiProvisioner:
+    image:
+      repository: k8s.gcr.io/sig-storage/csi-provisioner
+      tag: v2.1.1
+      pullPolicy: IfNotPresent
+
+    resources: {}
+
+nodeService:
+  nodeSelector:
+    kubernetes.io/os: linux
+
+  fsxPlugin:
+    resources: {}
+
+  csiDriverRegistrar:
+    image:
+      repository: k8s.gcr.io/sig-storage/csi-node-driver-registrar
+      tag: v2.1.0
+      pullPolicy: IfNotPresent
+
+    resources: {}
+
+  livenessProbe:
+    image:
+      repository: k8s.gcr.io/sig-storage/livenessprobe
+      tag: v2.2.0
+      pullPolicy: Always
+
+    resources: {}
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  annotations: {}
+  ## Enable if EKS IAM for SA is used
+  #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/fsx-csi-role
+  name: fsx-csi-controller-sa

@@ -44,12 +44,11 @@ func NewCloud(region string) *cloud {
 }
 
 func (c *cloud) getNodeInstance(clusterName string) (*ec2.Instance, error) {
-	nodeName := fmt.Sprintf("nodes.%s", clusterName)
 	request := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
-				Name:   aws.String("tag:Name"),
-				Values: []*string{aws.String(nodeName)},
+				Name:   aws.String("tag:KubernetesCluster"),
+				Values: []*string{aws.String(clusterName)},
 			},
 		},
 	}
@@ -61,6 +60,10 @@ func (c *cloud) getNodeInstance(clusterName string) (*ec2.Instance, error) {
 	}
 	for _, reservation := range response.Reservations {
 		instances = append(instances, reservation.Instances...)
+	}
+
+	if len(instances) == 0 {
+		return nil, fmt.Errorf("no instances in cluster %q found", clusterName)
 	}
 
 	return instances[0], nil
