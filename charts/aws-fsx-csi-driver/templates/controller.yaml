@@ -19,6 +19,12 @@ spec:
       tolerations:
           - key: CriticalAddonsOnly
             operator: Exists
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
       containers:
         - name: fsx-plugin
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
