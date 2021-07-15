@@ -7,63 +7,58 @@ image:
   tag: v0.4.0
   pullPolicy: IfNotPresent
 
-controllerService:
-  replicaCount: 2
-
-  nodeSelector:
-    kubernetes.io/os: linux
-
-  fsxPlugin:
-    resources: {}
-
-  csiProvisioner:
-    image:
-      repository: k8s.gcr.io/sig-storage/csi-provisioner
-      tag: v2.1.1
-      pullPolicy: IfNotPresent
-
-    resources: {}
-
-nodeService:
-  nodeSelector:
-    kubernetes.io/os: linux
-
-  fsxPlugin:
-    resources: {}
-
-  csiDriverRegistrar:
-    image:
-      repository: k8s.gcr.io/sig-storage/csi-node-driver-registrar
-      tag: v2.1.0
-      pullPolicy: IfNotPresent
-
-    resources: {}
-
+sidecars:
   livenessProbe:
     image:
-      repository: k8s.gcr.io/sig-storage/livenessprobe
-      tag: v2.2.0
-      pullPolicy: Always
-
+      repository: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
+      tag: v2.2.0-eks-1-18-2
+      pullPolicy: IfNotPresent
+    resources: {}
+  nodeDriverRegistrar:
+    image:
+      repository: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
+      tag: v2.1.0-eks-1-18-2
+      pullPolicy: IfNotPresent
+    resources: {}
+  provisioner:
+    image:
+      repository: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner
+      tag: v2.1.1-eks-1-18-2
+      pullPolicy: IfNotPresent
     resources: {}
 
-  dnsPolicy: ""
-  dnsConfig: {}
+controller:
+  nodeSelector: {}
+  replicaCount: 2
+  resources: {}
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    ## Enable if EKS IAM for SA is used
+    #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/fsx-csi-role
+    name: fsx-csi-controller-sa
+    annotations: {}
+
+node:
+  nodeSelector: {}
+  resources: {}
+  dnsPolicy: ClusterFirst
+  dnsConfig:
+    {}
     # Example config which uses the AWS nameservers
     # dnsPolicy: "None"
     # dnsConfig:
     #   nameservers:
     #     - 169.254.169.253
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    ## Enable if EKS IAM for SA is used
+    #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/fsx-csi-role
+    name: fsx-csi-node-sa
+    annotations: {}
 
 nameOverride: ""
 fullnameOverride: ""
 
 imagePullSecrets: []
-
-serviceAccount:
-  # Specifies whether a service account should be created
-  create: true
-  annotations: {}
-  ## Enable if EKS IAM for SA is used
-  #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/fsx-csi-role
-  name: fsx-csi-controller-sa

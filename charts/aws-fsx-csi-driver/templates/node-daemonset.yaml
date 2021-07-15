@@ -1,32 +1,38 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: {{ include "helm.fullname" . }}-daemonset
+  name: fsx-csi-node
   labels:
-    {{- include "helm.labels" . | nindent 4 }}
+    {{- include "aws-fsx-csi-driver.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
-      {{- include "helm.selectorLabels" . | nindent 6 }}-daemonset
+      app: fsx-csi-node
+      {{- include "aws-fsx-csi-driver.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "helm.selectorLabels" . | nindent 8 }}-daemonset
+        app: fsx-csi-node
+        {{- include "aws-fsx-csi-driver.labels" . | nindent 8 }}
     spec:
-      hostNetwork: true
-      {{- if .Values.nodeService.dnsPolicy }}
-      dnsPolicy: "{{ .Values.nodeService.dnsPolicy }}"
-      {{- end }}
-      {{- with .Values.nodeService.dnsConfig }}
-      dnsConfig:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{- range .Values.imagePullSecrets }}
+      {{- range .Values.imagePullSecrets }}
         - name: {{ . }}
-        {{- end }}
       {{- end }}
+      {{- end }}
+      nodeSelector:
+        kubernetes.io/os: linux
+        {{- with .Values.node.nodeSelector }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      hostNetwork: true
+      dnsPolicy: {{ .Values.node.dnsPolicy }}
+      {{- with .Values.node.dnsConfig }}
+      dnsConfig: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.node.serviceAccount.name }}
+      priorityClassName: system-node-critical
       containers:
         - name: fsx-plugin
           securityContext:
@@ -45,22 +51,24 @@ spec:
             - name: plugin-dir
               mountPath: /csi
           ports:
-            - containerPort: 9810
-              name: healthz
+            - name: healthz
+              containerPort: 9810
               protocol: TCP
           livenessProbe:
-            failureThreshold: 5
             httpGet:
               path: /healthz
               port: healthz
             initialDelaySeconds: 10
             timeoutSeconds: 3
             periodSeconds: 2
+            failureThreshold: 5
+          {{- with .Values.node.resources }}
           resources:
-            {{- toYaml .Values.nodeService.fsxPlugin.resources | nindent 12 }}
-        - name: csi-driver-registrar
-          image: "{{ .Values.nodeService.csiDriverRegistrar.image.repository }}:{{ .Values.nodeService.csiDriverRegistrar.image.tag }}"
-          imagePullPolicy: {{ .Values.nodeService.csiDriverRegistrar.image.pullPolicy }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        - name: node-driver-registrar
+          image: {{ printf "%s:%s" .Values.sidecars.nodeDriverRegistrar.image.repository .Values.sidecars.nodeDriverRegistrar.image.tag }}
+          imagePullPolicy: {{ .Values.sidecars.nodeDriverRegistrar.image.pullPolicy }}
           args:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
@@ -78,19 +86,23 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
+          {{- with default .Values.node.resources .Values.sidecars.nodeDriverRegistrar.resources }}
           resources:
-            {{- toYaml .Values.nodeService.csiDriverRegistrar.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
         - name: liveness-probe
-          imagePullPolicy: {{ .Values.nodeService.livenessProbe.image.pullPolicy }}
-          image: "{{ .Values.nodeService.livenessProbe.image.repository }}:{{ .Values.nodeService.livenessProbe.image.tag }}"
+          image: {{ printf "%s:%s" .Values.sidecars.livenessProbe.image.repository .Values.sidecars.livenessProbe.image.tag }}
+          imagePullPolicy: {{ .Values.sidecars.livenessProbe.image.pullPolicy }}
           args:
             - --csi-address=/csi/csi.sock
             - --health-port=9810
           volumeMounts:
             - mountPath: /csi
               name: plugin-dir
+          {{- with default .Values.node.resources .Values.sidecars.livenessProbe.resources }}
           resources:
-            {{- toYaml .Values.nodeService.livenessProbe.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       volumes:
         - name: kubelet-dir
           hostPath:
@@ -104,7 +116,3 @@ spec:
           hostPath:
             path: /var/lib/kubelet/plugins/fsx.csi.aws.com/
             type: DirectoryOrCreate
-      {{- with .Values.nodeService.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
