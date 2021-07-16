@@ -105,13 +105,14 @@ kubectl apply -f secret.yaml
 
 #### Deploy driver
 ```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/?ref=master"
+kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-0.4"
 ```
 
 Alternatively, you could also install the driver using helm:
 ```sh
 helm repo add aws-fsx-csi-driver https://kubernetes-sigs.github.io/aws-fsx-csi-driver/
-helm install aws-fsx-csi-driver aws-fsx-csi-driver/aws-fsx-csi-driver
+helm repo update
+helm upgrade --install aws-fsx-csi-driver --namespace kube-system aws-fsx-csi-driver/aws-fsx-csi-driver
 ```
 ### Examples
 Before the example, you need to:
