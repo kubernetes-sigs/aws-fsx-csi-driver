@@ -14,13 +14,14 @@
 
 PKG=github.com/kubernetes-sigs/aws-fsx-csi-driver
 IMAGE?=amazon/aws-fsx-csi-driver
-VERSION=v0.4.0-dirty
+VERSION=v0.4.0
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE}"
 GO111MODULE=on
 GOPROXY=direct
 GOPATH=$(shell go env GOPATH)
+GOOS=$(shell go env GOOS)
 
 .EXPORT_ALL_VARIABLES:
 
@@ -28,6 +29,14 @@ GOPATH=$(shell go env GOPATH)
 aws-fsx-csi-driver:
 	mkdir -p bin
 	CGO_ENABLED=0 GOOS=linux go build -ldflags ${LDFLAGS} -o bin/aws-fsx-csi-driver ./cmd/
+
+bin /tmp/helm:
+	@mkdir -p $@
+
+bin/helm: | /tmp/helm bin
+	@curl -o /tmp/helm/helm.tar.gz -sSL https://get.helm.sh/helm-v3.5.3-${GOOS}-amd64.tar.gz
+	@tar -zxf /tmp/helm/helm.tar.gz -C bin --strip-components=1
+	@rm -rf /tmp/helm/*
 
 .PHONY: verify
 verify:
@@ -66,3 +75,10 @@ image-release:
 .PHONY: push-release
 push-release:
 	docker push $(IMAGE):$(VERSION)
+
+generate-kustomize: bin/helm
+	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/csidriver.yaml > ../../deploy/kubernetes/base/csidriver.yaml
+	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/node-daemonset.yaml > ../../deploy/kubernetes/base/node-daemonset.yaml
+	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/node-serviceaccount.yaml > ../../deploy/kubernetes/base/node-serviceaccount.yaml
+	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/controller-deployment.yaml > ../../deploy/kubernetes/base/controller-deployment.yaml
+	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/controller-serviceaccount.yaml > ../../deploy/kubernetes/base/controller-serviceaccount.yaml
