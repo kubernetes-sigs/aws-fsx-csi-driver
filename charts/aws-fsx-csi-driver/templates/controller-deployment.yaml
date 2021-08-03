@@ -84,6 +84,8 @@ spec:
           args:
             - --csi-address=$(ADDRESS)
             - --timeout=5m
+            - --extra-create-metadata
+            - --leader-election=true
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
