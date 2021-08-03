@@ -41,7 +41,7 @@ spec:
         {{- end }}
       containers:
         - name: fsx-plugin
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: {{ printf "%s:%s" .Values.image.repository (default (printf "v%s" .Chart.AppVersion) (toString .Values.image.tag)) }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - --endpoint=$(CSI_ENDPOINT)
