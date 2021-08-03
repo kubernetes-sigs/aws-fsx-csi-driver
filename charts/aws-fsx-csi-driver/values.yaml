@@ -38,6 +38,7 @@ controller:
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/fsx-csi-role
     name: fsx-csi-controller-sa
     annotations: {}
+  tolerations: []
 
 node:
   nodeSelector: {}
