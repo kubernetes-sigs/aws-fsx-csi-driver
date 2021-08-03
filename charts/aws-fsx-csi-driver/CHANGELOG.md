@@ -8,6 +8,7 @@
 * Add node.serviceAccount
 * Add dnsPolicy and dnsConfig
 * Add imagePullSecrets
+* Add controller.tolerations, node.tolerations, and node.tolerateAllTaints
 * Remove extraArgs, securityContext, podSecurityContext 
 * Bump sidecar images to support kubernetes >=1.20
 * Require kubernetes >=1.17
