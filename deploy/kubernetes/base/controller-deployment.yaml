@@ -24,11 +24,14 @@ spec:
       serviceAccountName: fsx-csi-controller-sa
       priorityClassName: system-cluster-critical
       tolerations:
-          - key: CriticalAddonsOnly
-            operator: Exists
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 300
       containers:
         - name: fsx-plugin
-          image: "amazon/aws-fsx-csi-driver:v0.4.0"
+          image: amazon/aws-fsx-csi-driver:v0.4.0
           imagePullPolicy: IfNotPresent
           args:
             - --endpoint=$(CSI_ENDPOINT)
@@ -67,6 +70,8 @@ spec:
           args:
             - --csi-address=$(ADDRESS)
             - --timeout=5m
+            - --extra-create-metadata
+            - --leader-election=true
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock

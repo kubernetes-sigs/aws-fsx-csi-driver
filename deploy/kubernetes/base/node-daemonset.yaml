@@ -23,11 +23,17 @@ spec:
       dnsPolicy: ClusterFirst
       serviceAccountName: fsx-csi-node-sa
       priorityClassName: system-node-critical
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 300
       containers:
         - name: fsx-plugin
           securityContext:
             privileged: true
-          image: "amazon/aws-fsx-csi-driver:v0.4.0"
+          image: amazon/aws-fsx-csi-driver:v0.4.0
           imagePullPolicy: IfNotPresent
           args:
             - --endpoint=$(CSI_ENDPOINT)
