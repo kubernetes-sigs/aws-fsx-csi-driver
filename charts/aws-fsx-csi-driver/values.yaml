@@ -58,6 +58,8 @@ node:
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/fsx-csi-role
     name: fsx-csi-node-sa
     annotations: {}
+  tolerateAllTaints: false
+  tolerations: []
 
 nameOverride: ""
 fullnameOverride: ""
