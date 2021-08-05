@@ -105,14 +105,28 @@ kubectl apply -f secret.yaml
 
 #### Deploy driver
 ```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/?ref=master"
+kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-0.4"
 ```
 
 Alternatively, you could also install the driver using helm:
+
 ```sh
 helm repo add aws-fsx-csi-driver https://kubernetes-sigs.github.io/aws-fsx-csi-driver/
-helm install aws-fsx-csi-driver aws-fsx-csi-driver/aws-fsx-csi-driver
+helm repo update
+helm upgrade --install aws-fsx-csi-driver --namespace kube-system aws-fsx-csi-driver/aws-fsx-csi-driver
 ```
+
+###### Upgrading from version release-0.4 to master of the kustomize configuration
+
+In the master branch and the next release there are breaking changes that require you to `--force` to `kubectl apply`:
+```sh
+kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/?ref=master" --force
+```
+
+##### Upgrading from version 0.x to 1.x of the helm chart
+
+Version 1.0.0 removed and renamed almost all values to be more consistent with the EBS and EFS CSI driver helm charts. For details, see the [CHANGELOG](./charts/aws-fsx-csi-driver/CHANGELOG.md).
+
 ### Examples
 Before the example, you need to:
 * Get yourself familiar with how to setup Kubernetes on AWS and [create FSx for Lustre filesystem](https://docs.aws.amazon.com/fsx/latest/LustreGuide/getting-started.html#getting-started-step1) if you are using static provisioning.
