@@ -1,5 +1,8 @@
 # Helm chart
 
+# v1.1.0
+* Use driver 0.5.0
+
 # v1.0.0
 * Remove support for Helm 2
 * Reorganize values to be more consistent with EFS and EBS helm charts
