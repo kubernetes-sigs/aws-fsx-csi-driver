@@ -8,9 +8,10 @@
 The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storage Interface (CSI) Driver implements [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) specification for container orchestrators (CO) to manage lifecycle of Amazon FSx for Lustre filesystems.
 
 ### CSI Specification Compability Matrix
-| AWS FSx for Lustre CSI Driver \ CSI Version       | v0.3.0| v1.1.0 |
+| AWS FSx for Lustre CSI Driver \ CSI Version       | v0.3.0| v1.x.x |
 |---------------------------------------------------|-------|--------|
 | master branch                                     | no    | yes    |
+| v0.5.0                                            | no    | yes    |
 | v0.4.0                                            | no    | yes    |
 | v0.3.0                                            | no    | yes    |
 | v0.2.0                                            | no    | yes    |
@@ -26,18 +27,20 @@ The following CSI interfaces are implemented:
 Following sections are Kubernetes specific. If you are Kubernetes user, use followings for driver features, installation steps and examples.
 
 ### Kubernetes Version Compability Matrix
-| AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 | v1.14 | v1.15+ |
-|---------------------------------------------------|-------|-------|-------|-------|--------|
-| master branch                                     | no    | no    | no    | yes   | yes    |
-| v0.4.0                                            | no    | no    | no    | yes   | yes    |
-| v0.3.0                                            | no    | no    | no    | yes   | yes    |
-| v0.2.0                                            | no    | no    | no    | yes   | yes    |
-| v0.1.0                                            | yes   | yes   | yes   | no    | no     |
+| AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 | v1.14-16 | v1.17+ |
+|---------------------------------------------------|-------|-------|-------|----------|--------|
+| master branch                                     | no    | no    | no    | no       | yes    |
+| v0.5.0                                            | no    | no    | no    | no       | yes    |
+| v0.4.0                                            | no    | no    | no    | yes      | yes    |
+| v0.3.0                                            | no    | no    | no    | yes      | yes    |
+| v0.2.0                                            | no    | no    | no    | yes      | yes    |
+| v0.1.0                                            | yes   | yes   | yes   | no       | no     |
 
 ### Container Images
 |FSx CSI Driver Version     | Image                               |
 |---------------------------|-------------------------------------|
 |master branch              |amazon/aws-fsx-csi-driver:latest     |
+|v0.5.0                     |amazon/aws-fsx-csi-driver:v0.5.0     |
 |v0.4.0                     |amazon/aws-fsx-csi-driver:v0.4.0     |
 |v0.3.0                     |amazon/aws-fsx-csi-driver:v0.3.0     |
 |v0.2.0                     |amazon/aws-fsx-csi-driver:v0.2.0     |
@@ -105,7 +108,7 @@ kubectl apply -f secret.yaml
 
 #### Deploy driver
 ```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-0.4"
+kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-0.5"
 ```
 
 Alternatively, you could also install the driver using helm:
@@ -116,7 +119,7 @@ helm repo update
 helm upgrade --install aws-fsx-csi-driver --namespace kube-system aws-fsx-csi-driver/aws-fsx-csi-driver
 ```
 
-###### Upgrading from version release-0.4 to master of the kustomize configuration
+###### Upgrading from version release-0.4 to release-0.5 of the kustomize configuration
 
 In the master branch and the next release there are breaking changes that require you to `--force` to `kubectl apply`:
 ```sh

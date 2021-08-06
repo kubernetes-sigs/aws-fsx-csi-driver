@@ -1,3 +1,18 @@
+# v0.5.0
+
+### New features
+* Add support for Lustre compression ([#186](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/186), [@wuxingro](https://github.com/wuxingro))
+
+### Misc.
+* Post-release v0.4.0 ([#166](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/166), [@ayberk](https://github.com/ayberk))
+* Fix CI ([#172](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/172), [@wongma7](https://github.com/wongma7))
+* Add self to OWNERS ([#173](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/173), [@ayberk](https://github.com/ayberk))
+* Update README for stable release ([#177](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/177), [@dimitricole](https://github.com/dimitricole))
+* Updated helm chart dns config and imagePullSecrets ([#188](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/188), [@nxf5025](https://github.com/nxf5025))
+* go mod tidy && go mod vendor ([#192](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/192), [@wongma7](https://github.com/wongma7))
+* Document the stable kustomize overlay not dev ([#193](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/193), [@wongma7](https://github.com/wongma7))
+* Helm chart 1.0 ([#194](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/194), [@wongma7](https://github.com/wongma7))
+
 # v0.4.0
 [Documentation](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/blob/v0.4.0/docs/README.md)
 
