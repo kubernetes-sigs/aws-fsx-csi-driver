@@ -12,5 +12,6 @@ parameters:
   copyTagsToBackups: "true"
   perUnitStorageThroughput: "200"
   dataCompressionType: "NONE"
+  awsTags: "Tag1:Value1,Tag2:Value2"
 mountOptions:
   - flock

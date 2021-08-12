@@ -16,7 +16,7 @@ parameters:
   storageType: HDD
 ```
 * subnetId - the subnet ID that the FSx for Lustre filesystem should be created inside.
-* securityGroupIds - a common separated list of security group IDs that should be attached to the filesystem
+* securityGroupIds - a comma separated list of security group IDs that should be attached to the filesystem
 * deploymentType (Optional) - FSx for Lustre supports three deployment types, SCRATCH_1, SCRATCH_2 and PERSISTENT_1. Default: SCRATCH_1.
 * kmsKeyId (Optional) - for deployment type PERSISTENT_1, customer can specify a KMS key to use.
 * perUnitStorageThroughput (Optional) - for deployment type PERSISTENT_1, customer can specify the storage throughput. Default: "200". Note that customer has to specify as a string here like "200" or "100" etc.
@@ -26,6 +26,7 @@ parameters:
 * dailyAutomaticBackupStartTime (Optional) - The preferred time to take daily automatic backups, formatted HH:MM in the UTC time zone.
 * copyTagsToBackups (Optional) - A boolean flag indicating whether tags for the file system should be copied to backups. This value defaults to false. If it's set to true, all tags for the file system are copied to all automatic and user-initiated backups where the user doesn't specify tags. If this value is true, and you specify one or more tags, only the specified tags are copied to backups. If you specify one or more tags when creating a user-initiated backup, no tags are copied from the file system, regardless of this value.
 * dataCompressionType (Optional) - FSx for Lustre supports data compression via LZ4 algorithm. Compression is disabled when the value is set to NONE. The default value is NONE 
+* awsTags (Optional) - Tags that will be set on the FSx resource created in AWS, in the form of a comma separated list with each tag delimited by a colon (example - "Tag1:Value1,Tag2:Value2") . Default is a single tag with CSIVolumeName as the key and the generated volume name as it's value.
 
 ### Edit [Persistent Volume Claim Spec](./specs/claim.yaml)
 ```

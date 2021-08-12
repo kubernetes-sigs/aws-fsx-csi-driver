@@ -47,6 +47,7 @@ func TestCreateFileSystem(t *testing.T) {
 		CopyTagsToBackups                   = true
 		dataCompressionTypeNone             = "NONE"
 		dataCompressionTypeLZ4              = "LZ4"
+		AWSTags                             = []string{"key1:value1", "key2:value2"}
 	)
 	testCases := []struct {
 		name     string
@@ -65,6 +66,7 @@ func TestCreateFileSystem(t *testing.T) {
 					CapacityGiB:      volumeSizeGiB,
 					SubnetId:         subnetId,
 					SecurityGroupIds: securityGroupIds,
+					AWSTags:          AWSTags,
 				}
 
 				output := &fsx.CreateFileSystemOutput{

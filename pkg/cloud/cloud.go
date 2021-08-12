@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -81,6 +82,7 @@ type FileSystemOptions struct {
 	AutomaticBackupRetentionDays  int64
 	CopyTagsToBackups             bool
 	DataCompressionType           string
+	AWSTags                       []string
 }
 
 // FSx abstracts FSx client to facilitate its mocking.
@@ -161,6 +163,24 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		lustreConfiguration.SetDataCompressionType(fileSystemOptions.DataCompressionType)
 	}
 
+	var tags = []*fsx.Tag{
+		{
+			Key:   aws.String(VolumeNameTagKey),
+			Value: aws.String(volumeName),
+		},
+	}
+
+	for _, awsTag := range fileSystemOptions.AWSTags {
+		awsTagSplit := strings.Split(awsTag, ":")
+		tagKey := awsTagSplit[0]
+		tagValue := awsTagSplit[1]
+
+		tags = append(tags, &fsx.Tag{
+			Key:   aws.String(tagKey),
+			Value: aws.String(tagValue),
+		})
+	}
+
 	input := &fsx.CreateFileSystemInput{
 		ClientRequestToken:  aws.String(volumeName),
 		FileSystemType:      aws.String("LUSTRE"),
@@ -168,12 +188,7 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		StorageCapacity:     aws.Int64(fileSystemOptions.CapacityGiB),
 		SubnetIds:           []*string{aws.String(fileSystemOptions.SubnetId)},
 		SecurityGroupIds:    aws.StringSlice(fileSystemOptions.SecurityGroupIds),
-		Tags: []*fsx.Tag{
-			{
-				Key:   aws.String(VolumeNameTagKey),
-				Value: aws.String(volumeName),
-			},
-		},
+		Tags:                tags,
 	}
 
 	if fileSystemOptions.StorageType != "" {

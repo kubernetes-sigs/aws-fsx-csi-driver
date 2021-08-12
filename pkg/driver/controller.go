@@ -53,6 +53,7 @@ const (
 	volumeParamsDailyAutomaticBackupStartTime = "dailyAutomaticBackupStartTime"
 	volumeParamsCopyTagsToBackups             = "copyTagsToBackups"
 	volumeParamsDataCompressionType           = "dataCompressionType"
+	volumeParamsAWSTags                       = "awsTags"
 )
 
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -146,6 +147,11 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		fsOptions.CapacityGiB = cloud.DefaultVolumeSize
 	} else {
 		fsOptions.CapacityGiB = util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fsOptions.DeploymentType, fsOptions.StorageType, fsOptions.PerUnitStorageThroughput)
+	}
+
+	if val, ok := volumeParams[volumeParamsAWSTags]; ok {
+		awsTags := strings.Split(val, ",")
+		fsOptions.AWSTags = awsTags
 	}
 
 	fs, err := d.cloud.CreateFileSystem(ctx, volName, fsOptions)

@@ -19,8 +19,9 @@ package driver
 import (
 	"context"
 	"errors"
-	"github.com/aws/aws-sdk-go/service/fsx"
 	"testing"
+
+	"github.com/aws/aws-sdk-go/service/fsx"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
@@ -47,6 +48,7 @@ func TestCreateVolume(t *testing.T) {
 				Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
 			},
 		}
+		awsTags = "key1:value1,key2:value2"
 	)
 	testCases := []struct {
 		name     string
@@ -143,6 +145,7 @@ func TestCreateVolume(t *testing.T) {
 						volumeParamsSecurityGroupIds: securityGroupIds,
 						volumeParamsDeploymentType:   fsx.LustreDeploymentTypeScratch2,
 						volumeParamsStorageType:      fsx.StorageTypeSsd,
+						volumeParamsAWSTags:          awsTags,
 					},
 				}
 
