@@ -51,13 +51,13 @@ spec:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                  name: aws-secret
+                  name: {{ .Values.controller.secretName }}
                   key: key_id
                   optional: true
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: aws-secret
+                  name: {{ .Values.controller.secretName }}
                   key: access_key
                   optional: true
           volumeMounts:

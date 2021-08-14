@@ -38,6 +38,11 @@ controller:
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/fsx-csi-role
     name: fsx-csi-controller-sa
     annotations: {}
+  # The name of the secret holding the API keys of the IAM user to be used
+  # by the csi driver to control FSx, if required. Expected K8s Secret's data 
+  # keys are `key_id` for the AWS `Access Key ID`, and `access_key` for the 
+  # AWS `Secret Access Key`:
+  secretName: aws-secret
   tolerations: []
 
 node:
