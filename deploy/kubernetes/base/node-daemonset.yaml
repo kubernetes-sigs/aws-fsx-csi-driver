@@ -33,7 +33,7 @@ spec:
         - name: fsx-plugin
           securityContext:
             privileged: true
-          image: amazon/aws-fsx-csi-driver:v0.4.0
+          image: amazon/aws-fsx-csi-driver:v0.5.0
           imagePullPolicy: IfNotPresent
           args:
             - --endpoint=$(CSI_ENDPOINT)
