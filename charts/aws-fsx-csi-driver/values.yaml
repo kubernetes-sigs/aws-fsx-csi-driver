@@ -65,3 +65,25 @@ nameOverride: ""
 fullnameOverride: ""
 
 imagePullSecrets: []
+
+storageClasses: []
+## full API docs https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#storageclass-v1-storage-k8s-io
+## Add StorageClass resources like:
+#  - name: fsx-sc
+#    labels: {}
+#    #  key: value
+#    annotations: {}
+#    #  storageclass.kubernetes.io/is-default-class: "true"
+#    mountOptions:
+#    - flock
+#    parameters:
+#      subnetId: subnet-0eabfaa81fb22bcaf
+#      securityGroupIds: sg-068000ccf82dfba88
+#      deploymentType: PERSISTENT_1
+#      automaticBackupRetentionDays: "1"
+#      dailyAutomaticBackupStartTime: "00:00"
+#      copyTagsToBackups: "true"
+#      perUnitStorageThroughput: "200"
+#      dataCompressionType: "NONE"
+#    reclaimPolicy: Delete
+#    volumeBindingMode: Immediate
