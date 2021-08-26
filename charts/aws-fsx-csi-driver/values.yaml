@@ -28,6 +28,7 @@ sidecars:
     resources: {}
 
 controller:
+  affinity: {}
   nodeSelector: {}
   replicaCount: 2
   resources: {}
@@ -41,6 +42,7 @@ controller:
   tolerations: []
 
 node:
+  affinity: {}
   nodeSelector: {}
   resources: {}
   dnsPolicy: ClusterFirst
