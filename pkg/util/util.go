@@ -99,7 +99,7 @@ func GetURLHost(urlStr string) (string, error) {
 	u, err := url.Parse(urlStr)
 
 	if err != nil {
-		return "", fmt.Errorf("Could not parse url: %v", err)
+		return "", fmt.Errorf("could not parse url: %v", err)
 	}
 
 	return u.Host, nil

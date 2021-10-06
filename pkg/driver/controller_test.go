@@ -19,13 +19,18 @@ package driver
 import (
 	"context"
 	"errors"
-	"github.com/aws/aws-sdk-go/service/fsx"
+	"fmt"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/fsx"
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
 	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/cloud"
 	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/driver/mocks"
+	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/util"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestCreateVolume(t *testing.T) {
@@ -515,6 +520,360 @@ func TestDeleteVolume(t *testing.T) {
 	}
 }
 
+func TestExpandVolume(t *testing.T) {
+	var (
+		endpoint             = "endpoint"
+		fileSystemId         = "fs-1234"
+		initialSizeGiB int64 = 1200
+		finalSizeGiB   int64 = 2400
+	)
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "success: normal",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				ctx := context.Background()
+				expandRequest := &csi.ControllerExpandVolumeRequest{
+					VolumeId: fileSystemId,
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: util.GiBToBytes(1440),
+						LimitBytes:    util.GiBToBytes(3600),
+					},
+				}
+
+				initialFs := &cloud.FileSystem{
+					FileSystemId:             fileSystemId,
+					CapacityGiB:              initialSizeGiB,
+					DnsName:                  "test.us-east-1.fsx.amazonaws.com",
+					MountName:                "random",
+					StorageType:              "SSD",
+					DeploymentType:           "SCRATCH_2",
+					PerUnitStorageThroughput: 0,
+				}
+
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(initialFs, nil)
+				mockCloud.EXPECT().ResizeFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId), gomock.Eq(finalSizeGiB)).Return(finalSizeGiB, nil)
+				mockCloud.EXPECT().WaitForFileSystemResize(gomock.Eq(ctx), gomock.Eq(fileSystemId), gomock.Eq(finalSizeGiB)).Return(nil)
+				_, err := driver.ControllerExpandVolume(ctx, expandRequest)
+				if err != nil {
+					t.Fatalf("ControllerExpandVolume failed: %v", err)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "success: requested capacity does not exceed current capacity",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				ctx := context.Background()
+				expandRequest := &csi.ControllerExpandVolumeRequest{
+					VolumeId: fileSystemId,
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: util.GiBToBytes(initialSizeGiB),
+						LimitBytes:    util.GiBToBytes(3600),
+					},
+				}
+
+				initialFs := &cloud.FileSystem{
+					FileSystemId:             fileSystemId,
+					CapacityGiB:              initialSizeGiB,
+					DnsName:                  "test.us-east-1.fsx.amazonaws.com",
+					MountName:                "random",
+					StorageType:              "SSD",
+					DeploymentType:           "SCRATCH_2",
+					PerUnitStorageThroughput: 0,
+				}
+
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(initialFs, nil)
+				_, err := driver.ControllerExpandVolume(ctx, expandRequest)
+				if err != nil {
+					t.Fatalf("ControllerExpandVolume failed: %v", err)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "failure: volume ID not provided",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				ctx := context.Background()
+				expandRequest := &csi.ControllerExpandVolumeRequest{
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: util.GiBToBytes(1440),
+					},
+				}
+				expandError := status.Error(codes.InvalidArgument, "Volume ID not provided")
+
+				_, err := driver.ControllerExpandVolume(ctx, expandRequest)
+				if err == nil {
+					t.Fatalf("ControllerExpandVolume did not return error, expected [%v]", expandError)
+				}
+				if err.Error() != expandError.Error() {
+					t.Fatalf("ControllerExpandVolume returned error [%v], expected [%v]", err, expandError)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "failure: capacity range not provided",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				ctx := context.Background()
+				expandRequest := &csi.ControllerExpandVolumeRequest{
+					VolumeId: fileSystemId,
+				}
+				expandError := status.Error(codes.InvalidArgument, "Capacity range not provided")
+
+				_, err := driver.ControllerExpandVolume(ctx, expandRequest)
+				if err == nil {
+					t.Fatalf("ControllerExpandVolume did not return error, expected [%v]", expandError)
+				}
+				if err.Error() != expandError.Error() {
+					t.Fatalf("ControllerExpandVolume returned error [%v], expected [%v]", err, expandError)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "failure: DescribeFileSystems not successful, filesystem not found",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				ctx := context.Background()
+				expandRequest := &csi.ControllerExpandVolumeRequest{
+					VolumeId: fileSystemId,
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: util.GiBToBytes(1440),
+					},
+				}
+				expandError := status.Errorf(codes.NotFound, "Filesystem not found: %v", cloud.ErrNotFound)
+
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(nil, cloud.ErrNotFound)
+				_, err := driver.ControllerExpandVolume(ctx, expandRequest)
+				if err == nil {
+					t.Fatalf("ControllerExpandVolume did not return error, expected [%v]", expandError)
+				}
+				if err.Error() != expandError.Error() {
+					t.Fatalf("ControllerExpandVolume returned error [%v], expected [%v]", err, expandError)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "failure: DescribeFileSystems not successful, other error",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				ctx := context.Background()
+				expandRequest := &csi.ControllerExpandVolumeRequest{
+					VolumeId: fileSystemId,
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: util.GiBToBytes(1440),
+					},
+				}
+				expandError := status.Errorf(codes.Internal, "DescribeFileSystem failed: %v", cloud.ErrMultiFileSystems)
+
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(nil, cloud.ErrMultiFileSystems)
+				_, err := driver.ControllerExpandVolume(ctx, expandRequest)
+				if err == nil {
+					t.Fatalf("ControllerExpandVolume did not return error, expected [%v]", expandError)
+				}
+				if err.Error() != expandError.Error() {
+					t.Fatalf("ControllerExpandVolume returned error [%v], expected [%v]", err, expandError)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "failure: capacity limit exceeds required bytes not successful",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				ctx := context.Background()
+				expandRequest := &csi.ControllerExpandVolumeRequest{
+					VolumeId: fileSystemId,
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: util.GiBToBytes(1440),
+						LimitBytes:    util.GiBToBytes(2000),
+					},
+				}
+				expandError := status.Errorf(codes.OutOfRange, "Requested storage capacity of %d bytes exceeds capacity limit of %d bytes.",
+					util.GiBToBytes(finalSizeGiB),
+					expandRequest.GetCapacityRange().GetLimitBytes())
+
+				initialFs := &cloud.FileSystem{
+					FileSystemId:             fileSystemId,
+					CapacityGiB:              initialSizeGiB,
+					DnsName:                  "test.us-east-1.fsx.amazonaws.com",
+					MountName:                "random",
+					StorageType:              "SSD",
+					DeploymentType:           "SCRATCH_2",
+					PerUnitStorageThroughput: 0,
+				}
+
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(initialFs, nil)
+				_, err := driver.ControllerExpandVolume(ctx, expandRequest)
+				if err == nil {
+					t.Fatalf("ControllerExpandVolume did not return error, expected [%v]", expandError)
+				}
+				if err.Error() != expandError.Error() {
+					t.Fatalf("ControllerExpandVolume returned error [%v], expected [%v]", err, expandError)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "failure: ResizeFileSystem failed",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				ctx := context.Background()
+				expandRequest := &csi.ControllerExpandVolumeRequest{
+					VolumeId: fileSystemId,
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: util.GiBToBytes(1440),
+					},
+				}
+				resizeError := fmt.Errorf("UpdateFileSystem failed: %v", awserr.New(fsx.ErrCodeBadRequest, "test", nil))
+				expandError := status.Errorf(codes.Internal, "resize failed: %v", resizeError)
+
+				initialFs := &cloud.FileSystem{
+					FileSystemId:             fileSystemId,
+					CapacityGiB:              initialSizeGiB,
+					DnsName:                  "test.us-east-1.fsx.amazonaws.com",
+					MountName:                "random",
+					StorageType:              "SSD",
+					DeploymentType:           "SCRATCH_2",
+					PerUnitStorageThroughput: 0,
+				}
+
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(initialFs, nil)
+				mockCloud.EXPECT().ResizeFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId), gomock.Eq(finalSizeGiB)).Return(initialSizeGiB, resizeError)
+				_, err := driver.ControllerExpandVolume(ctx, expandRequest)
+				if err == nil {
+					t.Fatalf("ControllerExpandVolume did not return error, expected [%v]", expandError)
+				}
+				if err.Error() != expandError.Error() {
+					t.Fatalf("ControllerExpandVolume returned error [%v], expected [%v]", err, expandError)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "failure: WaitForFileSystemResize failed",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				ctx := context.Background()
+				expandRequest := &csi.ControllerExpandVolumeRequest{
+					VolumeId: fileSystemId,
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: util.GiBToBytes(1440),
+					},
+				}
+				waitError := fmt.Errorf("update failed for filesystem %s: test", fileSystemId)
+				expandError := status.Errorf(codes.Internal, "filesystem is not resized: %v", waitError)
+
+				initialFs := &cloud.FileSystem{
+					FileSystemId:             fileSystemId,
+					CapacityGiB:              initialSizeGiB,
+					DnsName:                  "test.us-east-1.fsx.amazonaws.com",
+					MountName:                "random",
+					StorageType:              "SSD",
+					DeploymentType:           "SCRATCH_2",
+					PerUnitStorageThroughput: 0,
+				}
+
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(initialFs, nil)
+				mockCloud.EXPECT().ResizeFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId), gomock.Eq(finalSizeGiB)).Return(finalSizeGiB, nil)
+				mockCloud.EXPECT().WaitForFileSystemResize(gomock.Eq(ctx), gomock.Eq(fileSystemId), gomock.Eq(finalSizeGiB)).Return(waitError)
+				_, err := driver.ControllerExpandVolume(ctx, expandRequest)
+				if err == nil {
+					t.Fatalf("ControllerExpandVolume did not return error, expected [%v]", expandError)
+				}
+				if err.Error() != expandError.Error() {
+					t.Fatalf("ControllerExpandVolume returned error [%v], expected [%v]", err, expandError)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
+	}
+}
+
 func TestControllerGetCapabilities(t *testing.T) {
 	mockCtl := gomock.NewController(t)
 	mockCloud := mocks.NewMockCloud(mockCtl)
@@ -610,7 +969,7 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 			},
 		},
 		{
-			name: "fail: volueme capability is missing",
+			name: "fail: volume capability is missing",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
