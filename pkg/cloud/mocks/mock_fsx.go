@@ -55,6 +55,26 @@ func (mr *MockFSxMockRecorder) CreateFileSystemWithContext(arg0, arg1 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFileSystemWithContext", reflect.TypeOf((*MockFSx)(nil).CreateFileSystemWithContext), varargs...)
 }
 
+// UpdateFileSystemWithContext mocks base method
+func (m *MockFSx) UpdateFileSystemWithContext(arg0 context.Context, arg1 *fsx.UpdateFileSystemInput, arg2 ...request.Option) (*fsx.UpdateFileSystemOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "UpdateFileSystemWithContext", varargs...)
+	ret0, _ := ret[0].(*fsx.UpdateFileSystemOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateFileSystemWithContext indicates an expected call of UpdateFileSystemWithContext
+func (mr *MockFSxMockRecorder) UpdateFileSystemWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateFileSystemWithContext", reflect.TypeOf((*MockFSx)(nil).UpdateFileSystemWithContext), varargs...)
+}
+
 // DeleteFileSystemWithContext mocks base method
 func (m *MockFSx) DeleteFileSystemWithContext(arg0 context.Context, arg1 *fsx.DeleteFileSystemInput, arg2 ...request.Option) (*fsx.DeleteFileSystemOutput, error) {
 	m.ctrl.T.Helper()

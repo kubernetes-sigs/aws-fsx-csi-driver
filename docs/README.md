@@ -19,12 +19,12 @@ The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storag
 
 ### Features
 The following CSI interfaces are implemented:
-* Controller Service: CreateVolume, DeleteVolume, ControllerGetCapabilities, ValidateVolumeCapabilities
+* Controller Service: CreateVolume, DeleteVolume, ControllerExpandVolume, ControllerGetCapabilities, ValidateVolumeCapabilities
 * Node Service: NodePublishVolume, NodeUnpublishVolume, NodeGetCapabilities, NodeGetInfo, NodeGetId
 * Identity Service: GetPluginInfo, GetPluginCapabilities, Probe
 
 ## FSx for Lustre CSI Driver on Kubernetes
-Following sections are Kubernetes specific. If you are Kubernetes user, use followings for driver features, installation steps and examples.
+The following sections are Kubernetes-specific. If you are a Kubernetes user, use the following for driver features, installation steps and examples.
 
 ### Kubernetes Version Compability Matrix
 | AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 | v1.14-16 | v1.17+ |
@@ -48,11 +48,11 @@ Following sections are Kubernetes specific. If you are Kubernetes user, use foll
 
 ### Features
 * Static provisioning - FSx for Lustre file system needs to be created manually first, then it could be mounted inside container as a volume using the Driver.
-* Dynamic provisioning - uses persistent volume claim (PVC) to let the Kuberenetes to create the FSx for Lustre filesystem for you and consumes the volume from inside container.
+* Dynamic provisioning - uses persistent volume claim (PVC) to let Kubernetes create the FSx for Lustre filesystem for you and consumes the volume from inside container.
 * Mount options - mount options can be specified in storageclass to define how the volume should be mounted.
 
 **Notes**:
-* For dynamically provisioned volumes, only one subnet is allowed inside storageclass's `parameters.subnetId`. This is a [limitation](https://docs.aws.amazon.com/fsx/latest/APIReference/API_CreateFileSystem.html#FSx-CreateFileSystem-request-SubnetIds) that is enforced by FSx for Lustre.
+* For dynamically provisioned volumes, only one subnet is allowed inside a storageclass's `parameters.subnetId`. This is a [limitation](https://docs.aws.amazon.com/fsx/latest/APIReference/API_CreateFileSystem.html#FSx-CreateFileSystem-request-SubnetIds) that is enforced by FSx for Lustre.
 
 ### Installation
 #### Set up driver permission

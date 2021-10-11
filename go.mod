@@ -1,7 +1,7 @@
 module github.com/kubernetes-sigs/aws-fsx-csi-driver
 
 require (
-	github.com/aws/aws-sdk-go v1.38.52
+	github.com/aws/aws-sdk-go v1.40.25
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/golang/mock v1.3.1
 	github.com/kubernetes-csi/csi-test v2.0.1+incompatible
@@ -44,4 +44,4 @@ replace (
 	vbom.ml/util => github.com/fvbommel/util v0.0.0-20180919145318-efcd4e0f9787
 )
 
-go 1.13
+go 1.16
