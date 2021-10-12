@@ -26,6 +26,12 @@ sidecars:
       tag: v2.1.1-eks-1-18-2
       pullPolicy: IfNotPresent
     resources: {}
+  resizer:
+    image:
+      repository: public.ecr.aws/eks-distro/kubernetes-csi/external-resizer
+      tag: v1.1.0-eks-1-18-2
+      pullPolicy: IfNotPresent
+    resources: {}
 
 controller:
   nodeSelector: {}

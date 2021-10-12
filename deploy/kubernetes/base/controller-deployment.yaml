@@ -78,6 +78,19 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-resizer
+          image: public.ecr.aws/eks-distro/kubernetes-csi/external-resizer:v1.1.0-eks-1-18-2
+          imagePullPolicy: Always
+          args:
+            - --csi-address=$(ADDRESS)
+            - --leader-election=true
+            - --timeout=5m
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: liveness-probe
           image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.2.0-eks-1-18-2
           args:

@@ -56,13 +56,27 @@ func (c *FakeCloudProvider) CreateFileSystem(ctx context.Context, volumeName str
 	}
 
 	fs = &FileSystem{
-		FileSystemId: fmt.Sprintf("fs-%d", random.Uint64()),
-		CapacityGiB:  fileSystemOptions.CapacityGiB,
-		DnsName:      "test.us-east-1.fsx.amazonaws.com",
-		MountName:    "random",
+		FileSystemId:             fmt.Sprintf("fs-%d", random.Uint64()),
+		CapacityGiB:              fileSystemOptions.CapacityGiB,
+		DnsName:                  "test.us-east-1.fsx.amazonaws.com",
+		MountName:                "random",
+		StorageType:              fileSystemOptions.StorageType,
+		DeploymentType:           fileSystemOptions.DeploymentType,
+		PerUnitStorageThroughput: fileSystemOptions.PerUnitStorageThroughput,
 	}
 	c.fileSystems[volumeName] = fs
 	return fs, nil
+}
+
+func (c *FakeCloudProvider) ResizeFileSystem(ctx context.Context, volumeName string, newSizeGiB int64) (int64, error) {
+	fs, exists := c.fileSystems[volumeName]
+	if !exists {
+		return 0, ErrNotFound
+	}
+
+	fs.CapacityGiB = newSizeGiB
+	c.fileSystems[volumeName] = fs
+	return newSizeGiB, nil
 }
 
 func (c *FakeCloudProvider) DeleteFileSystem(ctx context.Context, volumeID string) (err error) {
@@ -85,5 +99,9 @@ func (c *FakeCloudProvider) DescribeFileSystem(ctx context.Context, volumeID str
 }
 
 func (c *FakeCloudProvider) WaitForFileSystemAvailable(ctx context.Context, fileSystemId string) error {
+	return nil
+}
+
+func (c *FakeCloudProvider) WaitForFileSystemResize(ctx context.Context, fileSystemId string, resizeGiB int64) error {
 	return nil
 }

@@ -96,6 +96,22 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+        - name: csi-resizer
+          image: {{ printf "%s:%s" .Values.sidecars.resizer.image.repository .Values.sidecars.resizer.image.tag }}
+          args:
+            - --csi-address=$(ADDRESS)
+            - --leader-election=true
+            - --timeout=5m
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+          {{- with default .Values.controller.resources .Values.sidecars.resizer.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
         - name: liveness-probe
           image: {{ printf "%s:%s" .Values.sidecars.livenessProbe.image.repository .Values.sidecars.livenessProbe.image.tag }}
           args:
