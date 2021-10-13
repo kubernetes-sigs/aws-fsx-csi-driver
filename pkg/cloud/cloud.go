@@ -93,6 +93,8 @@ type FileSystemOptions struct {
 	AutomaticBackupRetentionDays  int64
 	CopyTagsToBackups             bool
 	DataCompressionType           string
+	WeeklyMaintenanceStartTime    string
+	FileSystemTypeVersion         string
 }
 
 // FSx abstracts FSx client to facilitate its mocking.
@@ -176,6 +178,10 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		lustreConfiguration.SetDataCompressionType(fileSystemOptions.DataCompressionType)
 	}
 
+	if fileSystemOptions.WeeklyMaintenanceStartTime != "" {
+		lustreConfiguration.SetWeeklyMaintenanceStartTime(fileSystemOptions.WeeklyMaintenanceStartTime)
+	}
+
 	input := &fsx.CreateFileSystemInput{
 		ClientRequestToken:  aws.String(volumeName),
 		FileSystemType:      aws.String("LUSTRE"),
@@ -191,6 +197,9 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		},
 	}
 
+	if fileSystemOptions.FileSystemTypeVersion != "" {
+		input.FileSystemTypeVersion = aws.String(fileSystemOptions.FileSystemTypeVersion)
+	}
 	if fileSystemOptions.StorageType != "" {
 		input.StorageType = aws.String(fileSystemOptions.StorageType)
 	}

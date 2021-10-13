@@ -54,6 +54,8 @@ const (
 	volumeParamsDailyAutomaticBackupStartTime = "dailyAutomaticBackupStartTime"
 	volumeParamsCopyTagsToBackups             = "copyTagsToBackups"
 	volumeParamsDataCompressionType           = "dataCompressionType"
+	volumeParamsWeeklyMaintenanceStartTime    = "weeklyMaintenanceStartTime"
+	volumeParamsFileSystemTypeVersion         = "fileSystemTypeVersion"
 )
 
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -140,6 +142,14 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			return nil, status.Error(codes.InvalidArgument, "perUnitStorageThroughput must be a number")
 		}
 		fsOptions.PerUnitStorageThroughput = n
+	}
+
+	if val, ok := volumeParams[volumeParamsWeeklyMaintenanceStartTime]; ok {
+		fsOptions.WeeklyMaintenanceStartTime = val
+	}
+
+	if val, ok := volumeParams[volumeParamsFileSystemTypeVersion]; ok {
+		fsOptions.FileSystemTypeVersion = val
 	}
 
 	capRange := req.GetCapacityRange()
