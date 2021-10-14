@@ -49,6 +49,8 @@ func TestCreateFileSystem(t *testing.T) {
 		CopyTagsToBackups                   = true
 		dataCompressionTypeNone             = "NONE"
 		dataCompressionTypeLZ4              = "LZ4"
+		weeklyMaintenanceStartTime          = "7:09:00"
+		fileSystemTypeVersion               = "2.12"
 	)
 	testCases := []struct {
 		name     string
@@ -64,20 +66,24 @@ func TestCreateFileSystem(t *testing.T) {
 				}
 
 				req := &FileSystemOptions{
-					CapacityGiB:      volumeSizeGiB,
-					SubnetId:         subnetId,
-					SecurityGroupIds: securityGroupIds,
+					CapacityGiB:                volumeSizeGiB,
+					SubnetId:                   subnetId,
+					SecurityGroupIds:           securityGroupIds,
+					FileSystemTypeVersion:      fileSystemTypeVersion,
+					WeeklyMaintenanceStartTime: weeklyMaintenanceStartTime,
 				}
 
 				output := &fsx.CreateFileSystemOutput{
 					FileSystem: &fsx.FileSystem{
-						FileSystemId:    aws.String(fileSystemId),
-						StorageCapacity: aws.Int64(volumeSizeGiB),
-						StorageType:     aws.String(fsx.StorageTypeSsd),
-						DNSName:         aws.String(dnsname),
+						FileSystemId:          aws.String(fileSystemId),
+						FileSystemTypeVersion: aws.String(fileSystemTypeVersion),
+						StorageCapacity:       aws.Int64(volumeSizeGiB),
+						StorageType:           aws.String(fsx.StorageTypeSsd),
+						DNSName:               aws.String(dnsname),
 						LustreConfiguration: &fsx.LustreFileSystemConfiguration{
-							DeploymentType: aws.String(fsx.LustreDeploymentTypeScratch1),
-							MountName:      aws.String(mountName),
+							DeploymentType:             aws.String(fsx.LustreDeploymentTypeScratch1),
+							MountName:                  aws.String(mountName),
+							WeeklyMaintenanceStartTime: aws.String(weeklyMaintenanceStartTime),
 						},
 					},
 				}
