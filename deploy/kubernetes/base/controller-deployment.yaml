@@ -31,7 +31,7 @@ spec:
           tolerationSeconds: 300
       containers:
         - name: fsx-plugin
-          image: amazon/aws-fsx-csi-driver:v0.5.0
+          image: amazon/aws-fsx-csi-driver:v0.6.0
           imagePullPolicy: IfNotPresent
           args:
             - --endpoint=$(CSI_ENDPOINT)
