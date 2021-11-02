@@ -15,13 +15,20 @@
 FROM golang:1.16.8-stretch as builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-fsx-csi-driver
 
+ARG TARGETOS
+ARG TARGETARCH
+RUN echo "TARGETOS:$TARGETOS, TARGETARCH:$TARGETARCH"
+RUN echo "I am running on $(uname -s)/$(uname -m)"
+
 COPY . .
 
-RUN make
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make aws-fsx-csi-driver
 
 FROM amazonlinux:2
+RUN yum update -y
 RUN yum install util-linux libyaml -y \
     && amazon-linux-extras install -y lustre2.10
+    
 COPY --from=builder /go/src/github.com/kubernetes-sigs/aws-fsx-csi-driver/bin/aws-fsx-csi-driver /bin/aws-fsx-csi-driver
 COPY THIRD-PARTY /
 

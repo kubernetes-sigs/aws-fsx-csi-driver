@@ -17,17 +17,20 @@ IMAGE?=amazon/aws-fsx-csi-driver
 VERSION=v0.6.0
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+IMAGE_PLATFORMS?=linux/arm64,linux/amd64
 LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE}"
 GO111MODULE=on
 GOPROXY=direct
 GOPATH=$(shell go env GOPATH)
 GOOS=$(shell go env GOOS)
+GOARCH=$(shell go env GOARCH)
 
 .EXPORT_ALL_VARIABLES:
 
 .PHONY: aws-fsx-csi-driver
 aws-fsx-csi-driver:
 	mkdir -p bin
+	@echo GOARCH:${GOARCH}
 	CGO_ENABLED=0 GOOS=linux go build -ldflags ${LDFLAGS} -o bin/aws-fsx-csi-driver ./cmd/
 
 bin /tmp/helm:
@@ -63,6 +66,14 @@ test-e2e:
 .PHONY: image
 image:
 	docker build -t $(IMAGE):latest .
+
+.PHONY: image-multi-arch--push
+image-multi-arch--push:
+	docker buildx build \
+			  -t $(IMAGE):latest \
+			  --platform=$(IMAGE_PLATFORMS) \
+			  --progress plain \
+			  --push .
 
 .PHONY: push
 push:
