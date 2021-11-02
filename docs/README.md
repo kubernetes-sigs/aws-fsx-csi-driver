@@ -11,6 +11,7 @@ The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storag
 | AWS FSx for Lustre CSI Driver \ CSI Version       | v0.3.0| v1.x.x |
 |---------------------------------------------------|-------|--------|
 | master branch                                     | no    | yes    |
+| v0.6.0                                            | no    | yes    |
 | v0.5.0                                            | no    | yes    |
 | v0.4.0                                            | no    | yes    |
 | v0.3.0                                            | no    | yes    |
@@ -30,6 +31,7 @@ The following sections are Kubernetes-specific. If you are a Kubernetes user, us
 | AWS FSx for Lustre CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 | v1.14-16 | v1.17+ |
 |---------------------------------------------------|-------|-------|-------|----------|--------|
 | master branch                                     | no    | no    | no    | no       | yes    |
+| v0.6.0                                            | no    | no    | no    | no       | yes    |
 | v0.5.0                                            | no    | no    | no    | no       | yes    |
 | v0.4.0                                            | no    | no    | no    | yes      | yes    |
 | v0.3.0                                            | no    | no    | no    | yes      | yes    |
@@ -40,6 +42,7 @@ The following sections are Kubernetes-specific. If you are a Kubernetes user, us
 |FSx CSI Driver Version     | Image                               |
 |---------------------------|-------------------------------------|
 |master branch              |amazon/aws-fsx-csi-driver:latest     |
+|v0.6.0                     |amazon/aws-fsx-csi-driver:v0.6.0     |
 |v0.5.0                     |amazon/aws-fsx-csi-driver:v0.5.0     |
 |v0.4.0                     |amazon/aws-fsx-csi-driver:v0.4.0     |
 |v0.3.0                     |amazon/aws-fsx-csi-driver:v0.3.0     |
@@ -108,7 +111,7 @@ kubectl apply -f secret.yaml
 
 #### Deploy driver
 ```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-0.5"
+kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-0.6"
 ```
 
 Alternatively, you could also install the driver using helm:
@@ -148,7 +151,7 @@ Before the example, you need to:
 Please go through [CSI Spec](https://github.com/container-storage-interface/spec/blob/master/spec.md) and [General CSI driver development guideline](https://kubernetes-csi.github.io/docs/Development.html) to get some basic understanding of CSI driver before you start.
 
 ### Requirements
-* Golang 1.13.4+
+* Golang 1.16.0+
 
 ### Dependency
 Dependencies are managed through go module. To build the project, first turn on go mod using `export GO111MODULE=on`, to build the project run: `make`
