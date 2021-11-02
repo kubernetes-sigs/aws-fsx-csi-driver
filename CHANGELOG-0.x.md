@@ -1,3 +1,12 @@
+# v0.7.0
+
+### New features
+* Add ARM support ([#217](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/217), [@khoang98](https://github.com/khoang98))
+
+### Misc.
+* Update Doc and Support Template ([#215](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/215), [@CandiedCode](https://github.com/CandiedCode))
+* Release 0.6.0 part 3/3: merge previous parts to master ([#216](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/216), [@wongma7](https://github.com/wongma7))
+
 # v0.6.0
 
 ### New features
