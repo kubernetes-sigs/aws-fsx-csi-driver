@@ -14,7 +14,7 @@
 
 PKG=github.com/kubernetes-sigs/aws-fsx-csi-driver
 IMAGE?=amazon/aws-fsx-csi-driver
-VERSION=v0.6.0
+VERSION=v0.7.0
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 IMAGE_PLATFORMS?=linux/arm64,linux/amd64
