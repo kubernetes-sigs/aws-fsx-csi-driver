@@ -101,7 +101,8 @@ kubectl apply -f secret.yaml
         "s3:ListBucket",
         "fsx:CreateFileSystem",
         "fsx:DeleteFileSystem",
-        "fsx:DescribeFileSystems"
+        "fsx:DescribeFileSystems",
+        "fsx:TagResource"
       ],
       "Resource": ["*"]
     }
