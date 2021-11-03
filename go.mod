@@ -5,8 +5,8 @@ require (
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/golang/mock v1.3.1
 	github.com/kubernetes-csi/csi-test v2.0.1+incompatible
-	github.com/onsi/ginkgo v1.10.1
-	github.com/onsi/gomega v1.7.0
+	github.com/onsi/ginkgo v1.16.5
+	github.com/onsi/gomega v1.16.0
 	google.golang.org/grpc v1.23.1
 	k8s.io/api v0.17.0
 	k8s.io/apimachinery v0.17.0
