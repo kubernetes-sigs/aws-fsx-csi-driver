@@ -7,39 +7,25 @@ jobs:
     if: github.repository == 'kubernetes-sigs/aws-fsx-csi-driver'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up Docker Buildx
-      id: buildx
-      uses: crazy-max/ghaction-docker-buildx@v3
-      with:
-        buildx-version: latest
-        qemu-version: latest
-    - name: Push to Github registry
-      run: |
-        USER=$(echo $GITHUB_REPOSITORY | cut -d'/' -f1)
-        BRANCH=$(echo $GITHUB_REF | cut -d'/' -f3)
-        IMAGE=aws-fsx-csi-driver
-        if [ "$BRANCH" = "master" ]; then
-          TAG="latest"
-        else
-          TAG=$BRANCH
-        fi
-        docker login docker.pkg.github.com -u $USER -p ${{ secrets.REGISTRY_TOKEN }}
-        docker build -t aws-fsx-csi-driver .
-        docker tag aws-fsx-csi-driver docker.pkg.github.com/$GITHUB_REPOSITORY/$IMAGE:$TAG
-        docker push docker.pkg.github.com/$GITHUB_REPOSITORY/$IMAGE:$TAG
-    - name: Push to Dockerhub registry
-      run: |
-        BRANCH=$(echo $GITHUB_REF | cut -d'/' -f3)
-        REPO=amazon/aws-fsx-csi-driver
-        if [ "$BRANCH" = "master" ]; then
-          TAG="latest"
-        else
-          TAG=$BRANCH
-        fi
-        docker login -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_TOKEN }}
-        docker buildx build \
-          -t $REPO:$TAG \
-          --platform=linux/arm64,linux/amd64 \
-          --progress plain \
-          --push .
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Push to Dockerhub registry
+        run: |
+          BRANCH=$(echo $GITHUB_REF | cut -d'/' -f3)
+          REPO=amazon/aws-fsx-csi-driver
+          if [ "$BRANCH" = "master" ]; then
+            TAG="latest"
+          else
+            TAG=$BRANCH
+          fi
+          docker login -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+          docker buildx build \
+            -t $REPO:$TAG \
+            --platform=linux/arm64,linux/amd64 \
+            --progress plain \
+            --push .
