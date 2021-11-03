@@ -12,18 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PKG=github.com/kubernetes-sigs/aws-fsx-csi-driver
-IMAGE?=amazon/aws-fsx-csi-driver
 VERSION=v0.6.0
+
+PKG=github.com/kubernetes-sigs/aws-fsx-csi-driver
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-IMAGE_PLATFORMS?=linux/arm64,linux/amd64
+
 LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE}"
+
 GO111MODULE=on
 GOPROXY=direct
 GOPATH=$(shell go env GOPATH)
 GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
+
+IMAGE?=amazon/aws-fsx-csi-driver
+TAG?=$(GIT_COMMIT)
+
+OUTPUT_TYPE?=docker
+
+OS?=linux
+ARCH?=amd64
+OSVERSION?=amazon
+
+IMAGE_PLATFORMS?=linux/arm64,linux/amd64
 
 .EXPORT_ALL_VARIABLES:
 
@@ -64,28 +76,26 @@ test-e2e:
 	./hack/e2e/run.sh
 
 .PHONY: image
-image:
-	docker build -t $(IMAGE):latest .
+image: .image-$(TAG)-$(OS)-$(ARCH)-$(OSVERSION)
+.image-$(TAG)-$(OS)-$(ARCH)-$(OSVERSION):
+	docker buildx build \
+		--platform=$(OS)/$(ARCH) \
+		--build-arg OS=$(OS) \
+		--build-arg ARCH=$(ARCH) \
+		--progress=plain \
+		--target=$(OS)-$(OSVERSION) \
+		--output=type=$(OUTPUT_TYPE) \
+		-t=$(IMAGE):$(TAG)-$(OS)-$(ARCH)-$(OSVERSION) \
+		.
+	touch $@
 
 .PHONY: image-multi-arch--push
 image-multi-arch--push:
 	docker buildx build \
-			  -t $(IMAGE):latest \
-			  --platform=$(IMAGE_PLATFORMS) \
-			  --progress plain \
-			  --push .
-
-.PHONY: push
-push:
-	docker push $(IMAGE):latest
-
-.PHONY: image-release
-image-release:
-	docker build -t $(IMAGE):$(VERSION) .
-
-.PHONY: push-release
-push-release:
-	docker push $(IMAGE):$(VERSION)
+		-t $(IMAGE):latest \
+		--platform=$(IMAGE_PLATFORMS) \
+		--progress plain \
+		--push .
 
 generate-kustomize: bin/helm
 	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/csidriver.yaml > ../../deploy/kubernetes/base/csidriver.yaml
