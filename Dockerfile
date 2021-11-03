@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.16.8-stretch as builder
+FROM --platform=$BUILDPLATFORM golang:1.16.8-stretch as builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-fsx-csi-driver
 
 ARG TARGETOS
@@ -24,7 +24,7 @@ COPY . .
 
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make aws-fsx-csi-driver
 
-FROM amazonlinux:2
+FROM amazonlinux:2 AS linux-amazon
 RUN yum update -y
 RUN yum install util-linux libyaml -y \
     && amazon-linux-extras install -y lustre2.10
