@@ -1,5 +1,8 @@
 # Helm chart
 
+# v1.3.0
+* Use driver 0.7.0
+
 # v1.2.0
 * Use driver 0.6.0
 * Add sidecar for storage scaling (external-resizer)
