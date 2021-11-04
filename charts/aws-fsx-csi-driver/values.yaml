@@ -7,6 +7,10 @@ image:
   tag: v0.6.0
   pullPolicy: IfNotPresent
 
+# -- Custom labels to add into metadata
+customLabels: {}
+  # app: fsx-csi-controller
+
 sidecars:
   livenessProbe:
     image:

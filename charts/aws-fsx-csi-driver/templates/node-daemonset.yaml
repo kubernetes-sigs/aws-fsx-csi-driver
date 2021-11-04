@@ -7,12 +7,10 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: fsx-csi-node
       {{- include "aws-fsx-csi-driver.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app: fsx-csi-node
         {{- include "aws-fsx-csi-driver.labels" . | nindent 8 }}
     spec:
       {{- if .Values.imagePullSecrets }}

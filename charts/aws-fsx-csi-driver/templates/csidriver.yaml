@@ -2,5 +2,7 @@ apiVersion: {{ ternary "storage.k8s.io/v1" "storage.k8s.io/v1beta1" (semverCompa
 kind: CSIDriver
 metadata:
   name: fsx.csi.aws.com
+  labels:
+    {{- include "aws-fsx-csi-driver.labels" . | nindent 4 }}
 spec:
   attachRequired: false
