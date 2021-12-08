@@ -1,3 +1,10 @@
+# v0.7.1
+
+### New features
+
+### Misc.
+* Release 0.7.0 part 3/3 ([#224](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/224), [@khoang98](https://github.com/khoang98))
+
 # v0.7.0
 
 ### New features
