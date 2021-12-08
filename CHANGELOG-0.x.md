@@ -1,3 +1,6 @@
+# v0.7.1
+* Updating to latest AL2 base image.
+
 # v0.7.0
 
 ### New features
