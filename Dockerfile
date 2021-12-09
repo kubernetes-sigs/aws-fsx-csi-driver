@@ -14,15 +14,10 @@
 
 FROM --platform=$BUILDPLATFORM golang:1.16.8-stretch as builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-fsx-csi-driver
-
+COPY . .
 ARG TARGETOS
 ARG TARGETARCH
-RUN echo "TARGETOS:$TARGETOS, TARGETARCH:$TARGETARCH"
-RUN echo "I am running on $(uname -s)/$(uname -m)"
-
-COPY . .
-
-RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make aws-fsx-csi-driver
+RUN OS=$TARGETOS ARCH=$TARGETARCH make $TARGETOS/$TARGETARCH
 
 FROM amazonlinux:2 AS linux-amazon
 RUN yum update -y
