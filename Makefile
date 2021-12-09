@@ -55,8 +55,10 @@ linux/$(ARCH): bin/aws-fsx-csi-driver
 bin/aws-fsx-csi-driver: | bin
 	CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -ldflags ${LDFLAGS} -o bin/aws-fsx-csi-driver ./cmd/
 
+.PHONY: all
 all: all-image-docker
 
+.PHONY: all-push
 all-push:
 	docker buildx build \
 		--platform=$(PLATFORM) \
@@ -67,11 +69,13 @@ all-push:
 		.
 	touch $@
 
+.PHONY: all-image-docker
 all-image-docker: $(addprefix sub-image-docker-,$(ALL_OS_ARCH_OSVERSION_linux))
 
 sub-image-%:
 	$(MAKE) OUTPUT_TYPE=$(call word-hyphen,$*,1) OS=$(call word-hyphen,$*,2) ARCH=$(call word-hyphen,$*,3) OSVERSION=$(call word-hyphen,$*,4) image
 
+.PHONY: image
 image: .image-$(TAG)-$(OS)-$(ARCH)-$(OSVERSION)
 .image-$(TAG)-$(OS)-$(ARCH)-$(OSVERSION):
 	docker buildx build \
@@ -117,6 +121,7 @@ test-e2e:
 	GINKGO_SKIP="subPath.should.be.able.to.unmount.after.the.subpath.directory.is.deleted|\[Disruptive\]|\[Serial\]" \
 	./hack/e2e/run.sh
 
+.PHONY: generate-kustomize
 generate-kustomize: bin/helm
 	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/csidriver.yaml > ../../deploy/kubernetes/base/csidriver.yaml
 	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/node-daemonset.yaml > ../../deploy/kubernetes/base/node-daemonset.yaml
