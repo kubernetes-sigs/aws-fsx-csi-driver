@@ -31,7 +31,7 @@ spec:
           tolerationSeconds: 300
       containers:
         - name: fsx-plugin
-          image: amazon/aws-fsx-csi-driver:v0.7.0
+          image: amazon/aws-fsx-csi-driver:v0.7.1
           imagePullPolicy: IfNotPresent
           args:
             - --endpoint=$(CSI_ENDPOINT)
@@ -80,7 +80,6 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-resizer
           image: public.ecr.aws/eks-distro/kubernetes-csi/external-resizer:v1.1.0-eks-1-18-2
-          imagePullPolicy: Always
           args:
             - --csi-address=$(ADDRESS)
             - --leader-election=true
