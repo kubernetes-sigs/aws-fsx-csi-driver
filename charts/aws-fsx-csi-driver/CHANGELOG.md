@@ -1,5 +1,8 @@
 # Helm chart
 
+# v1.4.0
+* Use driver 0.8.0
+
 # v1.3.2
 * Update ECR sidecars to 1-18-13
 
