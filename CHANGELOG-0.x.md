@@ -1,3 +1,11 @@
+# v0.8.0
+
+### Misc.
+* Release 0.7.0 part 3/3 ([#224](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/224), [@khoang98](https://github.com/khoang98))
+* Add make all-push rule ([#228](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/228), [@wongma7](https://github.com/wongma7))
+* Release 0.7.1 part 3/3 ([#230](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/230), [@wongma7](https://github.com/wongma7))
+* Update ECR sidecars to 1-18-13 ([#231](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/231), [@wongma7](https://github.com/wongma7))
+
 # v0.7.1
 * Updating to latest AL2 base image.
 
