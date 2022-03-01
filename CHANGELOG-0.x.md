@@ -1,3 +1,6 @@
+# v0.8.1
+* Updating to latest AL2 base image.
+
 # v0.8.0
 
 ### Misc.
