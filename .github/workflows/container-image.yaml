@@ -1,11 +1,15 @@
 name: Container Images
 
 on: push
+env:
+  REGION : "us-east-1"
 jobs:
   build:
     # this is to prevent the job to run at forked projects
     if: github.repository == 'kubernetes-sigs/aws-fsx-csi-driver'
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -25,11 +29,15 @@ jobs:
           fi
           echo "REGISTRY_NAME=$REGISTRY_NAME" >> $GITHUB_ENV
           echo "GIT_TAG=$GIT_TAG" >> $GITHUB_ENV
-      - name: Login to Docker Hub
-        uses: docker/login-action@v1
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@master
         with:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          role-to-assume: arn:aws:iam::925553864330:role/LustreCSIDriverImagePublisherRole
+          role-session-name: AWSFSxLustreCSIDriverImagePublisherRoleSession
+          aws-region: ${{ env.AWS_REGION }}
+      - name: login ecr public
+        run: |
+          aws ecr-public get-login-password --region $REGION | docker login --username AWS --password-stdin g5x7u5l2.public.ecr.aws
       - name: Push manifest list containing amazon linux based images to Docker Hub
         run: |
           export REGISTRY=$REGISTRY_NAME
