@@ -17,7 +17,7 @@
 set -euo pipefail
 
 IMPORT_PATH=github.com/kubernetes-sigs/aws-fsx-csi-driver
-mockgen -package=mocks -destination=./pkg/driver/mocks/mock_mount.go ${IMPORT_PATH}/pkg/driver Mounter
-mockgen -package=mocks -destination=./pkg/cloud/mocks/mock_ec2metadata.go ${IMPORT_PATH}/pkg/cloud EC2Metadata
-mockgen -package=mocks -destination=./pkg/cloud/mocks/mock_fsx.go ${IMPORT_PATH}/pkg/cloud FSx
-mockgen -package=mocks -destination=./pkg/driver/mocks/mock_cloud.go ${IMPORT_PATH}/pkg/cloud Cloud
+mockgen -package=mocks -destination=./pkg/driver/mocks/mock_mount.go --build_flags=--mod=mod ${IMPORT_PATH}/pkg/driver Mounter
+mockgen -package=mocks -destination=./pkg/cloud/mocks/mock_ec2metadata.go --build_flags=--mod=mod ${IMPORT_PATH}/pkg/cloud EC2Metadata
+mockgen -package=mocks -destination=./pkg/cloud/mocks/mock_fsx.go --build_flags=--mod=mod ${IMPORT_PATH}/pkg/cloud FSx
+mockgen -package=mocks -destination=./pkg/driver/mocks/mock_cloud.go --build_flags=--mod=mod ${IMPORT_PATH}/pkg/cloud Cloud
