@@ -28,6 +28,35 @@ func NewMockMounter(ctrl *gomock.Controller) *MockMounter {
 	return mock
 }
 
+// IsCorruptedMnt mocks base method.
+func (m *MockMounter) IsCorruptedMnt(err error) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsCorruptedMnt", err)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsCorruptedMnt indicates an expected call of IsCorruptedMnt.
+func (mr *MockMounterMockRecorder) IsCorruptedMnt(err interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsCorruptedMnt", reflect.TypeOf((*MockMounter)(nil).IsCorruptedMnt), err)
+}
+
+// PathExists mocks base method.
+func (m *MockMounter) PathExists(path string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PathExists", path)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PathExists indicates an expected call of PathExists.
+func (mr *MockMounterMockRecorder) PathExists(path interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PathExists", reflect.TypeOf((*MockMounter)(nil).PathExists), path)
+}
+
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockMounter) EXPECT() *MockMounterMockRecorder {
 	return m.recorder
