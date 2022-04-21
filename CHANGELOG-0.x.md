@@ -1,3 +1,6 @@
+#v0.8.2
+* Add Idempotent check for mounting node volume ([#246](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/246), [@amankhunt](https://github.com/amankhunt))
+
 # v0.8.1
 * Updating to latest AL2 base image.
 
