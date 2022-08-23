@@ -49,7 +49,7 @@ func (m *NodeMounter) MakeDir(pathname string) error {
 	return nil
 }
 
-//IsCorruptedMnt return true if err is about corrupted mount point
+// IsCorruptedMnt return true if err is about corrupted mount point
 func (m *NodeMounter) IsCorruptedMnt(err error) bool {
 	return mount.IsCorruptedMnt(err)
 }
