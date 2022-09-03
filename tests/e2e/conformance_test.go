@@ -175,6 +175,7 @@ var csiTestSuites = []func() testsuites.TestSuite{
 	testsuites.InitSubPathTestSuite,
 	testsuites.InitProvisioningTestSuite,
 	//testsuites.InitSnapshottableTestSuite,
+	testsuites.InitVolumeExpandTestSuite,
 	testsuites.InitMultiVolumeTestSuite,
 }
 

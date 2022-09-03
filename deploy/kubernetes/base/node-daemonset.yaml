@@ -33,7 +33,7 @@ spec:
         - name: fsx-plugin
           securityContext:
             privileged: true
-          image: amazon/aws-fsx-csi-driver:v0.4.0
+          image: amazon/aws-fsx-csi-driver:v0.8.2
           imagePullPolicy: IfNotPresent
           args:
             - --endpoint=$(CSI_ENDPOINT)
@@ -59,7 +59,7 @@ spec:
             periodSeconds: 2
             failureThreshold: 5
         - name: node-driver-registrar
-          image: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar:v2.1.0-eks-1-18-2
+          image: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar:v2.1.0-eks-1-18-13
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=$(ADDRESS)
@@ -79,7 +79,7 @@ spec:
             - name: registration-dir
               mountPath: /registration
         - name: liveness-probe
-          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.2.0-eks-1-18-2
+          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.2.0-eks-1-18-13
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/csi/csi.sock

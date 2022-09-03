@@ -6,35 +6,36 @@ package mocks
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	cloud "github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/cloud"
-	reflect "reflect"
 )
 
-// MockCloud is a mock of Cloud interface
+// MockCloud is a mock of Cloud interface.
 type MockCloud struct {
 	ctrl     *gomock.Controller
 	recorder *MockCloudMockRecorder
 }
 
-// MockCloudMockRecorder is the mock recorder for MockCloud
+// MockCloudMockRecorder is the mock recorder for MockCloud.
 type MockCloudMockRecorder struct {
 	mock *MockCloud
 }
 
-// NewMockCloud creates a new mock instance
+// NewMockCloud creates a new mock instance.
 func NewMockCloud(ctrl *gomock.Controller) *MockCloud {
 	mock := &MockCloud{ctrl: ctrl}
 	mock.recorder = &MockCloudMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockCloud) EXPECT() *MockCloudMockRecorder {
 	return m.recorder
 }
 
-// CreateFileSystem mocks base method
+// CreateFileSystem mocks base method.
 func (m *MockCloud) CreateFileSystem(arg0 context.Context, arg1 string, arg2 *cloud.FileSystemOptions) (*cloud.FileSystem, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateFileSystem", arg0, arg1, arg2)
@@ -43,13 +44,13 @@ func (m *MockCloud) CreateFileSystem(arg0 context.Context, arg1 string, arg2 *cl
 	return ret0, ret1
 }
 
-// CreateFileSystem indicates an expected call of CreateFileSystem
+// CreateFileSystem indicates an expected call of CreateFileSystem.
 func (mr *MockCloudMockRecorder) CreateFileSystem(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFileSystem", reflect.TypeOf((*MockCloud)(nil).CreateFileSystem), arg0, arg1, arg2)
 }
 
-// DeleteFileSystem mocks base method
+// DeleteFileSystem mocks base method.
 func (m *MockCloud) DeleteFileSystem(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteFileSystem", arg0, arg1)
@@ -57,13 +58,13 @@ func (m *MockCloud) DeleteFileSystem(arg0 context.Context, arg1 string) error {
 	return ret0
 }
 
-// DeleteFileSystem indicates an expected call of DeleteFileSystem
+// DeleteFileSystem indicates an expected call of DeleteFileSystem.
 func (mr *MockCloudMockRecorder) DeleteFileSystem(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFileSystem", reflect.TypeOf((*MockCloud)(nil).DeleteFileSystem), arg0, arg1)
 }
 
-// DescribeFileSystem mocks base method
+// DescribeFileSystem mocks base method.
 func (m *MockCloud) DescribeFileSystem(arg0 context.Context, arg1 string) (*cloud.FileSystem, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeFileSystem", arg0, arg1)
@@ -72,13 +73,28 @@ func (m *MockCloud) DescribeFileSystem(arg0 context.Context, arg1 string) (*clou
 	return ret0, ret1
 }
 
-// DescribeFileSystem indicates an expected call of DescribeFileSystem
+// DescribeFileSystem indicates an expected call of DescribeFileSystem.
 func (mr *MockCloudMockRecorder) DescribeFileSystem(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeFileSystem", reflect.TypeOf((*MockCloud)(nil).DescribeFileSystem), arg0, arg1)
 }
 
-// WaitForFileSystemAvailable mocks base method
+// ResizeFileSystem mocks base method.
+func (m *MockCloud) ResizeFileSystem(arg0 context.Context, arg1 string, arg2 int64) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResizeFileSystem", arg0, arg1, arg2)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ResizeFileSystem indicates an expected call of ResizeFileSystem.
+func (mr *MockCloudMockRecorder) ResizeFileSystem(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResizeFileSystem", reflect.TypeOf((*MockCloud)(nil).ResizeFileSystem), arg0, arg1, arg2)
+}
+
+// WaitForFileSystemAvailable mocks base method.
 func (m *MockCloud) WaitForFileSystemAvailable(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WaitForFileSystemAvailable", arg0, arg1)
@@ -86,8 +102,22 @@ func (m *MockCloud) WaitForFileSystemAvailable(arg0 context.Context, arg1 string
 	return ret0
 }
 
-// WaitForFileSystemAvailable indicates an expected call of WaitForFileSystemAvailable
+// WaitForFileSystemAvailable indicates an expected call of WaitForFileSystemAvailable.
 func (mr *MockCloudMockRecorder) WaitForFileSystemAvailable(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitForFileSystemAvailable", reflect.TypeOf((*MockCloud)(nil).WaitForFileSystemAvailable), arg0, arg1)
+}
+
+// WaitForFileSystemResize mocks base method.
+func (m *MockCloud) WaitForFileSystemResize(arg0 context.Context, arg1 string, arg2 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WaitForFileSystemResize", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WaitForFileSystemResize indicates an expected call of WaitForFileSystemResize.
+func (mr *MockCloudMockRecorder) WaitForFileSystemResize(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitForFileSystemResize", reflect.TypeOf((*MockCloud)(nil).WaitForFileSystemResize), arg0, arg1, arg2)
 }

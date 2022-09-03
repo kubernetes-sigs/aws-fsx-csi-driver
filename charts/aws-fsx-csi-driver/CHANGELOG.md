@@ -1,4 +1,28 @@
 # Helm chart
+#v1.4.2
+* Use driver 0.8.2
+
+# v1.4.1
+* Use driver 0.8.1
+
+# v1.4.0
+* Use driver 0.8.0
+
+# v1.3.2
+* Update ECR sidecars to 1-18-13
+
+# v1.3.1
+* Use driver 0.7.1
+
+# v1.3.0
+* Use driver 0.7.0
+
+# v1.2.0
+* Use driver 0.6.0
+* Add sidecar for storage scaling (external-resizer)
+
+# v1.1.0
+* Use driver 0.5.0
 
 # v1.0.0
 * Remove support for Helm 2

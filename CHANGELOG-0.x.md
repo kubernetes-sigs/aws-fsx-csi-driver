@@ -1,3 +1,55 @@
+#v0.8.2
+* Add Idempotent check for mounting node volume ([#246](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/246), [@amankhunt](https://github.com/amankhunt))
+
+# v0.8.1
+* Updating to latest AL2 base image.
+
+# v0.8.0
+
+### Misc.
+* Release 0.7.0 part 3/3 ([#224](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/224), [@khoang98](https://github.com/khoang98))
+* Add make all-push rule ([#228](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/228), [@wongma7](https://github.com/wongma7))
+* Release 0.7.1 part 3/3 ([#230](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/230), [@wongma7](https://github.com/wongma7))
+* Update ECR sidecars to 1-18-13 ([#231](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/231), [@wongma7](https://github.com/wongma7))
+
+# v0.7.1
+* Updating to latest AL2 base image.
+
+# v0.7.0
+
+### New features
+* Add ARM support ([#217](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/217), [@khoang98](https://github.com/khoang98))
+
+### Misc.
+* Update Doc and Support Template ([#215](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/215), [@CandiedCode](https://github.com/CandiedCode))
+* Release 0.6.0 part 3/3: merge previous parts to master ([#216](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/216), [@wongma7](https://github.com/wongma7))
+* Bump ginkgo ([#220](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/220), [@wongma7](https://github.com/wongma7))
+* Use latest buildx github action and build target platform from build platform  ([#221](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/221), [@wongma7](https://github.com/wongma7))
+
+# v0.6.0
+
+### New features
+* Add ExpandVolume (storage scaling) features, tests, and deployment artifacts ([#209](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/209), [@jmwurst](https://github.com/jmwurst))
+* Add `WeeklyMaintenanceStartTime` and `FileSystemTypeVersion` as storageclass parameters ([#210](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/210), [@jmwurst](https://github.com/jmwurst))
+
+### Misc.
+* Update Dynamic Provisioning S3 README ([#205](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/205), [@wuxingro](https://github.com/wuxingro))
+
+# v0.5.0
+
+### New features
+* Add support for Lustre compression ([#186](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/186), [@wuxingro](https://github.com/wuxingro))
+
+### Misc.
+* Post-release v0.4.0 ([#166](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/166), [@ayberk](https://github.com/ayberk))
+* Fix CI ([#172](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/172), [@wongma7](https://github.com/wongma7))
+* Add self to OWNERS ([#173](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/173), [@ayberk](https://github.com/ayberk))
+* Update README for stable release ([#177](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/177), [@dimitricole](https://github.com/dimitricole))
+* Updated helm chart dns config and imagePullSecrets ([#188](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/188), [@nxf5025](https://github.com/nxf5025))
+* go mod tidy && go mod vendor ([#192](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/192), [@wongma7](https://github.com/wongma7))
+* Document the stable kustomize overlay not dev ([#193](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/193), [@wongma7](https://github.com/wongma7))
+* Helm chart 1.0 ([#194](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/194), [@wongma7](https://github.com/wongma7))
+
 # v0.4.0
 [Documentation](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/blob/v0.4.0/docs/README.md)
 

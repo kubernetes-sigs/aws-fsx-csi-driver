@@ -4,8 +4,9 @@ set -euo pipefail
 
 function eksctl_install() {
   INSTALL_PATH=${1}
+  EKSCTL_VERSION=${2}
   if [[ ! -e ${INSTALL_PATH}/eksctl ]]; then
-    EKSCTL_DOWNLOAD_URL="https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz"
+    EKSCTL_DOWNLOAD_URL="https://github.com/weaveworks/eksctl/releases/download/v${EKSCTL_VERSION}/eksctl_$(uname -s)_amd64.tar.gz"
     curl --silent --location "${EKSCTL_DOWNLOAD_URL}" | tar xz -C "${INSTALL_PATH}"
     chmod +x "${INSTALL_PATH}"/eksctl
   fi
@@ -21,6 +22,8 @@ function eksctl_create_cluster() {
   CLUSTER_FILE=${7}
   KUBECONFIG=${8}
   EKSCTL_PATCH_FILE=${9}
+  EKSCTL_ADMIN_ROLE=${10}
+  WINDOWS=${11}
 
   generate_ssh_key "${SSH_KEY_PATH}"
 
@@ -55,6 +58,27 @@ function eksctl_create_cluster() {
 
   loudecho "Getting cluster ${CLUSTER_NAME}"
   ${BIN} get cluster "${CLUSTER_NAME}"
+
+  if [[ -n "$EKSCTL_ADMIN_ROLE" ]]; then
+    AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+    ADMIN_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/${EKSCTL_ADMIN_ROLE}"
+    loudecho "Granting ${ADMIN_ARN} admin access to the cluster"
+    ${BIN} create iamidentitymapping --cluster "${CLUSTER_NAME}" --arn "${ADMIN_ARN}" --group system:masters --username admin
+  fi
+
+  if [[ "$WINDOWS" == true ]]; then
+    ${BIN} create nodegroup \
+      --managed=false \
+      --cluster="${CLUSTER_NAME}" \
+      --node-ami-family=WindowsServer2019FullContainer \
+      -n ng-windows \
+      -m 1 \
+      -M 1 \
+      --ssh-access \
+      --ssh-public-key "${SSH_KEY_PATH}".pub
+    ${BIN} utils install-vpc-controllers --cluster="${CLUSTER_NAME}" --approve
+  fi
+
   return $?
 }
 

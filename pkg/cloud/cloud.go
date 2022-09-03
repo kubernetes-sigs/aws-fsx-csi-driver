@@ -36,6 +36,15 @@ const (
 	// DefaultVolumeSize represents the default size used
 	// this is the minimum FSx for Lustre FS size
 	DefaultVolumeSize = 1200
+
+	// PollCheckInterval specifies the interval to check if filesystem is ready;
+	// needs to be shorter than the provisioner timeout
+	PollCheckInterval = 30 * time.Second
+	// PollCheckTimeout specifies the time limit for polling DescribeFileSystems
+	// for a completed create/update operation. FSx for Lustre filesystem
+	// creation time is around 5 minutes, and update time varies depending on
+	// target file system values
+	PollCheckTimeout = 10 * time.Minute
 )
 
 // Tags
@@ -59,10 +68,13 @@ var (
 
 // FileSystem represents a FSx for Lustre filesystem
 type FileSystem struct {
-	FileSystemId string
-	CapacityGiB  int64
-	DnsName      string
-	MountName    string
+	FileSystemId             string
+	CapacityGiB              int64
+	DnsName                  string
+	MountName                string
+	StorageType              string
+	DeploymentType           string
+	PerUnitStorageThroughput int64
 }
 
 // FileSystemOptions represents the options to create FSx for Lustre filesystem
@@ -82,6 +94,8 @@ type FileSystemOptions struct {
 	AutomaticBackupRetentionDays  int64
 	CopyTagsToBackups             bool
 	DataCompressionType           string
+	WeeklyMaintenanceStartTime    string
+	FileSystemTypeVersion         string
 	AWSTags                       []string
 }
 
@@ -89,15 +103,18 @@ type FileSystemOptions struct {
 // See https://docs.aws.amazon.com/sdk-for-go/api/service/fsx/ for details
 type FSx interface {
 	CreateFileSystemWithContext(aws.Context, *fsx.CreateFileSystemInput, ...request.Option) (*fsx.CreateFileSystemOutput, error)
+	UpdateFileSystemWithContext(aws.Context, *fsx.UpdateFileSystemInput, ...request.Option) (*fsx.UpdateFileSystemOutput, error)
 	DeleteFileSystemWithContext(aws.Context, *fsx.DeleteFileSystemInput, ...request.Option) (*fsx.DeleteFileSystemOutput, error)
 	DescribeFileSystemsWithContext(aws.Context, *fsx.DescribeFileSystemsInput, ...request.Option) (*fsx.DescribeFileSystemsOutput, error)
 }
 
 type Cloud interface {
 	CreateFileSystem(ctx context.Context, volumeName string, fileSystemOptions *FileSystemOptions) (fs *FileSystem, err error)
+	ResizeFileSystem(ctx context.Context, fileSystemId string, newSizeGiB int64) (int64, error)
 	DeleteFileSystem(ctx context.Context, fileSystemId string) (err error)
 	DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error)
 	WaitForFileSystemAvailable(ctx context.Context, fileSystemId string) error
+	WaitForFileSystemResize(ctx context.Context, fileSystemId string, resizeGiB int64) error
 }
 
 type cloud struct {
@@ -163,6 +180,10 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		lustreConfiguration.SetDataCompressionType(fileSystemOptions.DataCompressionType)
 	}
 
+	if fileSystemOptions.WeeklyMaintenanceStartTime != "" {
+		lustreConfiguration.SetWeeklyMaintenanceStartTime(fileSystemOptions.WeeklyMaintenanceStartTime)
+	}
+
 	var tags = []*fsx.Tag{
 		{
 			Key:   aws.String(VolumeNameTagKey),
@@ -191,6 +212,9 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		Tags:                tags,
 	}
 
+	if fileSystemOptions.FileSystemTypeVersion != "" {
+		input.FileSystemTypeVersion = aws.String(fileSystemOptions.FileSystemTypeVersion)
+	}
 	if fileSystemOptions.StorageType != "" {
 		input.StorageType = aws.String(fileSystemOptions.StorageType)
 	}
@@ -211,12 +235,50 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		mountName = *output.FileSystem.LustreConfiguration.MountName
 	}
 
+	perUnitStorageThroughput := int64(0)
+	if output.FileSystem.LustreConfiguration.PerUnitStorageThroughput != nil {
+		perUnitStorageThroughput = *output.FileSystem.LustreConfiguration.PerUnitStorageThroughput
+	}
+
 	return &FileSystem{
-		FileSystemId: *output.FileSystem.FileSystemId,
-		CapacityGiB:  *output.FileSystem.StorageCapacity,
-		DnsName:      *output.FileSystem.DNSName,
-		MountName:    mountName,
+		FileSystemId:             *output.FileSystem.FileSystemId,
+		CapacityGiB:              *output.FileSystem.StorageCapacity,
+		DnsName:                  *output.FileSystem.DNSName,
+		MountName:                mountName,
+		StorageType:              *output.FileSystem.StorageType,
+		DeploymentType:           *output.FileSystem.LustreConfiguration.DeploymentType,
+		PerUnitStorageThroughput: perUnitStorageThroughput,
 	}, nil
+}
+
+// ResizeFileSystem makes a request to the FSx API to update the storage capacity of the filesystem.
+func (c *cloud) ResizeFileSystem(ctx context.Context, fileSystemId string, newSizeGiB int64) (int64, error) {
+	originalFs, err := c.getFileSystem(ctx, fileSystemId)
+	if err != nil {
+		return 0, fmt.Errorf("DescribeFileSystems failed: %v", err)
+	}
+
+	input := &fsx.UpdateFileSystemInput{
+		FileSystemId:    aws.String(fileSystemId),
+		StorageCapacity: aws.Int64(newSizeGiB),
+	}
+
+	_, err = c.fsx.UpdateFileSystemWithContext(ctx, input)
+	if err != nil {
+		if !isBadRequestUpdateInProgress(err) {
+			return *originalFs.StorageCapacity, fmt.Errorf("UpdateFileSystem failed: %v", err)
+		}
+
+		// If the error is because of an update in progress, check for an existing update with the same target storage
+		// capacity as the current request. A previous volume expansion request that experienced a timeout could
+		// have already made an equivalent update request to the FSx API.
+		_, err = c.getUpdateResizeAdministrativeAction(ctx, fileSystemId, newSizeGiB)
+		if err != nil {
+			return *originalFs.StorageCapacity, err
+		}
+	}
+
+	return newSizeGiB, nil
 }
 
 func (c *cloud) DeleteFileSystem(ctx context.Context, fileSystemId string) (err error) {
@@ -243,23 +305,24 @@ func (c *cloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (*F
 		mountName = *fs.LustreConfiguration.MountName
 	}
 
+	perUnitStorageThroughput := int64(0)
+	if fs.LustreConfiguration.PerUnitStorageThroughput != nil {
+		perUnitStorageThroughput = *fs.LustreConfiguration.PerUnitStorageThroughput
+	}
+
 	return &FileSystem{
-		FileSystemId: *fs.FileSystemId,
-		CapacityGiB:  *fs.StorageCapacity,
-		DnsName:      *fs.DNSName,
-		MountName:    mountName,
+		FileSystemId:             *fs.FileSystemId,
+		CapacityGiB:              *fs.StorageCapacity,
+		DnsName:                  *fs.DNSName,
+		MountName:                mountName,
+		StorageType:              *fs.StorageType,
+		DeploymentType:           *fs.LustreConfiguration.DeploymentType,
+		PerUnitStorageThroughput: perUnitStorageThroughput,
 	}, nil
 }
 
 func (c *cloud) WaitForFileSystemAvailable(ctx context.Context, fileSystemId string) error {
-	var (
-		// interval to check if filesystem is ready
-		// needs to be shorter than the provisioner timeout
-		checkInterval = 30 * time.Second
-		// FSx for lustre filesystem creation time is around 5 mins
-		checkTimeout = 10 * time.Minute
-	)
-	err := wait.Poll(checkInterval, checkTimeout, func() (done bool, err error) {
+	err := wait.Poll(PollCheckInterval, PollCheckTimeout, func() (done bool, err error) {
 		fs, err := c.getFileSystem(ctx, fileSystemId)
 		if err != nil {
 			return true, err
@@ -276,7 +339,32 @@ func (c *cloud) WaitForFileSystemAvailable(ctx context.Context, fileSystemId str
 	})
 
 	return err
+}
 
+// WaitForFileSystemResize polls the FSx API for status of the update operation with the given target storage
+// capacity. The polling terminates when the update operation reaches a completed, failed, or unknown state.
+func (c *cloud) WaitForFileSystemResize(ctx context.Context, fileSystemId string, resizeGiB int64) error {
+	err := wait.PollImmediate(PollCheckInterval, PollCheckTimeout, func() (done bool, err error) {
+		updateAction, err := c.getUpdateResizeAdministrativeAction(ctx, fileSystemId, resizeGiB)
+		if err != nil {
+			return true, err
+		}
+
+		klog.V(2).Infof("WaitForFileSystemResize filesystem %q update status is: %q", fileSystemId, *updateAction.Status)
+		switch *updateAction.Status {
+		case "PENDING", "IN_PROGRESS":
+			// The resizing workflow has not completed
+			return false, nil
+		case "UPDATED_OPTIMIZING", "COMPLETED":
+			// The resizing workflow has completed and the filesystem is in a usable state
+			return true, nil
+		default:
+			// "FAILURE" is the only remaining AdministrativeAction status
+			return true, fmt.Errorf("update failed for filesystem %s: %q", fileSystemId, *updateAction.FailureDetails.Message)
+		}
+	})
+
+	return err
 }
 
 func (c *cloud) getFileSystem(ctx context.Context, fileSystemId string) (*fsx.FileSystem, error) {
@@ -300,6 +388,31 @@ func (c *cloud) getFileSystem(ctx context.Context, fileSystemId string) (*fsx.Fi
 	return output.FileSystems[0], nil
 }
 
+// getUpdateResizeAdministrativeAction retrieves the AdministrativeAction associated with a file system update with the
+// given target storage capacity, if one exists.
+func (c *cloud) getUpdateResizeAdministrativeAction(ctx context.Context, fileSystemId string, resizeGiB int64) (*fsx.AdministrativeAction, error) {
+	fs, err := c.getFileSystem(ctx, fileSystemId)
+	if err != nil {
+		return nil, fmt.Errorf("DescribeFileSystems failed: %v", err)
+	}
+
+	if len(fs.AdministrativeActions) == 0 {
+		return nil, fmt.Errorf("there is no update on filesystem %s", fileSystemId)
+	}
+
+	// AdministrativeAction items are ordered by newest to oldest start time, so use the first satisfactory target
+	// storage capacity match
+	for _, action := range fs.AdministrativeActions {
+		if *action.AdministrativeActionType == "FILE_SYSTEM_UPDATE" &&
+			action.TargetFileSystemValues.StorageCapacity != nil &&
+			*action.TargetFileSystemValues.StorageCapacity == resizeGiB {
+			return action, nil
+		}
+	}
+
+	return nil, fmt.Errorf("there is no update with storage capacity of %d GiB on filesystem %s", resizeGiB, fileSystemId)
+}
+
 func isFileSystemNotFound(err error) bool {
 	if awsErr, ok := err.(awserr.Error); ok {
 		if awsErr.Code() == fsx.ErrCodeFileSystemNotFound {
@@ -312,6 +425,18 @@ func isFileSystemNotFound(err error) bool {
 func isIncompatibleParameter(err error) bool {
 	if awsErr, ok := err.(awserr.Error); ok {
 		if awsErr.Code() == fsx.ErrCodeIncompatibleParameterError {
+			return true
+		}
+	}
+	return false
+}
+
+// isBadRequestUpdateInProgress identifies an error returned from the FSx API as a BadRequest with an "update already
+// in progress" message.
+func isBadRequestUpdateInProgress(err error) bool {
+	if awsErr, ok := err.(awserr.Error); ok {
+		if awsErr.Code() == fsx.ErrCodeBadRequest &&
+			awsErr.Message() == "Unable to perform the storage capacity update. There is an update already in progress." {
 			return true
 		}
 	}

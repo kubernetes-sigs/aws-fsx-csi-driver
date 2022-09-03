@@ -7,32 +7,31 @@ jobs:
     if: github.repository == 'kubernetes-sigs/aws-fsx-csi-driver'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - name: Build container image
-      run: |
-        docker build -t aws-fsx-csi-driver .
-    - name: Push to Github registry
-      run: |
-        USER=$(echo $GITHUB_REPOSITORY | cut -d'/' -f1)
-        BRANCH=$(echo $GITHUB_REF | cut -d'/' -f3)
-        IMAGE=aws-fsx-csi-driver
-        if [ "$BRANCH" = "master" ]; then
-          TAG="latest"
-        else
-          TAG=$BRANCH
-        fi
-        docker login docker.pkg.github.com -u $USER -p ${{ secrets.REGISTRY_TOKEN }}
-        docker tag aws-fsx-csi-driver docker.pkg.github.com/$GITHUB_REPOSITORY/$IMAGE:$TAG
-        docker push docker.pkg.github.com/$GITHUB_REPOSITORY/$IMAGE:$TAG
-    - name: Push to Dockerhub registry
-      run: |
-        BRANCH=$(echo $GITHUB_REF | cut -d'/' -f3)
-        REPO=amazon/aws-fsx-csi-driver
-        if [ "$BRANCH" = "master" ]; then
-          TAG="latest"
-        else
-          TAG=$BRANCH
-        fi
-        docker login -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_TOKEN }}
-        docker tag aws-fsx-csi-driver $REPO:$TAG
-        docker push $REPO:$TAG
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set environment variables
+        run: |
+          REGISTRY_NAME=docker.io/amazon
+          BRANCH_OR_TAG=$(echo $GITHUB_REF | cut -d'/' -f3)
+          if [ "$BRANCH_OR_TAG" = "master" ]; then
+            GIT_TAG=$GITHUB_SHA
+          else
+            GIT_TAG=$BRANCH_OR_TAG
+          fi
+          echo "REGISTRY_NAME=$REGISTRY_NAME" >> $GITHUB_ENV
+          echo "GIT_TAG=$GIT_TAG" >> $GITHUB_ENV
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Push manifest list containing amazon linux based images to Docker Hub
+        run: |
+          export REGISTRY=$REGISTRY_NAME
+          export TAG=$GIT_TAG
+          make all-push

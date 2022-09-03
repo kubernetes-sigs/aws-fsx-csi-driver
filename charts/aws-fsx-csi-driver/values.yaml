@@ -4,26 +4,32 @@
 
 image:
   repository: amazon/aws-fsx-csi-driver
-  tag: v0.4.0
+  tag: v0.8.2
   pullPolicy: IfNotPresent
 
 sidecars:
   livenessProbe:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
-      tag: v2.2.0-eks-1-18-2
+      tag: v2.2.0-eks-1-18-13
       pullPolicy: IfNotPresent
     resources: {}
   nodeDriverRegistrar:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
-      tag: v2.1.0-eks-1-18-2
+      tag: v2.1.0-eks-1-18-13
       pullPolicy: IfNotPresent
     resources: {}
   provisioner:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner
-      tag: v2.1.1-eks-1-18-2
+      tag: v2.1.1-eks-1-18-13
+      pullPolicy: IfNotPresent
+    resources: {}
+  resizer:
+    image:
+      repository: public.ecr.aws/eks-distro/kubernetes-csi/external-resizer
+      tag: v1.1.0-eks-1-18-13
       pullPolicy: IfNotPresent
     resources: {}
 

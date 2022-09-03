@@ -18,7 +18,7 @@ package driver
 
 import (
 	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/cloud"
-	"k8s.io/utils/mount"
+	"k8s.io/mount-utils"
 )
 
 func NewFakeMounter() Mounter {
