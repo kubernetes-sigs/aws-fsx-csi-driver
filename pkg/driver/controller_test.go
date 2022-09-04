@@ -54,7 +54,7 @@ func TestCreateVolume(t *testing.T) {
 				Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
 			},
 		}
-		awsTags = "key1:value1,key2:value2"
+		extraTags = "key1=value1,key2=value2"
 	)
 	testCases := []struct {
 		name     string
@@ -153,7 +153,7 @@ func TestCreateVolume(t *testing.T) {
 						volumeParamsStorageType:                fsx.StorageTypeSsd,
 						volumeParamsWeeklyMaintenanceStartTime: "7:08:00",
 						volumeParamsFileSystemTypeVersion:      "2.12",
-						volumeParamsAWSTags:                    awsTags,
+						volumeParamsExtraTags:                  extraTags,
 					},
 				}
 

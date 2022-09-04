@@ -56,7 +56,7 @@ const (
 	volumeParamsDataCompressionType           = "dataCompressionType"
 	volumeParamsWeeklyMaintenanceStartTime    = "weeklyMaintenanceStartTime"
 	volumeParamsFileSystemTypeVersion         = "fileSystemTypeVersion"
-	volumeParamsAWSTags                       = "awsTags"
+	volumeParamsExtraTags                     = "extraTags"
 )
 
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -160,9 +160,9 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		fsOptions.CapacityGiB = util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fsOptions.DeploymentType, fsOptions.StorageType, fsOptions.PerUnitStorageThroughput)
 	}
 
-	if val, ok := volumeParams[volumeParamsAWSTags]; ok {
-		awsTags := strings.Split(val, ",")
-		fsOptions.AWSTags = awsTags
+	if val, ok := volumeParams[volumeParamsExtraTags]; ok {
+		extraTags := strings.Split(val, ",")
+		fsOptions.ExtraTags = extraTags
 	}
 
 	fs, err := d.cloud.CreateFileSystem(ctx, volName, fsOptions)

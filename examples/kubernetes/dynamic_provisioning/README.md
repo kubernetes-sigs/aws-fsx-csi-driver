@@ -28,7 +28,7 @@ parameters:
 * dataCompressionType (Optional) - FSx for Lustre supports data compression via LZ4 algorithm. Compression is disabled when the value is set to NONE. The default value is NONE 
 * weeklyMaintenanceStartTime (Optional) - The preferred start time to perform weekly maintenance, formatted d:HH:MM in the UTC time zone, where d is the weekday number, from 1 through 7, beginning with Monday and ending with Sunday. The default value is "7:09:00" (Sunday 09:00 UTC)
 * fileSystemTypeVersion (Optional) - Sets the Lustre version of the Amazon FSx for Lustre file system to be created. Valid values are 2.10 and 2.12. The default value is "2.10"
-* awsTags (Optional) - Tags that will be set on the FSx resource created in AWS, in the form of a comma separated list with each tag delimited by a colon (example - "Tag1:Value1,Tag2:Value2") . Default is a single tag with CSIVolumeName as the key and the generated volume name as it's value.
+* extraTags (Optional) - Tags that will be set on the FSx resource created in AWS, in the form of a comma separated list with each tag delimited by an equals sign (example - "Tag1=Value1,Tag2=Value2") . Default is a single tag with CSIVolumeName as the key and the generated volume name as it's value.
 
 ### Edit [Persistent Volume Claim Spec](./specs/claim.yaml)
 ```

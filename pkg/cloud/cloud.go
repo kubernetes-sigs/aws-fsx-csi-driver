@@ -96,7 +96,7 @@ type FileSystemOptions struct {
 	DataCompressionType           string
 	WeeklyMaintenanceStartTime    string
 	FileSystemTypeVersion         string
-	AWSTags                       []string
+	ExtraTags                     []string
 }
 
 // FSx abstracts FSx client to facilitate its mocking.
@@ -191,10 +191,10 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		},
 	}
 
-	for _, awsTag := range fileSystemOptions.AWSTags {
-		awsTagSplit := strings.Split(awsTag, ":")
-		tagKey := awsTagSplit[0]
-		tagValue := awsTagSplit[1]
+	for _, extraTag := range fileSystemOptions.ExtraTags {
+		extraTagSplit := strings.Split(extraTag, "=")
+		tagKey := extraTagSplit[0]
+		tagValue := extraTagSplit[1]
 
 		tags = append(tags, &fsx.Tag{
 			Key:   aws.String(tagKey),

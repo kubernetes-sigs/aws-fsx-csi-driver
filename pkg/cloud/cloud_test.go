@@ -51,7 +51,7 @@ func TestCreateFileSystem(t *testing.T) {
 		dataCompressionTypeLZ4              = "LZ4"
 		weeklyMaintenanceStartTime          = "7:09:00"
 		fileSystemTypeVersion               = "2.12"
-		AWSTags                             = []string{"key1:value1", "key2:value2"}
+		extraTags                           = []string{"key1=value1", "key2=value2"}
 	)
 	testCases := []struct {
 		name     string
@@ -72,7 +72,7 @@ func TestCreateFileSystem(t *testing.T) {
 					SecurityGroupIds:           securityGroupIds,
 					FileSystemTypeVersion:      fileSystemTypeVersion,
 					WeeklyMaintenanceStartTime: weeklyMaintenanceStartTime,
-					AWSTags:                    AWSTags,
+					ExtraTags:                  extraTags,
 				}
 
 				output := &fsx.CreateFileSystemOutput{
