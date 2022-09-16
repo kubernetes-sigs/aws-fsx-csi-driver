@@ -11,6 +11,7 @@ The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storag
 | AWS FSx for Lustre CSI Driver \ CSI Version | v0.3.0 | v1.x.x |
 |---------------------------------------------|--------|--------|
 | master branch                               | no     | yes    |
+| v0.8.3                                      | no     | yes    |
 | v0.8.2                                      | no     | yes    |
 | v0.8.1                                      | no     | yes    |
 | v0.8.0                                      | no     | yes    |
@@ -36,6 +37,7 @@ The following sections are Kubernetes-specific. If you are a Kubernetes user, us
 | AWS FSx for Lustre CSI Driver \ Kubernetes Version | v1.11 | v1.12 | v1.13 | v1.14-16 | v1.17+ |
 |----------------------------------------------------|-------|-------|-------|----------|--------|
 | master branch                                      | no    | no    | no    | no       | yes    |
+| v0.8.3                                             | no    | no    | no    | no       | yes    |
 | v0.8.2                                             | no    | no    | no    | no       | yes    |
 | v0.8.1                                             | no    | no    | no    | no       | yes    |
 | v0.8.0                                             | no    | no    | no    | no       | yes    |
@@ -52,6 +54,7 @@ The following sections are Kubernetes-specific. If you are a Kubernetes user, us
 | FSx CSI Driver Version | Image                            |
 |------------------------|----------------------------------|
 | master branch          | amazon/aws-fsx-csi-driver:latest |
+| v0.8.3                 | amazon/aws-fsx-csi-driver:v0.8.2 |
 | v0.8.2                 | amazon/aws-fsx-csi-driver:v0.8.2 |
 | v0.8.1                 | amazon/aws-fsx-csi-driver:v0.8.1 |
 | v0.8.0                 | amazon/aws-fsx-csi-driver:v0.8.0 |
