@@ -23,7 +23,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
-	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/driver/mocks"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/mocks"
 )
 
 func TestNodePublishVolume(t *testing.T) {

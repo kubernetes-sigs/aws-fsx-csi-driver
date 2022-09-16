@@ -22,8 +22,8 @@ import (
 
 	sanity "github.com/kubernetes-csi/csi-test/pkg/sanity"
 
-	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/driver"
-	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/util"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/util"
 )
 
 const (

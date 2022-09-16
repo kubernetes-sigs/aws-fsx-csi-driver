@@ -26,7 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/fsx"
 	"github.com/golang/mock/gomock"
-	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/cloud/mocks"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud/mocks"
 )
 
 func TestCreateFileSystem(t *testing.T) {

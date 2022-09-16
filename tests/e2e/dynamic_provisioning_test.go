@@ -19,12 +19,12 @@ import (
 	"log"
 	"strings"
 
-	"github.com/kubernetes-sigs/aws-fsx-csi-driver/tests/e2e/driver"
-	"github.com/kubernetes-sigs/aws-fsx-csi-driver/tests/e2e/testsuites"
 	. "github.com/onsi/ginkgo"
 	"k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
+	"sigs.k8s.io/aws-fsx-csi-driver/tests/e2e/driver"
+	"sigs.k8s.io/aws-fsx-csi-driver/tests/e2e/testsuites"
 )
 
 var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning", func() {

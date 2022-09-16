@@ -21,7 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/s3"
-	fsx "github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/cloud"
+	fsx "sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 )
 
 type cloud struct {
