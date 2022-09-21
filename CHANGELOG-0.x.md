@@ -1,4 +1,9 @@
-#v0.8.2
+# v0.8.3
+* Use docker buildx 0.8.x --no-cache-filter to avoid using cached amazonlinux image ([#249](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/249), [@wongma7](https://github.com/wongma7))
+* Release 0.8.2 part 3/3 ([#251](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/251), [@amankhunt](https://github.com/amankhunt))
+* Use k8s.io/mount-utils instead of k8s.io/utils ([#254](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/254), [@khoang98](https://github.com/khoang98))
+
+# v0.8.2
 * Add Idempotent check for mounting node volume ([#246](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/246), [@amankhunt](https://github.com/amankhunt))
 
 # v0.8.1
