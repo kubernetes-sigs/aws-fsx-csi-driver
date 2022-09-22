@@ -54,7 +54,7 @@ The following sections are Kubernetes-specific. If you are a Kubernetes user, us
 | FSx CSI Driver Version | Image                            |
 |------------------------|----------------------------------|
 | master branch          | amazon/aws-fsx-csi-driver:latest |
-| v0.8.3                 | amazon/aws-fsx-csi-driver:v0.8.2 |
+| v0.8.3                 | amazon/aws-fsx-csi-driver:v0.8.3 |
 | v0.8.2                 | amazon/aws-fsx-csi-driver:v0.8.2 |
 | v0.8.1                 | amazon/aws-fsx-csi-driver:v0.8.1 |
 | v0.8.0                 | amazon/aws-fsx-csi-driver:v0.8.0 |
