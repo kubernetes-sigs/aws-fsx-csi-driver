@@ -14,5 +14,6 @@ parameters:
   dataCompressionType: "NONE"
   weeklyMaintenanceStartTime: "7:09:00"
   fileSystemTypeVersion: "2.12"
+  extraTags: "Tag1=Value1,Tag2=Value2"
 mountOptions:
   - flock

@@ -16,7 +16,7 @@ parameters:
   storageType: HDD
 ```
 * subnetId - the subnet ID that the FSx for Lustre filesystem should be created inside.
-* securityGroupIds - a common separated list of security group IDs that should be attached to the filesystem
+* securityGroupIds - a comma separated list of security group IDs that should be attached to the filesystem
 * deploymentType (Optional) - FSx for Lustre supports three deployment types, SCRATCH_1, SCRATCH_2 and PERSISTENT_1. Default: SCRATCH_1.
 * kmsKeyId (Optional) - for deployment type PERSISTENT_1, customer can specify a KMS key to use.
 * perUnitStorageThroughput (Optional) - for deployment type PERSISTENT_1, customer can specify the storage throughput. Default: "200". Note that customer has to specify as a string here like "200" or "100" etc.
@@ -28,6 +28,7 @@ parameters:
 * dataCompressionType (Optional) - FSx for Lustre supports data compression via LZ4 algorithm. Compression is disabled when the value is set to NONE. The default value is NONE 
 * weeklyMaintenanceStartTime (Optional) - The preferred start time to perform weekly maintenance, formatted d:HH:MM in the UTC time zone, where d is the weekday number, from 1 through 7, beginning with Monday and ending with Sunday. The default value is "7:09:00" (Sunday 09:00 UTC)
 * fileSystemTypeVersion (Optional) - Sets the Lustre version of the Amazon FSx for Lustre file system to be created. Valid values are 2.10 and 2.12. The default value is "2.10"
+* extraTags (Optional) - Tags that will be set on the FSx resource created in AWS, in the form of a comma separated list with each tag delimited by an equals sign (example - "Tag1=Value1,Tag2=Value2") . Default is a single tag with CSIVolumeName as the key and the generated volume name as it's value.
 
 ### Edit [Persistent Volume Claim Spec](./specs/claim.yaml)
 ```

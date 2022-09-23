@@ -23,7 +23,9 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
+
 	"github.com/aws/aws-sdk-go/service/fsx"
+
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
 	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/cloud"
@@ -52,6 +54,7 @@ func TestCreateVolume(t *testing.T) {
 				Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
 			},
 		}
+		extraTags = "key1=value1,key2=value2"
 	)
 	testCases := []struct {
 		name     string
@@ -144,10 +147,13 @@ func TestCreateVolume(t *testing.T) {
 						stdVolCap,
 					},
 					Parameters: map[string]string{
-						volumeParamsSubnetId:         subnetId,
-						volumeParamsSecurityGroupIds: securityGroupIds,
-						volumeParamsDeploymentType:   fsx.LustreDeploymentTypeScratch2,
-						volumeParamsStorageType:      fsx.StorageTypeSsd,
+						volumeParamsSubnetId:                   subnetId,
+						volumeParamsSecurityGroupIds:           securityGroupIds,
+						volumeParamsDeploymentType:             fsx.LustreDeploymentTypeScratch2,
+						volumeParamsStorageType:                fsx.StorageTypeSsd,
+						volumeParamsWeeklyMaintenanceStartTime: "7:08:00",
+						volumeParamsFileSystemTypeVersion:      "2.12",
+						volumeParamsExtraTags:                  extraTags,
 					},
 				}
 
