@@ -17,9 +17,9 @@ package driver
 import (
 	"fmt"
 
-	fsxcsidriver "github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/driver"
 	"k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	fsxcsidriver "sigs.k8s.io/aws-fsx-csi-driver/pkg/driver"
 )
 
 // Implement PVTestDriver interface

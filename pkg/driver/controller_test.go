@@ -28,11 +28,11 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
-	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/cloud"
-	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/driver/mocks"
-	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/mocks"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/util"
 )
 
 func TestCreateVolume(t *testing.T) {

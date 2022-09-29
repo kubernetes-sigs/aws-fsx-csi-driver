@@ -67,7 +67,7 @@ WINDOWS=${WINDOWS:-"false"}
 HELM_VALUES_FILE=${HELM_VALUES_FILE:-./hack/values.yaml}
 HELM_EXTRA_FLAGS=${HELM_EXTRA_FLAGS:-}
 
-TEST_PATH=${TEST_PATH:-"./tests/e2e/..."}
+TEST_PATH=${TEST_PATH:-"./tests/e2e"}
 ARTIFACTS=${ARTIFACTS:-"${TEST_DIR}/artifacts"}
 GINKGO_FOCUS=${GINKGO_FOCUS:-"\[ebs-csi-e2e\]"}
 GINKGO_SKIP=${GINKGO_SKIP:-"\[Disruptive\]"}
@@ -192,11 +192,13 @@ loudecho "Testing focus ${GINKGO_FOCUS}"
 eval "EXPANDED_TEST_EXTRA_FLAGS=$TEST_EXTRA_FLAGS"
 set -x
 set +e
-${GINKGO_BIN} -p -nodes="${GINKGO_NODES}" -v --focus="${GINKGO_FOCUS}" --skip="${GINKGO_SKIP}" "${TEST_PATH}" -- -kubeconfig="${KUBECONFIG}" -report-dir="${ARTIFACTS}" -gce-zone="${FIRST_ZONE}" "${EXPANDED_TEST_EXTRA_FLAGS}"
+pushd "${TEST_PATH}"
+${GINKGO_BIN} -p -nodes="${GINKGO_NODES}" -v --focus="${GINKGO_FOCUS}" --skip="${GINKGO_SKIP}" ./... -- -kubeconfig="${KUBECONFIG}" -report-dir="${ARTIFACTS}" -gce-zone="${FIRST_ZONE}" "${EXPANDED_TEST_EXTRA_FLAGS}"
 TEST_PASSED=$?
 set -e
 set +x
 loudecho "TEST_PASSED: ${TEST_PASSED}"
+popd
 
 OVERALL_TEST_PASSED="${TEST_PASSED}"
 if [[ "${EBS_CHECK_MIGRATION}" == true ]]; then

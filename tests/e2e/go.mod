@@ -1,20 +1,15 @@
-module sigs.k8s.io/aws-fsx-csi-driver
+module sigs.k8s.io/aws-fsx-csi-driver/tests/e2e
 
 require (
 	github.com/aws/aws-sdk-go v1.40.57
-	github.com/container-storage-interface/spec v1.2.0
-	github.com/golang/mock v1.6.0
-	github.com/kubernetes-csi/csi-test v2.0.1+incompatible
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.16.0
-	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
-	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
-	google.golang.org/genproto v0.0.0-20190502173448-54afdca5d873 // indirect
-	google.golang.org/grpc v1.23.1
-	google.golang.org/protobuf v1.28.0 // indirect
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
+	k8s.io/api v0.17.0
 	k8s.io/apimachinery v0.17.0
-	k8s.io/klog v1.0.0
-	k8s.io/mount-utils v0.24.3
+	k8s.io/client-go v0.17.0
+	k8s.io/kubernetes v1.17.0
+	sigs.k8s.io/aws-fsx-csi-driver v0.0.0-00010101000000-000000000000
 )
 
 replace (
@@ -42,6 +37,8 @@ replace (
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.17.0
 	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.17.0
 	k8s.io/sample-controller => k8s.io/sample-controller v0.17.0
+
+	sigs.k8s.io/aws-fsx-csi-driver => ../..
 	vbom.ml/util => github.com/fvbommel/util v0.0.0-20180919145318-efcd4e0f9787
 )
 

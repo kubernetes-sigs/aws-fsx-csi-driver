@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"time"
 
-	awscloud "github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/cloud"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
@@ -33,6 +32,7 @@ import (
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
 	imageutils "k8s.io/kubernetes/test/utils/image"
+	awscloud "sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 )
 
 const (

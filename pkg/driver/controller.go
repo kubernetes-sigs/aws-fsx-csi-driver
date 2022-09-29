@@ -22,11 +22,11 @@ import (
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/cloud"
-	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/util"
 )
 
 var (

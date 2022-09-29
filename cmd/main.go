@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/driver"
 	"k8s.io/klog"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver"
 )
 
 func main() {

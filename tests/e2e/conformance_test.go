@@ -18,14 +18,14 @@ import (
 	"context"
 	"fmt"
 
-	fsx "github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/cloud"
-	fsxcsidriver "github.com/kubernetes-sigs/aws-fsx-csi-driver/pkg/driver"
 	. "github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/storage/testpatterns"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
+	fsx "sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
+	fsxcsidriver "sigs.k8s.io/aws-fsx-csi-driver/pkg/driver"
 )
 
 type fsxVolume struct {
