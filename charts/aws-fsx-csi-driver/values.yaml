@@ -7,6 +7,15 @@ image:
   tag: v0.8.2
   pullPolicy: IfNotPresent
 
+csidriver:
+  attachRequired: false
+  fsGroupPolicy: ReadWriteOnceWithFSType
+  podInfoOnMount: false
+  requiresRepublish: false
+  storageCapacity: false
+  volumeLifecycleModes:
+  - Persistent
+
 sidecars:
   livenessProbe:
     image:

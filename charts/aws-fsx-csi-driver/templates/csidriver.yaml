@@ -3,4 +3,12 @@ kind: CSIDriver
 metadata:
   name: fsx.csi.aws.com
 spec:
-  attachRequired: false
+  attachRequired: {{ .Values.csidriver.attachRequired }}
+  fsGroupPolicy: {{ .Values.csidriver.fsGroupPolicy }}
+  podInfoOnMount: {{ .Values.csidriver.podInfoOnMount }}
+  requiresRepublish: {{ .Values.csidriver.requiresRepublish }}
+  storageCapacity: {{ .Values.csidriver.storageCapacity }}
+  volumeLifecycleModes: 
+  {{- range .Values.csidriver.volumeLifecycleModes }}
+  - {{.}}
+  {{- end }}

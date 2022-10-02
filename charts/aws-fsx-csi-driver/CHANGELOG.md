@@ -1,4 +1,7 @@
 # Helm chart
+#v1.4.3
+* Added configurable options for csi object with sane defaults
+
 #v1.4.2
 * Use driver 0.8.2
 
