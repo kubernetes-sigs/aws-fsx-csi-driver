@@ -1,6 +1,9 @@
 # Helm chart
 #v1.4.3
-* Added configurable options for csi object with sane defaults
+* Added option to configure `fsGroupPolicy` on the CSIDriver object. Adding such a configuration allows kubelet to change ownership of every file in the volume at mount time.
+Documentation on fsGroupPolicy can be found [here](https://kubernetes-csi.github.io/docs/support-fsgroup.html).
+
+**Side-note**: Setting fsGroupPolicy to `File` in for configurations that mount the disk on multiple nodes as the same time can lead to race-conditions and subsequently deadlocks, unless if **every** Pod mounting the volume has the same *securityContext* which includes the setting `fsGroupChangePolicy: "OnRootMismatch"`
 
 #v1.4.2
 * Use driver 0.8.2
