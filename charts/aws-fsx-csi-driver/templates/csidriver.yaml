@@ -4,3 +4,4 @@ metadata:
   name: fsx.csi.aws.com
 spec:
   attachRequired: false
+  fsGroupPolicy: {{ .Values.csidriver.fsGroupPolicy }}
