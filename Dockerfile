@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM --platform=$BUILDPLATFORM golang:1.16.8-stretch as builder
+FROM --platform=$BUILDPLATFORM golang:1.19.2-bullseye as builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-fsx-csi-driver
 COPY . .
 ARG TARGETOS
