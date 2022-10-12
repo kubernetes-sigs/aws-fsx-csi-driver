@@ -1,5 +1,8 @@
 # Helm chart
 # v1.4.3
+* Use driver 0.8.3
+
+# v1.4.3
 * Added option to configure `fsGroupPolicy` on the CSIDriver object. Adding such a configuration allows kubelet to change ownership of every file in the volume at mount time.
 Documentation on fsGroupPolicy can be found [here](https://kubernetes-csi.github.io/docs/support-fsgroup.html).
 
