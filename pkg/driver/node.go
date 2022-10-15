@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
@@ -27,9 +28,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-var (
-	nodeCaps = []csi.NodeServiceCapability_RPC_Type{}
-)
+var nodeCaps = []csi.NodeServiceCapability_RPC_Type{}
 
 func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
@@ -50,6 +49,8 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	context := req.GetVolumeContext()
 	dnsname := context[volumeContextDnsName]
 	mountname := context[volumeContextMountName]
+	basefileset := strings.Trim(context[volumeContextBaseFileset], "/")
+	uuid := strings.Trim(context[volumeContextUUID], "/")
 
 	if len(dnsname) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "dnsname is not provided")
@@ -60,6 +61,13 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	}
 
 	source := fmt.Sprintf("%s@tcp:/%s", dnsname, mountname)
+
+	if basefileset != "" {
+		source = fmt.Sprintf("%s/%s", source, basefileset)
+		if uuid != "" {
+			source = fmt.Sprintf("%s/%s", source, uuid)
+		}
+	}
 
 	target := req.GetTargetPath()
 	if len(target) == 0 {
@@ -100,7 +108,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
 	}
 
-	//Checking if the target directory is already mounted with a volume.
+	// Checking if the target directory is already mounted with a volume.
 	mounted, err := d.isMounted(source, target)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not check if %q is mounted: %v", target, err)
@@ -189,14 +197,14 @@ func (d *Driver) isMounted(source string, target string) (bool, error) {
 	klog.V(4).Infoln(target)
 	notMnt, err := d.mounter.IsLikelyNotMountPoint(target)
 	if err != nil && !os.IsNotExist(err) {
-		//Checking if the path exists and error is related to Corrupted Mount, in that case, the system could unmount and mount.
+		// Checking if the path exists and error is related to Corrupted Mount, in that case, the system could unmount and mount.
 		_, pathErr := d.mounter.PathExists(target)
 		if pathErr != nil && d.mounter.IsCorruptedMnt(pathErr) {
 			klog.V(4).Infof("NodePublishVolume: Target path %q is a corrupted mount. Trying to unmount.", target)
 			if mntErr := d.mounter.Unmount(target); mntErr != nil {
 				return false, status.Errorf(codes.Internal, "Unable to unmount the target %q : %v", target, mntErr)
 			}
-			//After successful unmount, the device is ready to be mounted.
+			// After successful unmount, the device is ready to be mounted.
 			return false, nil
 		}
 		return false, status.Errorf(codes.Internal, "Could not check if %q is a mount point: %v, %v", target, err, pathErr)

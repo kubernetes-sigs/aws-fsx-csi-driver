@@ -18,8 +18,6 @@ package driver
 
 import (
 	"context"
-	"strconv"
-	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
@@ -29,17 +27,17 @@ import (
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/util"
 )
 
-var (
-	// controllerCaps represents the capability of controller service
-	controllerCaps = []csi.ControllerServiceCapability_RPC_Type{
-		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
-		csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
-	}
-)
+// controllerCaps represents the capability of controller service
+var controllerCaps = []csi.ControllerServiceCapability_RPC_Type{
+	csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
+	csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
+}
 
 const (
 	volumeContextDnsName                      = "dnsname"
 	volumeContextMountName                    = "mountname"
+	volumeContextBaseFileset                  = "baseFileset"
+	volumeContextUUID                         = "uuid"
 	volumeParamsSubnetId                      = "subnetId"
 	volumeParamsSecurityGroupIds              = "securityGroupIds"
 	volumeParamsAutoImportPolicy              = "autoImportPolicy"
@@ -57,6 +55,9 @@ const (
 	volumeParamsWeeklyMaintenanceStartTime    = "weeklyMaintenanceStartTime"
 	volumeParamsFileSystemTypeVersion         = "fileSystemTypeVersion"
 	volumeParamsExtraTags                     = "extraTags"
+	volumeParamsDnsName                       = "dnsname"
+	volumeParamsMountName                     = "mountname"
+	volumeParamsBaseFileset                   = "baseFileset"
 )
 
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -75,112 +76,20 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, "Volume capabilities not supported")
 	}
 
-	// create a new volume with idempotency
-	// idempotency is handled by `CreateFileSystem`
-	volumeParams := req.GetParameters()
-	subnetId := volumeParams[volumeParamsSubnetId]
-	securityGroupIds := volumeParams[volumeParamsSecurityGroupIds]
-	fsOptions := &cloud.FileSystemOptions{
-		SubnetId:         subnetId,
-		SecurityGroupIds: strings.Split(securityGroupIds, ","),
+	var provisioner Provisioner
+	params := req.GetParameters()
+	if _, ok := params[volumeParamsDnsName]; !ok {
+		provisioner = FileSystemProvisioner{cloud: d.cloud}
 	}
+	// TODO: FilesetProvisioner
+	// else {}
 
-	if val, ok := volumeParams[volumeParamsAutoImportPolicy]; ok {
-		fsOptions.AutoImportPolicy = val
-	}
-
-	if val, ok := volumeParams[volumeParamsS3ImportPath]; ok {
-		fsOptions.S3ImportPath = val
-	}
-
-	if val, ok := volumeParams[volumeParamsS3ExportPath]; ok {
-		fsOptions.S3ExportPath = val
-	}
-
-	if val, ok := volumeParams[volumeParamsDeploymentType]; ok {
-		fsOptions.DeploymentType = val
-	}
-
-	if val, ok := volumeParams[volumeParamsKmsKeyId]; ok {
-		fsOptions.KmsKeyId = val
-	}
-
-	if val, ok := volumeParams[volumeParamsDailyAutomaticBackupStartTime]; ok {
-		fsOptions.DailyAutomaticBackupStartTime = val
-	}
-
-	if val, ok := volumeParams[volumeParamsAutomaticBackupRetentionDays]; ok {
-		n, err := strconv.ParseInt(val, 10, 64)
-		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, "automaticBackupRetentionDays must be a number")
-		}
-		fsOptions.AutomaticBackupRetentionDays = n
-	}
-
-	if val, ok := volumeParams[volumeParamsCopyTagsToBackups]; ok {
-		b, err := strconv.ParseBool(val)
-		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, "copyTagsToBackups must be a bool")
-		}
-		fsOptions.CopyTagsToBackups = b
-	}
-
-	if val, ok := volumeParams[volumeParamsStorageType]; ok {
-		fsOptions.StorageType = val
-	}
-
-	if val, ok := volumeParams[volumeParamsDriveCacheType]; ok {
-		fsOptions.DriveCacheType = val
-	}
-
-	if val, ok := volumeParams[volumeParamsDataCompressionType]; ok {
-		fsOptions.DataCompressionType = val
-	}
-
-	if val, ok := volumeParams[volumeParamsPerUnitStorageThroughput]; ok {
-		n, err := strconv.ParseInt(val, 10, 64)
-		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, "perUnitStorageThroughput must be a number")
-		}
-		fsOptions.PerUnitStorageThroughput = n
-	}
-
-	if val, ok := volumeParams[volumeParamsWeeklyMaintenanceStartTime]; ok {
-		fsOptions.WeeklyMaintenanceStartTime = val
-	}
-
-	if val, ok := volumeParams[volumeParamsFileSystemTypeVersion]; ok {
-		fsOptions.FileSystemTypeVersion = val
-	}
-
-	capRange := req.GetCapacityRange()
-	if capRange == nil {
-		fsOptions.CapacityGiB = cloud.DefaultVolumeSize
-	} else {
-		fsOptions.CapacityGiB = util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fsOptions.DeploymentType, fsOptions.StorageType, fsOptions.PerUnitStorageThroughput)
-	}
-
-	if val, ok := volumeParams[volumeParamsExtraTags]; ok {
-		extraTags := strings.Split(val, ",")
-		fsOptions.ExtraTags = extraTags
-	}
-
-	fs, err := d.cloud.CreateFileSystem(ctx, volName, fsOptions)
+	vol, err := provisioner.Provision(ctx, req)
 	if err != nil {
-		switch err {
-		case cloud.ErrFsExistsDiffSize:
-			return nil, status.Error(codes.AlreadyExists, err.Error())
-		default:
-			return nil, status.Errorf(codes.Internal, "Could not create volume %q: %v", volName, err)
-		}
+		return nil, err
 	}
 
-	err = d.cloud.WaitForFileSystemAvailable(ctx, fs.FileSystemId)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Filesystem is not ready: %v", err)
-	}
-
-	return newCreateVolumeResponse(fs), nil
+	return &csi.CreateVolumeResponse{Volume: vol}, nil
 }
 
 func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
@@ -190,13 +99,22 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
 	}
 
-	if err := d.cloud.DeleteFileSystem(ctx, volumeID); err != nil {
-		if err == cloud.ErrNotFound {
-			klog.V(4).Infof("DeleteVolume: volume not found, returning with success")
-			return &csi.DeleteVolumeResponse{}, nil
-		}
-		return nil, status.Errorf(codes.Internal, "Could not delete volume ID %q: %v", volumeID, err)
+	var provisioner Provisioner
+	fsxVolume, err := getFsxVolumeFromVolumeID(volumeID)
+	if err != nil {
+		return nil, err
 	}
+
+	if fsxVolume.fsid != "" {
+		provisioner = FileSystemProvisioner{cloud: d.cloud}
+	}
+	// TODO: FilesetProvisioner
+	// else {}
+
+	if err := provisioner.Delete(ctx, req); err != nil {
+		return nil, err
+	}
+
 	return &csi.DeleteVolumeResponse{}, nil
 }
 
@@ -354,17 +272,4 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 
 func (d *Driver) ControllerGetVolume(ctx context.Context, req *csi.ControllerGetVolumeRequest) (*csi.ControllerGetVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
-}
-
-func newCreateVolumeResponse(fs *cloud.FileSystem) *csi.CreateVolumeResponse {
-	return &csi.CreateVolumeResponse{
-		Volume: &csi.Volume{
-			VolumeId:      fs.FileSystemId,
-			CapacityBytes: util.GiBToBytes(fs.CapacityGiB),
-			VolumeContext: map[string]string{
-				volumeContextDnsName:   fs.DnsName,
-				volumeContextMountName: fs.MountName,
-			},
-		},
-	}
 }
