@@ -18,6 +18,7 @@ package driver
 
 import (
 	"context"
+	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
@@ -37,7 +38,7 @@ const (
 	volumeContextDnsName                      = "dnsname"
 	volumeContextMountName                    = "mountname"
 	volumeContextBaseFileset                  = "baseFileset"
-	volumeContextUUID                         = "uuid"
+	volumeContextMountFileset                 = "mountFileset"
 	volumeParamsSubnetId                      = "subnetId"
 	volumeParamsSecurityGroupIds              = "securityGroupIds"
 	volumeParamsAutoImportPolicy              = "autoImportPolicy"
@@ -60,6 +61,13 @@ const (
 	volumeParamsBaseFileset                   = "baseFileset"
 )
 
+const (
+	provisioningModeFileSystem = "filesystem"
+	provisioningModeFileset    = "fileset"
+)
+
+const tempMountPathPrefix = "/tmp/csi"
+
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	klog.V(4).Infof("CreateVolume: called with args %#v", req)
 	volName := req.GetName()
@@ -76,14 +84,20 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, "Volume capabilities not supported")
 	}
 
-	var provisioner Provisioner
+	var provisioningMode string
 	params := req.GetParameters()
 	if _, ok := params[volumeParamsDnsName]; !ok {
-		provisioner = FileSystemProvisioner{cloud: d.cloud}
+		provisioningMode = provisioningModeFileSystem
+	} else {
+		provisioningMode = provisioningModeFileset
 	}
-	// TODO: FilesetProvisioner
-	// else {}
 
+	provisioner, err := d.newProvisioner(provisioningMode)
+	if err != nil {
+		return nil, err
+	}
+
+	klog.V(4).Infof("CreateVolume: provisioning volume in %s mode", provisioningMode)
 	vol, err := provisioner.Provision(ctx, req)
 	if err != nil {
 		return nil, err
@@ -99,18 +113,19 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
 	}
 
-	var provisioner Provisioner
 	fsxVolume, err := getFsxVolumeFromVolumeID(volumeID)
 	if err != nil {
 		return nil, err
 	}
 
-	if fsxVolume.fsid != "" {
-		provisioner = FileSystemProvisioner{cloud: d.cloud}
-	}
-	// TODO: FilesetProvisioner
-	// else {}
+	provisioningMode := fsxVolume.GetProvisioningMode()
 
+	provisioner, err := d.newProvisioner(provisioningMode)
+	if err != nil {
+		return nil, err
+	}
+
+	klog.V(4).Infof("DeleteVolume: deleting volume in %s mode", provisioningMode)
 	if err := provisioner.Delete(ctx, req); err != nil {
 		return nil, err
 	}
@@ -225,6 +240,15 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
 	}
 
+	fsxVolume, err := getFsxVolumeFromVolumeID(volumeID)
+	if err != nil {
+		return nil, err
+	}
+
+	if provisioningMode := fsxVolume.GetProvisioningMode(); provisioningMode != provisioningModeFileSystem {
+		return nil, status.Errorf(codes.Unimplemented, "ControllerExpandVolume is not supported in %s mode", provisioningMode)
+	}
+
 	capRange := req.GetCapacityRange()
 	if capRange == nil {
 		return nil, status.Error(codes.InvalidArgument, "Capacity range not provided")
@@ -272,4 +296,68 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 
 func (d *Driver) ControllerGetVolume(ctx context.Context, req *csi.ControllerGetVolumeRequest) (*csi.ControllerGetVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
+}
+
+func (d *Driver) newProvisioner(mode string) (Provisioner, error) {
+	switch mode {
+	case provisioningModeFileSystem:
+		return FileSystemProvisioner{cloud: d.cloud}, nil
+	case provisioningModeFileset:
+		return FilesetProvisioner{mounter: d.mounter}, nil
+	default:
+		return nil, status.Errorf(codes.Internal, "Invalid provisioning mode %s", mode)
+	}
+}
+
+// Fsx Volume will be mounted
+// filesystem provisioning (fsid is not empty):
+//   - dnsname@tcp:/mountname
+//
+// fileset provisioning:
+//   - dnsname@tcp:/mountname/basefileset/mounfileset
+type FsxVolume struct {
+	fsid         string
+	dnsname      string
+	mountname    string
+	basefileset  string
+	mountfileset string
+	// uuid is required to keep VolumeID uniqueness
+	// because Fsx supports MULTI_NODE_MULTI_WRITER access mode
+	uuid string
+}
+
+func (v FsxVolume) GetProvisioningMode() string {
+	if v.fsid != "" {
+		return provisioningModeFileSystem
+	}
+
+	return provisioningModeFileset
+}
+
+// VolumeID form is expected one of the following
+// filesystem provisioning:
+//   - fs-xxx
+//
+// fileset provisioning:
+//   - 10.x.x.x:mountname:::uuid
+//   - 10.x.x.x:mountname::mountfileset:uuid
+//   - 10.x.x.x:mountname:basefileset:mountfileset:uuid
+func getFsxVolumeFromVolumeID(id string) (FsxVolume, error) {
+	tokens := strings.Split(id, volumeIDSeparator)
+	if len(tokens) == 1 {
+		// filesystem provisioning
+		return FsxVolume{fsid: tokens[0]}, nil
+	} else if len(tokens) != 5 {
+		return FsxVolume{}, status.Errorf(codes.InvalidArgument, "Volume ID '%s' is invalid: Expected one or four five separated by '%s'", id, volumeIDSeparator)
+	}
+
+	// fileset provisioning
+	return FsxVolume{
+		fsid:         "",
+		dnsname:      tokens[0],
+		mountname:    tokens[1],
+		basefileset:  tokens[2],
+		mountfileset: tokens[3],
+		uuid:         tokens[4],
+	}, nil
 }

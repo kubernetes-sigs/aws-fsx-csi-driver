@@ -50,7 +50,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	dnsname := context[volumeContextDnsName]
 	mountname := context[volumeContextMountName]
 	basefileset := strings.Trim(context[volumeContextBaseFileset], "/")
-	uuid := strings.Trim(context[volumeContextUUID], "/")
+	mountfileset := strings.Trim(context[volumeContextMountFileset], "/")
 
 	if len(dnsname) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "dnsname is not provided")
@@ -64,9 +64,9 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 
 	if basefileset != "" {
 		source = fmt.Sprintf("%s/%s", source, basefileset)
-		if uuid != "" {
-			source = fmt.Sprintf("%s/%s", source, uuid)
-		}
+	}
+	if mountfileset != "" {
+		source = fmt.Sprintf("%s/%s", source, mountfileset)
 	}
 
 	target := req.GetTargetPath()
