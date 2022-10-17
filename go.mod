@@ -4,6 +4,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.76
 	github.com/container-storage-interface/spec v1.6.0
 	github.com/golang/mock v1.6.0
+	github.com/google/uuid v1.1.2
 	github.com/kubernetes-csi/csi-test v2.0.1+incompatible
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.16.0
