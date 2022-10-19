@@ -37,8 +37,8 @@ var controllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 const (
 	volumeContextDnsName                      = "dnsname"
 	volumeContextMountName                    = "mountname"
-	volumeContextBaseFileset                  = "baseFileset"
-	volumeContextMountFileset                 = "mountFileset"
+	volumeContextBaseDir                      = "basedir"
+	volumeContextSubDir                       = "subdir"
 	volumeParamsSubnetId                      = "subnetId"
 	volumeParamsSecurityGroupIds              = "securityGroupIds"
 	volumeParamsAutoImportPolicy              = "autoImportPolicy"
@@ -58,12 +58,12 @@ const (
 	volumeParamsExtraTags                     = "extraTags"
 	volumeParamsDnsName                       = "dnsname"
 	volumeParamsMountName                     = "mountname"
-	volumeParamsBaseFileset                   = "baseFileset"
+	volumeParamsBaseDir                       = "basedir"
 )
 
 const (
-	provisioningModeFileSystem = "filesystem"
-	provisioningModeFileset    = "fileset"
+	provisioningModeFileSystem = "fsx-filesystem"
+	provisioningModeSubDir     = "fsx-subdir"
 )
 
 const tempMountPathPrefix = "/tmp/csi"
@@ -89,7 +89,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	if _, ok := params[volumeParamsDnsName]; !ok {
 		provisioningMode = provisioningModeFileSystem
 	} else {
-		provisioningMode = provisioningModeFileset
+		provisioningMode = provisioningModeSubDir
 	}
 
 	provisioner, err := d.newProvisioner(provisioningMode)
@@ -302,8 +302,8 @@ func (d *Driver) newProvisioner(mode string) (Provisioner, error) {
 	switch mode {
 	case provisioningModeFileSystem:
 		return FileSystemProvisioner{cloud: d.cloud}, nil
-	case provisioningModeFileset:
-		return FilesetProvisioner{mounter: d.mounter}, nil
+	case provisioningModeSubDir:
+		return SubDirProvisioner{mounter: d.mounter}, nil
 	default:
 		return nil, status.Errorf(codes.Internal, "Invalid provisioning mode %s", mode)
 	}
@@ -313,16 +313,18 @@ func (d *Driver) newProvisioner(mode string) (Provisioner, error) {
 // filesystem provisioning (fsid is not empty):
 //   - dnsname@tcp:/mountname
 //
-// fileset provisioning:
-//   - dnsname@tcp:/mountname/basefileset/mounfileset
+// subdir provisioning:
+//   - dnsname@tcp:/mountname/basedir/subdir
 type FsxVolume struct {
-	fsid         string
-	dnsname      string
-	mountname    string
-	basefileset  string
-	mountfileset string
-	// uuid is required to keep VolumeID uniqueness
-	// because Fsx supports MULTI_NODE_MULTI_WRITER access mode
+	fsid      string
+	dnsname   string
+	mountname string
+	// Base directory (fileset) path to create volumes under in subdir provisioning mode
+	baseDir string
+	// Sub directory (fileset) name (not path) to create volumes under in subdir provisioning mode
+	subDir string
+	// uuid keeps VolumeID uniqueness
+	// because Fsx supports MULTI_NODE_MULTI_WRITER access mode, so can mount same directory from multiple Volumes
 	uuid string
 }
 
@@ -331,17 +333,17 @@ func (v FsxVolume) GetProvisioningMode() string {
 		return provisioningModeFileSystem
 	}
 
-	return provisioningModeFileset
+	return provisioningModeSubDir
 }
 
 // VolumeID form is expected one of the following
 // filesystem provisioning:
 //   - fs-xxx
 //
-// fileset provisioning:
+// subdir provisioning:
 //   - 10.x.x.x:mountname:::uuid
-//   - 10.x.x.x:mountname::mountfileset:uuid
-//   - 10.x.x.x:mountname:basefileset:mountfileset:uuid
+//   - 10.x.x.x:mountname::basedir:uuid
+//   - 10.x.x.x:mountname:basedir:subdir:uuid
 func getFsxVolumeFromVolumeID(id string) (FsxVolume, error) {
 	tokens := strings.Split(id, volumeIDSeparator)
 	if len(tokens) == 1 {
@@ -351,13 +353,13 @@ func getFsxVolumeFromVolumeID(id string) (FsxVolume, error) {
 		return FsxVolume{}, status.Errorf(codes.InvalidArgument, "Volume ID '%s' is invalid: Expected one or four five separated by '%s'", id, volumeIDSeparator)
 	}
 
-	// fileset provisioning
+	// subdir provisioning
 	return FsxVolume{
-		fsid:         "",
-		dnsname:      tokens[0],
-		mountname:    tokens[1],
-		basefileset:  tokens[2],
-		mountfileset: tokens[3],
-		uuid:         tokens[4],
+		fsid:      "",
+		dnsname:   tokens[0],
+		mountname: tokens[1],
+		baseDir:   tokens[2],
+		subDir:    tokens[3],
+		uuid:      tokens[4],
 	}, nil
 }

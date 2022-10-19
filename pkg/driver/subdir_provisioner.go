@@ -13,17 +13,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type FilesetProvisioner struct {
+type SubDirProvisioner struct {
 	mounter Mounter
 }
 
-var _ Provisioner = FilesetProvisioner{}
+var _ Provisioner = SubDirProvisioner{}
 
-func (p FilesetProvisioner) Provision(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.Volume, error) {
+func (p SubDirProvisioner) Provision(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.Volume, error) {
 	params := req.GetParameters()
 	dnsname := params[volumeParamsDnsName]
 	mountname := params[volumeParamsMountName]
-	basefileset := strings.Trim(params[volumeParamsBaseFileset], "/")
+	baseDir := strings.Trim(params[volumeParamsBaseDir], "/")
 	volName := req.GetName()
 
 	if len(dnsname) == 0 {
@@ -38,8 +38,8 @@ func (p FilesetProvisioner) Provision(ctx context.Context, req *csi.CreateVolume
 	target := filepath.Join(tempMountPathPrefix, uuid.New().String())
 	mountOptions := []string{"flock"}
 
-	if basefileset != "" {
-		source = fmt.Sprintf("%s/%s", source, basefileset)
+	if baseDir != "" {
+		source = fmt.Sprintf("%s/%s", source, baseDir)
 	}
 
 	if err := p.mounter.MakeDir(target); err != nil {
@@ -64,18 +64,18 @@ func (p FilesetProvisioner) Provision(ctx context.Context, req *csi.CreateVolume
 	}
 
 	return &csi.Volume{
-		VolumeId:      fmt.Sprintf("%s:%s:%s:%s:%s", dnsname, mountname, basefileset, volName, volName),
+		VolumeId:      fmt.Sprintf("%s:%s:%s:%s:%s", dnsname, mountname, baseDir, volName, volName),
 		CapacityBytes: req.GetCapacityRange().GetRequiredBytes(),
 		VolumeContext: map[string]string{
-			volumeContextDnsName:      dnsname,
-			volumeContextMountName:    mountname,
-			volumeContextBaseFileset:  basefileset,
-			volumeContextMountFileset: volName,
+			volumeContextDnsName:   dnsname,
+			volumeContextMountName: mountname,
+			volumeContextBaseDir:   baseDir,
+			volumeContextSubDir:    volName,
 		},
 	}, nil
 }
 
-func (p FilesetProvisioner) Delete(ctx context.Context, req *csi.DeleteVolumeRequest) error {
+func (p SubDirProvisioner) Delete(ctx context.Context, req *csi.DeleteVolumeRequest) error {
 	volumeID := req.GetVolumeId()
 	fsxVolume, err := getFsxVolumeFromVolumeID(volumeID)
 	if err != nil {
@@ -94,8 +94,8 @@ func (p FilesetProvisioner) Delete(ctx context.Context, req *csi.DeleteVolumeReq
 	target := filepath.Join(tempMountPathPrefix, uuid.New().String())
 	mountOptions := []string{"flock"}
 
-	if fsxVolume.basefileset != "" {
-		source = fmt.Sprintf("%s/%s", source, fsxVolume.basefileset)
+	if fsxVolume.baseDir != "" {
+		source = fmt.Sprintf("%s/%s", source, fsxVolume.baseDir)
 	}
 
 	if err := p.mounter.MakeDir(target); err != nil {
@@ -107,7 +107,7 @@ func (p FilesetProvisioner) Delete(ctx context.Context, req *csi.DeleteVolumeReq
 		return status.Errorf(codes.Internal, "Could not mount %q at %q: %v", source, target, err)
 	}
 
-	if err := os.RemoveAll(filepath.Join(target, fsxVolume.mountfileset)); err != nil {
+	if err := os.RemoveAll(filepath.Join(target, fsxVolume.subDir)); err != nil {
 		return status.Error(codes.Internal, err.Error())
 	}
 
