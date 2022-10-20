@@ -14,7 +14,7 @@ import (
 )
 
 type SubDirProvisioner struct {
-	mounter Mounter
+	driver *Driver
 }
 
 var _ Provisioner = SubDirProvisioner{}
@@ -42,11 +42,11 @@ func (p SubDirProvisioner) Provision(ctx context.Context, req *csi.CreateVolumeR
 		source = fmt.Sprintf("%s/%s", source, baseDir)
 	}
 
-	if err := p.mounter.MakeDir(target); err != nil {
+	if err := p.driver.mounter.MakeDir(target); err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
 	}
 
-	if err := p.mounter.Mount(source, target, "lustre", mountOptions); err != nil {
+	if err := p.driver.mounter.Mount(source, target, "lustre", mountOptions); err != nil {
 		os.Remove(target)
 		return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", source, target, err)
 	}
@@ -55,7 +55,7 @@ func (p SubDirProvisioner) Provision(ctx context.Context, req *csi.CreateVolumeR
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	if err := p.mounter.Unmount(target); err != nil {
+	if err := p.driver.mounter.Unmount(target); err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
 	}
 
@@ -98,11 +98,11 @@ func (p SubDirProvisioner) Delete(ctx context.Context, req *csi.DeleteVolumeRequ
 		source = fmt.Sprintf("%s/%s", source, fsxVolume.baseDir)
 	}
 
-	if err := p.mounter.MakeDir(target); err != nil {
+	if err := p.driver.mounter.MakeDir(target); err != nil {
 		return status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
 	}
 
-	if err := p.mounter.Mount(source, target, "lustre", mountOptions); err != nil {
+	if err := p.driver.mounter.Mount(source, target, "lustre", mountOptions); err != nil {
 		os.Remove(target)
 		return status.Errorf(codes.Internal, "Could not mount %q at %q: %v", source, target, err)
 	}
@@ -111,7 +111,7 @@ func (p SubDirProvisioner) Delete(ctx context.Context, req *csi.DeleteVolumeRequ
 		return status.Error(codes.Internal, err.Error())
 	}
 
-	if err := p.mounter.Unmount(target); err != nil {
+	if err := p.driver.mounter.Unmount(target); err != nil {
 		return status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
 	}
 

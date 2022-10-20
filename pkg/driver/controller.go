@@ -301,9 +301,9 @@ func (d *Driver) ControllerGetVolume(ctx context.Context, req *csi.ControllerGet
 func (d *Driver) newProvisioner(mode string) (Provisioner, error) {
 	switch mode {
 	case provisioningModeFileSystem:
-		return FileSystemProvisioner{cloud: d.cloud}, nil
+		return FileSystemProvisioner{driver: d}, nil
 	case provisioningModeSubDir:
-		return SubDirProvisioner{mounter: d.mounter}, nil
+		return SubDirProvisioner{driver: d}, nil
 	default:
 		return nil, status.Errorf(codes.Internal, "Invalid provisioning mode %s", mode)
 	}

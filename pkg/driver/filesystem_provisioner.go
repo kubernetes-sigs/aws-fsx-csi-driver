@@ -14,7 +14,7 @@ import (
 )
 
 type FileSystemProvisioner struct {
-	cloud cloud.Cloud
+	driver *Driver
 }
 
 var _ Provisioner = FileSystemProvisioner{}
@@ -111,7 +111,7 @@ func (p FileSystemProvisioner) Provision(ctx context.Context, req *csi.CreateVol
 	}
 
 	volName := req.GetName()
-	fs, err := p.cloud.CreateFileSystem(ctx, volName, fsOptions)
+	fs, err := p.driver.cloud.CreateFileSystem(ctx, volName, fsOptions)
 	if err != nil {
 		switch err {
 		case cloud.ErrFsExistsDiffSize:
@@ -121,7 +121,7 @@ func (p FileSystemProvisioner) Provision(ctx context.Context, req *csi.CreateVol
 		}
 	}
 
-	err = p.cloud.WaitForFileSystemAvailable(ctx, fs.FileSystemId)
+	err = p.driver.cloud.WaitForFileSystemAvailable(ctx, fs.FileSystemId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Filesystem is not ready: %v", err)
 	}
@@ -138,7 +138,7 @@ func (p FileSystemProvisioner) Provision(ctx context.Context, req *csi.CreateVol
 
 func (p FileSystemProvisioner) Delete(ctx context.Context, req *csi.DeleteVolumeRequest) error {
 	volumeID := req.GetVolumeId()
-	if err := p.cloud.DeleteFileSystem(ctx, volumeID); err != nil {
+	if err := p.driver.cloud.DeleteFileSystem(ctx, volumeID); err != nil {
 		if err == cloud.ErrNotFound {
 			klog.V(4).Infof("DeleteVolume: volume not found, returning with success")
 			return nil
