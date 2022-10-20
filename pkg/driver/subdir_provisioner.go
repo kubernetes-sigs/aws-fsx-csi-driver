@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/klog/v2"
 )
 
 type SubDirProvisioner struct {
@@ -24,7 +25,6 @@ func (p SubDirProvisioner) Provision(ctx context.Context, req *csi.CreateVolumeR
 	dnsname := params[volumeParamsDnsName]
 	mountname := params[volumeParamsMountName]
 	baseDir := strings.Trim(params[volumeParamsBaseDir], "/")
-	volName := req.GetName()
 
 	if len(dnsname) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "dnsname is not provided")
@@ -34,33 +34,53 @@ func (p SubDirProvisioner) Provision(ctx context.Context, req *csi.CreateVolumeR
 		return nil, status.Error(codes.InvalidArgument, "mountname is not provided")
 	}
 
-	source := fmt.Sprintf("%s@tcp:/%s", dnsname, mountname)
-	target := filepath.Join(tempMountPathPrefix, uuid.New().String())
-	mountOptions := []string{"flock"}
+	tempUUID := uuid.New().String()
+	target := filepath.Join(tempMountPathPrefix, tempUUID)
 
-	if baseDir != "" {
-		source = fmt.Sprintf("%s/%s", source, baseDir)
+	var volCap *csi.VolumeCapability
+
+	if len(req.GetVolumeCapabilities()) > 0 {
+		volCap = req.GetVolumeCapabilities()[0]
+	} else {
+		volCap = &csi.VolumeCapability{
+			AccessMode: &csi.VolumeCapability_AccessMode{
+				Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+			},
+		}
 	}
 
-	if err := p.driver.mounter.MakeDir(target); err != nil {
-		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
+	// Mount dnsname@tcp:/mountname/baseDir to create subDir
+	if _, err := p.driver.NodePublishVolume(ctx, &csi.NodePublishVolumeRequest{
+		VolumeId:         tempUUID,
+		TargetPath:       target,
+		VolumeCapability: volCap,
+		VolumeContext: map[string]string{
+			volumeContextDnsName:   dnsname,
+			volumeContextMountName: mountname,
+			volumeContextBaseDir:   baseDir,
+		},
+	}); err != nil {
+		return nil, err
 	}
 
-	if err := p.driver.mounter.Mount(source, target, "lustre", mountOptions); err != nil {
-		os.Remove(target)
-		return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", source, target, err)
-	}
+	// Ensure to unmount dnsname@tcp:/mountname/baseDir at least once
+	defer func() {
+		if _, err := p.driver.NodeUnpublishVolume(ctx, &csi.NodeUnpublishVolumeRequest{
+			VolumeId:   tempUUID,
+			TargetPath: target,
+		}); err == nil {
+			if err := os.RemoveAll(target); err != nil {
+				klog.Warningf("Could not delete %q: %v", target, err)
+			}
+		} else {
+			klog.Warningf("Could not unmount %q: %v", target, err)
+		}
+	}()
 
-	if err := os.MkdirAll(filepath.Join(target, volName), os.FileMode(0o755)); err != nil {
+	// Create subDir (dnsname@tcp:/mountname/baseDir/subDir) under the tempMountPathPrefix/tempUUID
+	volName := req.GetName()
+	if err := p.driver.mounter.MakeDir(filepath.Join(target, volName)); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
-	}
-
-	if err := p.driver.mounter.Unmount(target); err != nil {
-		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
-	}
-
-	if err := os.RemoveAll(target); err != nil {
-		return nil, status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
 	}
 
 	return &csi.Volume{
@@ -90,33 +110,46 @@ func (p SubDirProvisioner) Delete(ctx context.Context, req *csi.DeleteVolumeRequ
 		return status.Error(codes.InvalidArgument, "mountname is not provided")
 	}
 
-	source := fmt.Sprintf("%s@tcp:/%s", fsxVolume.dnsname, fsxVolume.mountname)
-	target := filepath.Join(tempMountPathPrefix, uuid.New().String())
-	mountOptions := []string{"flock"}
+	tempUUID := uuid.New().String()
+	target := filepath.Join(tempMountPathPrefix, tempUUID)
 
-	if fsxVolume.baseDir != "" {
-		source = fmt.Sprintf("%s/%s", source, fsxVolume.baseDir)
+	volCap := &csi.VolumeCapability{
+		AccessMode: &csi.VolumeCapability_AccessMode{
+			Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+		},
 	}
 
-	if err := p.driver.mounter.MakeDir(target); err != nil {
-		return status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
+	// Mount dnsname@tcp:/mountname/baseDir to delete subDir
+	if _, err := p.driver.NodePublishVolume(ctx, &csi.NodePublishVolumeRequest{
+		VolumeId:         tempUUID,
+		TargetPath:       target,
+		VolumeCapability: volCap,
+		VolumeContext: map[string]string{
+			volumeContextDnsName:   fsxVolume.dnsname,
+			volumeContextMountName: fsxVolume.mountname,
+			volumeContextBaseDir:   fsxVolume.baseDir,
+		},
+	}); err != nil {
+		return err
 	}
 
-	if err := p.driver.mounter.Mount(source, target, "lustre", mountOptions); err != nil {
-		os.Remove(target)
-		return status.Errorf(codes.Internal, "Could not mount %q at %q: %v", source, target, err)
-	}
+	// Ensure to unmount dnsname@tcp:/mountname/baseDir at least once
+	defer func() {
+		if _, err := p.driver.NodeUnpublishVolume(ctx, &csi.NodeUnpublishVolumeRequest{
+			VolumeId:   tempUUID,
+			TargetPath: target,
+		}); err == nil {
+			if err := os.RemoveAll(target); err != nil {
+				klog.Warningf("Could not delete %q: %v", target, err)
+			}
+		} else {
+			klog.Warningf("Could not unmount %q: %v", target, err)
+		}
+	}()
 
+	// Delete subDir (dnsname@tcp:/mountname/baseDir/subDir) under the tempMountPathPrefix/tempUUID
 	if err := os.RemoveAll(filepath.Join(target, fsxVolume.subDir)); err != nil {
 		return status.Error(codes.Internal, err.Error())
-	}
-
-	if err := p.driver.mounter.Unmount(target); err != nil {
-		return status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
-	}
-
-	if err := os.RemoveAll(target); err != nil {
-		return status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
 	}
 
 	return nil
