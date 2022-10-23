@@ -23,79 +23,62 @@ func (p FileSystemProvisioner) Provision(ctx context.Context, req *csi.CreateVol
 	// create a new volume with idempotency
 	// idempotency is handled by `CreateFileSystem`
 	params := req.GetParameters()
-	subnetId := params[volumeParamsSubnetId]
-	securityGroupIds := params[volumeParamsSecurityGroupIds]
-	fsOptions := &cloud.FileSystemOptions{
-		SubnetId:         subnetId,
-		SecurityGroupIds: strings.Split(securityGroupIds, ","),
-	}
+	fsOptions := &cloud.FileSystemOptions{}
 
-	if val, ok := params[volumeParamsAutoImportPolicy]; ok {
-		fsOptions.AutoImportPolicy = val
-	}
-
-	if val, ok := params[volumeParamsS3ImportPath]; ok {
-		fsOptions.S3ImportPath = val
-	}
-
-	if val, ok := params[volumeParamsS3ExportPath]; ok {
-		fsOptions.S3ExportPath = val
-	}
-
-	if val, ok := params[volumeParamsDeploymentType]; ok {
-		fsOptions.DeploymentType = val
-	}
-
-	if val, ok := params[volumeParamsKmsKeyId]; ok {
-		fsOptions.KmsKeyId = val
-	}
-
-	if val, ok := params[volumeParamsDailyAutomaticBackupStartTime]; ok {
-		fsOptions.DailyAutomaticBackupStartTime = val
-	}
-
-	if val, ok := params[volumeParamsAutomaticBackupRetentionDays]; ok {
-		n, err := strconv.ParseInt(val, 10, 64)
-		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, "automaticBackupRetentionDays must be a number")
+	for k, v := range params {
+		switch k {
+		case volumeParamsSubnetId:
+			fsOptions.SubnetId = v
+		case volumeParamsSecurityGroupIds:
+			fsOptions.SecurityGroupIds = strings.Split(v, ",")
+		case volumeParamsAutoImportPolicy:
+			fsOptions.AutoImportPolicy = v
+		case volumeParamsS3ImportPath:
+			fsOptions.S3ImportPath = v
+		case volumeParamsS3ExportPath:
+			fsOptions.S3ExportPath = v
+		case volumeParamsDeploymentType:
+			fsOptions.DeploymentType = v
+		case volumeParamsKmsKeyId:
+			fsOptions.KmsKeyId = v
+		case volumeParamsDailyAutomaticBackupStartTime:
+			fsOptions.DailyAutomaticBackupStartTime = v
+		case volumeParamsAutomaticBackupRetentionDays:
+			n, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, "automaticBackupRetentionDays must be a number")
+			}
+			fsOptions.AutomaticBackupRetentionDays = n
+		case volumeParamsCopyTagsToBackups:
+			b, err := strconv.ParseBool(v)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, "copyTagsToBackups must be a bool")
+			}
+			fsOptions.CopyTagsToBackups = b
+		case volumeParamsStorageType:
+			fsOptions.StorageType = v
+		case volumeParamsDriveCacheType:
+			fsOptions.DriveCacheType = v
+		case volumeParamsDataCompressionType:
+			fsOptions.DataCompressionType = v
+		case volumeParamsPerUnitStorageThroughput:
+			n, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, "perUnitStorageThroughput must be a number")
+			}
+			fsOptions.PerUnitStorageThroughput = n
+		case volumeParamsWeeklyMaintenanceStartTime:
+			fsOptions.WeeklyMaintenanceStartTime = v
+		case volumeParamsFileSystemTypeVersion:
+			fsOptions.FileSystemTypeVersion = v
+		case volumeParamsExtraTags:
+			extraTags := strings.Split(v, ",")
+			fsOptions.ExtraTags = extraTags
+		default:
+			if !strings.HasPrefix(k, kubernetesExternalProvisionerKeyPrefix) {
+				return nil, status.Errorf(codes.InvalidArgument, "Invalid parameter key %q for CreateVolume in %s mode", k, provisioningModeFileSystem)
+			}
 		}
-		fsOptions.AutomaticBackupRetentionDays = n
-	}
-
-	if val, ok := params[volumeParamsCopyTagsToBackups]; ok {
-		b, err := strconv.ParseBool(val)
-		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, "copyTagsToBackups must be a bool")
-		}
-		fsOptions.CopyTagsToBackups = b
-	}
-
-	if val, ok := params[volumeParamsStorageType]; ok {
-		fsOptions.StorageType = val
-	}
-
-	if val, ok := params[volumeParamsDriveCacheType]; ok {
-		fsOptions.DriveCacheType = val
-	}
-
-	if val, ok := params[volumeParamsDataCompressionType]; ok {
-		fsOptions.DataCompressionType = val
-	}
-
-	if val, ok := params[volumeParamsPerUnitStorageThroughput]; ok {
-		n, err := strconv.ParseInt(val, 10, 64)
-		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, "perUnitStorageThroughput must be a number")
-		}
-		fsOptions.PerUnitStorageThroughput = n
-	}
-
-	if val, ok := params[volumeParamsWeeklyMaintenanceStartTime]; ok {
-		fsOptions.WeeklyMaintenanceStartTime = val
-	}
-
-	if val, ok := params[volumeParamsFileSystemTypeVersion]; ok {
-		fsOptions.FileSystemTypeVersion = val
 	}
 
 	capRange := req.GetCapacityRange()
@@ -103,11 +86,6 @@ func (p FileSystemProvisioner) Provision(ctx context.Context, req *csi.CreateVol
 		fsOptions.CapacityGiB = cloud.DefaultVolumeSize
 	} else {
 		fsOptions.CapacityGiB = util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fsOptions.DeploymentType, fsOptions.StorageType, fsOptions.PerUnitStorageThroughput)
-	}
-
-	if val, ok := params[volumeParamsExtraTags]; ok {
-		extraTags := strings.Split(val, ",")
-		fsOptions.ExtraTags = extraTags
 	}
 
 	volName := req.GetName()

@@ -22,9 +22,26 @@ var _ Provisioner = SubDirProvisioner{}
 
 func (p SubDirProvisioner) Provision(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.Volume, error) {
 	params := req.GetParameters()
-	dnsname := params[volumeParamsDnsName]
-	mountname := params[volumeParamsMountName]
-	baseDir := strings.Trim(params[volumeParamsBaseDir], "/")
+	var (
+		dnsname   string
+		mountname string
+		baseDir   string
+	)
+
+	for k, v := range params {
+		switch k {
+		case volumeParamsDnsName:
+			dnsname = v
+		case volumeParamsMountName:
+			mountname = v
+		case volumeParamsBaseDir:
+			baseDir = strings.Trim(v, "/")
+		default:
+			if !strings.HasPrefix(k, kubernetesExternalProvisionerKeyPrefix) {
+				return nil, status.Errorf(codes.InvalidArgument, "Invalid parameter key %q for CreateVolume in %s mode", k, provisioningModeSubDir)
+			}
+		}
+	}
 
 	if len(dnsname) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "dnsname is not provided")

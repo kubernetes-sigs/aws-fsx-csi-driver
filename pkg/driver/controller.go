@@ -59,6 +59,7 @@ const (
 	volumeParamsDnsName                       = "dnsname"
 	volumeParamsMountName                     = "mountname"
 	volumeParamsBaseDir                       = "basedir"
+	kubernetesExternalProvisionerKeyPrefix    = "csi.storage.k8s.io/"
 )
 
 const (
