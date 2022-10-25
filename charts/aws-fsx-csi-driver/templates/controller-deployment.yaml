@@ -41,6 +41,8 @@ spec:
         {{- end }}
       containers:
         - name: fsx-plugin
+          securityContext:
+            privileged: true
           image: {{ printf "%s:%s" .Values.image.repository (default (printf "v%s" .Chart.AppVersion) (toString .Values.image.tag)) }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:

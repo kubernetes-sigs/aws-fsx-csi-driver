@@ -31,6 +31,8 @@ spec:
           tolerationSeconds: 300
       containers:
         - name: fsx-plugin
+          securityContext:
+            privileged: true
           image: amazon/aws-fsx-csi-driver:v0.9.0
           imagePullPolicy: IfNotPresent
           args:
