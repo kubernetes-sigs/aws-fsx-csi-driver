@@ -27,12 +27,13 @@ import (
 )
 
 func TestNodePublishVolume(t *testing.T) {
-
 	var (
 		endpoint   = "endpoint"
 		nodeID     = "nodeID"
 		dnsname    = "fs-0a2d0632b5ff567e9.fsx.us-west-2.amazonaws.com"
 		mountname  = "random"
+		baseDir    = "base"
+		subDir     = "sub"
 		targetPath = "/target/path"
 		stdVolCap  = &csi.VolumeCapability{
 			AccessType: &csi.VolumeCapability_Mount{
@@ -58,7 +59,7 @@ func TestNodePublishVolume(t *testing.T) {
 					nodeID:   nodeID,
 					mounter:  mockMounter,
 				}
-				source := dnsname + "@tcp:/" + mountname
+				source := fmt.Sprintf("%s@tcp:/%s/%s/%s", dnsname, mountname, baseDir, subDir)
 
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
@@ -66,6 +67,150 @@ func TestNodePublishVolume(t *testing.T) {
 					VolumeContext: map[string]string{
 						volumeContextDnsName:   dnsname,
 						volumeContextMountName: mountname,
+						volumeContextBaseDir:   baseDir,
+						volumeContextSubDir:    subDir,
+					},
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+				}
+
+				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(targetPath)).Return(true, nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("lustre"), gomock.Any()).Return(nil)
+				_, err := driver.NodePublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("NodePublishVolume is failed: %v", err)
+				}
+
+				mockCtrl.Finish()
+			},
+		},
+		{
+			name: "success: normal with empty baseDir",
+			testFunc: func(t *testing.T) {
+				mockCtrl := gomock.NewController(t)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
+				driver := &Driver{
+					endpoint: endpoint,
+					nodeID:   nodeID,
+					mounter:  mockMounter,
+				}
+				source := fmt.Sprintf("%s@tcp:/%s/%s", dnsname, mountname, subDir)
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId: "volumeId",
+					VolumeContext: map[string]string{
+						volumeContextDnsName:   dnsname,
+						volumeContextMountName: mountname,
+						volumeContextBaseDir:   "",
+						volumeContextSubDir:    subDir,
+					},
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+				}
+
+				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(targetPath)).Return(true, nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("lustre"), gomock.Any()).Return(nil)
+				_, err := driver.NodePublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("NodePublishVolume is failed: %v", err)
+				}
+
+				mockCtrl.Finish()
+			},
+		},
+		{
+			name: "success: normal without baseDir",
+			testFunc: func(t *testing.T) {
+				mockCtrl := gomock.NewController(t)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
+				driver := &Driver{
+					endpoint: endpoint,
+					nodeID:   nodeID,
+					mounter:  mockMounter,
+				}
+				source := fmt.Sprintf("%s@tcp:/%s/%s", dnsname, mountname, subDir)
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId: "volumeId",
+					VolumeContext: map[string]string{
+						volumeContextDnsName:   dnsname,
+						volumeContextMountName: mountname,
+						volumeContextSubDir:    subDir,
+					},
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+				}
+
+				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(targetPath)).Return(true, nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("lustre"), gomock.Any()).Return(nil)
+				_, err := driver.NodePublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("NodePublishVolume is failed: %v", err)
+				}
+
+				mockCtrl.Finish()
+			},
+		},
+		{
+			name: "success: normal with empty subDir",
+			testFunc: func(t *testing.T) {
+				mockCtrl := gomock.NewController(t)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
+				driver := &Driver{
+					endpoint: endpoint,
+					nodeID:   nodeID,
+					mounter:  mockMounter,
+				}
+				source := fmt.Sprintf("%s@tcp:/%s/%s", dnsname, mountname, baseDir)
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId: "volumeId",
+					VolumeContext: map[string]string{
+						volumeContextDnsName:   dnsname,
+						volumeContextMountName: mountname,
+						volumeContextBaseDir:   baseDir,
+						volumeContextSubDir:    "",
+					},
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+				}
+
+				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(targetPath)).Return(true, nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("lustre"), gomock.Any()).Return(nil)
+				_, err := driver.NodePublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("NodePublishVolume is failed: %v", err)
+				}
+
+				mockCtrl.Finish()
+			},
+		},
+		{
+			name: "success: normal without subDir",
+			testFunc: func(t *testing.T) {
+				mockCtrl := gomock.NewController(t)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
+				driver := &Driver{
+					endpoint: endpoint,
+					nodeID:   nodeID,
+					mounter:  mockMounter,
+				}
+				source := fmt.Sprintf("%s@tcp:/%s/%s", dnsname, mountname, baseDir)
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId: "volumeId",
+					VolumeContext: map[string]string{
+						volumeContextDnsName:   dnsname,
+						volumeContextMountName: mountname,
+						volumeContextBaseDir:   baseDir,
 					},
 					VolumeCapability: stdVolCap,
 					TargetPath:       targetPath,
@@ -92,7 +237,7 @@ func TestNodePublishVolume(t *testing.T) {
 					nodeID:   nodeID,
 					mounter:  mockMounter,
 				}
-				source := dnsname + "@tcp:/fsx"
+				source := fmt.Sprintf("%s@tcp:/fsx", dnsname)
 
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
@@ -126,7 +271,7 @@ func TestNodePublishVolume(t *testing.T) {
 					mounter:  mockMounter,
 				}
 
-				source := dnsname + "@tcp:/" + mountname
+				source := fmt.Sprintf("%s@tcp:/%s", dnsname, mountname)
 
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
@@ -162,7 +307,7 @@ func TestNodePublishVolume(t *testing.T) {
 					mounter:  mockMounter,
 				}
 
-				source := dnsname + "@tcp:/" + mountname
+				source := fmt.Sprintf("%s@tcp:/%s", dnsname, mountname)
 
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
@@ -374,7 +519,7 @@ func TestNodePublishVolume(t *testing.T) {
 					TargetPath:       targetPath,
 				}
 
-				source := dnsname + "@tcp:/" + mountname
+				source := fmt.Sprintf("%s@tcp:/%s", dnsname, mountname)
 				err := fmt.Errorf("failed to Mount")
 				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
 				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(targetPath)).Return(true, nil)
@@ -396,7 +541,6 @@ func TestNodePublishVolume(t *testing.T) {
 }
 
 func TestNodeUnpublishVolume(t *testing.T) {
-
 	var (
 		endpoint   = "endpoint"
 		nodeID     = "nodeID"
