@@ -1,0 +1,11 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: fsx-subdir-sc
+provisioner: fsx.csi.aws.com
+parameters:
+  dnsname: fs-0199e5a63bd90f796.fsx.us-east-1.amazonaws.com
+  mountname: fsx
+  basedir: dynamic_provisioning
+mountOptions:
+  - flock

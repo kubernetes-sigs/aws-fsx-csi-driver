@@ -13,7 +13,13 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   csi:
     driver: fsx.csi.aws.com
+    # mount root of filesystem
     volumeHandle: fs-0199e5a63bd90f796
+    # mount subdir of filesystem
+    # volumeHandle: fs-0199e5a63bd90f796.fsx.us-east-1.amazonaws.com:fsx:base:sub:abcdef
     volumeAttributes:
       dnsname: fs-0199e5a63bd90f796.fsx.us-east-1.amazonaws.com
       mountname: fsx
+      # set the basedir and subdir if you wanted to mount subdir
+      # basedir: base
+      # subdir: sub
