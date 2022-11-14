@@ -129,6 +129,13 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 		return nil, status.Error(codes.InvalidArgument, "Target path not provided")
 	}
 
+	// Check if the target is mounted before unmounting
+	notMnt, _ := d.mounter.IsLikelyNotMountPoint(target)
+	if notMnt {
+		klog.V(5).Infof("NodeUnpublishVolume: target path %s not mounted, skipping unmount", target)
+		return &csi.NodeUnpublishVolumeResponse{}, nil
+	}
+
 	klog.V(5).Infof("NodeUnpublishVolume: unmounting %s", target)
 	err := d.mounter.Unmount(target)
 	if err != nil {
