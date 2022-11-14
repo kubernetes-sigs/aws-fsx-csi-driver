@@ -423,7 +423,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 					VolumeId:   "volumeId",
 					TargetPath: targetPath,
 				}
-				
+
 				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(targetPath)).Return(false, nil)
 				mockMounter.EXPECT().Unmount(gomock.Eq(targetPath)).Return(nil)
 
