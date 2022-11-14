@@ -423,8 +423,34 @@ func TestNodeUnpublishVolume(t *testing.T) {
 					VolumeId:   "volumeId",
 					TargetPath: targetPath,
 				}
-
+				
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(targetPath)).Return(false, nil)
 				mockMounter.EXPECT().Unmount(gomock.Eq(targetPath)).Return(nil)
+
+				_, err := driver.NodeUnpublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("NodeUnpublishVolume is failed: %v", err)
+				}
+			},
+		},
+		{
+			name: "success: target already unmounted",
+			testFunc: func(t *testing.T) {
+				mockCtrl := gomock.NewController(t)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
+				driver := &Driver{
+					endpoint: endpoint,
+					nodeID:   nodeID,
+					mounter:  mockMounter,
+				}
+
+				ctx := context.Background()
+				req := &csi.NodeUnpublishVolumeRequest{
+					VolumeId:   "volumeId",
+					TargetPath: targetPath,
+				}
+
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(targetPath)).Return(true, nil)
 
 				_, err := driver.NodeUnpublishVolume(ctx, req)
 				if err != nil {
@@ -471,6 +497,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 					TargetPath: targetPath,
 				}
 
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(targetPath)).Return(false, nil)
 				mountErr := fmt.Errorf("Unmount failed")
 				mockMounter.EXPECT().Unmount(gomock.Eq(targetPath)).Return(mountErr)
 
