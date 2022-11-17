@@ -4,8 +4,8 @@ metadata:
   name: fsx-sc
 provisioner: fsx.csi.aws.com
 parameters:
-  subnetId: subnet-0eabfaa81fb22bcaf
-  securityGroupIds: sg-068000ccf82dfba88
+  subnetId: subnet-02d5847c5917fff6f
+  securityGroupIds: sg-03b0f2bb4aa91e1e8
   deploymentType: PERSISTENT_1
   automaticBackupRetentionDays: "1"
   dailyAutomaticBackupStartTime: "00:00"
