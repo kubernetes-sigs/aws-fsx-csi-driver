@@ -59,7 +59,7 @@ func init() {
 	frameworkconfig.CopyFlags(frameworkconfig.Flags, flag.CommandLine)
 	framework.RegisterCommonFlags(flag.CommandLine)
 	framework.RegisterClusterFlags(flag.CommandLine)
-	framework.ClaimProvisionTimeout = 7 * time.Minute
+	// framework.ClaimProvisionTimeout = 7 * time.Minute
 	flag.Parse()
 }
 
