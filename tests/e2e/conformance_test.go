@@ -22,8 +22,9 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/kubernetes/test/e2e/storage/testpatterns"
+	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
+	"k8s.io/kubernetes/test/e2e/storage/utils"
 	fsx "sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 	fsxcsidriver "sigs.k8s.io/aws-fsx-csi-driver/pkg/driver"
 )
@@ -46,36 +47,36 @@ type fsxDriver struct {
 	driverName string
 }
 
-var _ testsuites.TestDriver = &fsxDriver{}
-var _ testsuites.PreprovisionedPVTestDriver = &fsxDriver{}
+var _ storageframework.TestDriver = &fsxDriver{}
+var _ storageframework.PreprovisionedPVTestDriver = &fsxDriver{}
 
-func InitFSxCSIDriver() testsuites.TestDriver {
+func InitFSxCSIDriver() storageframework.TestDriver {
 	return &fsxDriver{
 		driverName: fsxcsidriver.DriverName,
 	}
 }
 
-func (e *fsxDriver) GetDriverInfo() *testsuites.DriverInfo {
-	return &testsuites.DriverInfo{
+func (e *fsxDriver) GetDriverInfo() *storageframework.DriverInfo {
+	return &storageframework.DriverInfo{
 		Name:                 e.driverName,
 		SupportedFsType:      sets.NewString(""),
 		SupportedMountOption: sets.NewString("flock", "ro"),
-		Capabilities: map[testsuites.Capability]bool{
-			testsuites.CapPersistence: true,
-			testsuites.CapExec:        true,
-			testsuites.CapMultiPODs:   true,
-			testsuites.CapRWX:         true,
+		Capabilities: map[storageframework.Capability]bool{
+			storageframework.CapPersistence: true,
+			storageframework.CapExec:        true,
+			storageframework.CapMultiPODs:   true,
+			storageframework.CapRWX:         true,
 		},
 	}
 }
 
-func (e *fsxDriver) SkipUnsupportedTest(testpatterns.TestPattern) {}
+func (e *fsxDriver) SkipUnsupportedTest(storageframework.TestPattern) {}
 
-func (e *fsxDriver) PrepareTest(f *framework.Framework) (*testsuites.PerTestConfig, func()) {
+func (e *fsxDriver) PrepareTest(f *framework.Framework) (*storageframework.PerTestConfig, func()) {
 	By("PrepareTest")
-	cancelPodLogs := testsuites.StartPodLogs(f)
+	cancelPodLogs := utils.StartPodLogs(f, f.Namespace)
 
-	return &testsuites.PerTestConfig{
+	return &storageframework.PerTestConfig{
 			Driver:    e,
 			Prefix:    "fsx",
 			Framework: f,
@@ -85,7 +86,7 @@ func (e *fsxDriver) PrepareTest(f *framework.Framework) (*testsuites.PerTestConf
 		}
 }
 
-func (e *fsxDriver) CreateVolume(config *testsuites.PerTestConfig, volType testpatterns.TestVolType) testsuites.TestVolume {
+func (e *fsxDriver) CreateVolume(config *storageframework.PerTestConfig, volType storageframework.TestVolType) storageframework.TestVolume {
 	c := NewCloud(*region)
 	instance, err := c.getNodeInstance(*clusterName)
 	if err != nil {
@@ -119,7 +120,7 @@ func (e *fsxDriver) CreateVolume(config *testsuites.PerTestConfig, volType testp
 	}
 }
 
-func (e *fsxDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
+func (e *fsxDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume storageframework.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
 	v := volume.(*fsxVolume)
 	pvSource := v1.PersistentVolumeSource{
 		CSI: &v1.CSIPersistentVolumeSource{
@@ -168,7 +169,7 @@ func (e *fsxDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volu
 //}
 
 // List of testSuites to be executed in below loop
-var csiTestSuites = []func() testsuites.TestSuite{
+var csiTestSuites = []func() storageframework.TestSuite{
 	testsuites.InitVolumesTestSuite,
 	testsuites.InitVolumeIOTestSuite,
 	testsuites.InitVolumeModeTestSuite,
@@ -181,7 +182,7 @@ var csiTestSuites = []func() testsuites.TestSuite{
 
 var _ = Describe("FSx CSI Driver Conformance", func() {
 	driver := InitFSxCSIDriver()
-	Context(testsuites.GetDriverNameWithFeatureTags(driver), func() {
-		testsuites.DefineTestSuite(driver, csiTestSuites)
+	Context(storageframework.GetDriverNameWithFeatureTags(driver), func() {
+		storageframework.DefineTestSuites(driver, csiTestSuites)
 	})
 })
