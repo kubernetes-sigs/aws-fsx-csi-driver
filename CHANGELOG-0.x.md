@@ -1,3 +1,12 @@
+# v0.9.0
+
+### Misc.
+* Bump klog to klog2 ([#267](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/267), [@olemarkus](https://github.com/olemarkus))
+* Bump golang to 1.19 ([#268](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/268), [@olemarkus](https://github.com/olemarkus))
+* Check if volume is mounted before unmounting ([#274](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/274), [@khoang98](https://github.com/khoang98))
+* upgrade kubernetes dependencies to v0.22.3 ([#276](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/276), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Update import path to match the go module name ([#277](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/277), [@olemarkus](https://github.com/olemarkus))
+
 # v0.8.3
 * Use docker buildx 0.8.x --no-cache-filter to avoid using cached amazonlinux image ([#249](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/249), [@wongma7](https://github.com/wongma7))
 * Release 0.8.2 part 3/3 ([#251](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/251), [@amankhunt](https://github.com/amankhunt))
