@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 
 image:
-  repository: amazon/aws-fsx-csi-driver
+  repository: public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver
   tag: v0.9.0
   pullPolicy: IfNotPresent
 
