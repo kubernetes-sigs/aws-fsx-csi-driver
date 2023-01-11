@@ -55,20 +55,20 @@ The following sections are Kubernetes-specific. If you are a Kubernetes user, us
 ### Container Images
 | FSx CSI Driver Version | Image                            |
 |------------------------|----------------------------------|
-| master branch          | amazon/aws-fsx-csi-driver:latest |
-| v0.9.0                 | amazon/aws-fsx-csi-driver:v0.9.0 |
-| v0.8.3                 | amazon/aws-fsx-csi-driver:v0.8.3 |
-| v0.8.2                 | amazon/aws-fsx-csi-driver:v0.8.2 |
-| v0.8.1                 | amazon/aws-fsx-csi-driver:v0.8.1 |
-| v0.8.0                 | amazon/aws-fsx-csi-driver:v0.8.0 |
-| v0.7.1                 | amazon/aws-fsx-csi-driver:v0.7.1 |
-| v0.7.0                 | amazon/aws-fsx-csi-driver:v0.7.0 |
-| v0.6.0                 | amazon/aws-fsx-csi-driver:v0.6.0 |
-| v0.5.0                 | amazon/aws-fsx-csi-driver:v0.5.0 |
-| v0.4.0                 | amazon/aws-fsx-csi-driver:v0.4.0 |
-| v0.3.0                 | amazon/aws-fsx-csi-driver:v0.3.0 |
-| v0.2.0                 | amazon/aws-fsx-csi-driver:v0.2.0 |
-| v0.1.0                 | amazon/aws-fsx-csi-driver:v0.1.0 |
+| master branch          | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:latest |
+| v0.9.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.9.0 |
+| v0.8.3                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.8.3 |
+| v0.8.2                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.8.2 |
+| v0.8.1                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.8.1 |
+| v0.8.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.8.0 |
+| v0.7.1                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.7.1 |
+| v0.7.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.7.0 |
+| v0.6.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.6.0 |
+| v0.5.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.5.0 |
+| v0.4.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.4.0 |
+| v0.3.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.3.0 |
+| v0.2.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.2.0 |
+| v0.1.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.1.0 |
 
 ### Features
 * Static provisioning - FSx for Lustre file system needs to be created manually first, then it could be mounted inside container as a volume using the Driver.
@@ -134,6 +134,10 @@ kubectl apply -f secret.yaml
 #### Deploy driver
 ```sh
 kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-0.9"
+# Alternatively,, to pull from
+# public ECR (public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver) instead of
+# private ECR (602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/aws-fsx-csi-driver):
+kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/ecr-public?ref=release-0.9"
 ```
 
 Alternatively, you could also install the driver using helm:

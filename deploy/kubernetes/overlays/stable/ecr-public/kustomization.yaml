@@ -1,7 +1,4 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 bases:
-  - ../../bases
-images:
-  - name: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/aws-fsx-csi-driver
-    newName: public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver
+  - ../../../base
