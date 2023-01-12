@@ -22,7 +22,7 @@ RUN OS=$TARGETOS ARCH=$TARGETARCH make $TARGETOS/$TARGETARCH
 FROM amazonlinux:2 AS linux-amazon
 RUN yum update -y
 RUN yum install util-linux libyaml -y \
-    && amazon-linux-extras install -y lustre2.10
+    && amazon-linux-extras install -y lustre
     
 COPY --from=builder /go/src/github.com/kubernetes-sigs/aws-fsx-csi-driver/bin/aws-fsx-csi-driver /bin/aws-fsx-csi-driver
 COPY THIRD-PARTY /
