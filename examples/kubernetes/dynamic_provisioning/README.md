@@ -17,9 +17,9 @@ parameters:
 ```
 * subnetId - the subnet ID that the FSx for Lustre filesystem should be created inside.
 * securityGroupIds - a comma separated list of security group IDs that should be attached to the filesystem
-* deploymentType (Optional) - FSx for Lustre supports three deployment types, SCRATCH_1, SCRATCH_2 and PERSISTENT_1. Default: SCRATCH_1.
+* deploymentType (Optional) - FSx for Lustre supports four deployment types, SCRATCH_1, SCRATCH_2, PERSISTENT_1 and PERSISTENT_2. Default: SCRATCH_1.
 * kmsKeyId (Optional) - for deployment type PERSISTENT_1, customer can specify a KMS key to use.
-* perUnitStorageThroughput (Optional) - for deployment type PERSISTENT_1, customer can specify the storage throughput. Default: "200". Note that customer has to specify as a string here like "200" or "100" etc.
+* perUnitStorageThroughput (Optional) - for deployment type PERSISTENT_1 and PERSISTENT_2, customer can specify the storage throughput. Default: "200". Note that customer has to specify as a string here like "200" or "100" etc.
 * storageType (Optional) - for deployment type PERSISTENT_1, customer can specify the storage type, either SSD or HDD. Default: "SSD"
 * driveCacheType (Required if storageType is "HDD") - for HDD PERSISTENT_1, specify the type of drive cache, either NONE or READ.
 * automaticBackupRetentionDays (Optional) - The number of days to retain automatic backups. The default is to retain backups for 7 days. Setting this value to 0 disables the creation of automatic backups. The maximum retention period for backups is 35 days
