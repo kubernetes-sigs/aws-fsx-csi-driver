@@ -3,6 +3,6 @@ kind: Kustomization
 bases:
   - ../../../base
 images:
-  - name: amazon/aws-fsx-csi-driver
+  - name: public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/aws-fsx-csi-driver
     newTag: v0.9.0
