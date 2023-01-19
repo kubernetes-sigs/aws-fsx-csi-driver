@@ -26,7 +26,7 @@ GOPATH=$(shell go env GOPATH)
 GOOS=$(shell go env GOOS)
 GOBIN=$(shell pwd)/bin
 
-REGISTRY?=amazon
+REGISTRY?=public.ecr.aws
 IMAGE?=$(REGISTRY)/aws-fsx-csi-driver
 TAG?=$(GIT_COMMIT)
 
