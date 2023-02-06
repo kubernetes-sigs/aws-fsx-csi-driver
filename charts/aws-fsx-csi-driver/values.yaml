@@ -40,6 +40,7 @@ controller:
   nodeSelector: {}
   replicaCount: 2
   resources: {}
+  annotations: {}
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
