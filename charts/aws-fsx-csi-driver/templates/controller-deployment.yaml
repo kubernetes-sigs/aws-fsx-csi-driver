@@ -4,6 +4,10 @@ metadata:
   name: fsx-csi-controller
   labels:
     {{- include "aws-fsx-csi-driver.labels" . | nindent 4 }}
+  {{- with .Values.controller.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   replicas: {{ .Values.controller.replicaCount }}
   selector:
