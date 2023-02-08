@@ -48,6 +48,7 @@ controller:
     name: fsx-csi-controller-sa
     annotations: {}
   tolerations: []
+  podAnnotations: {}
 
 node:
   nodeSelector: {}

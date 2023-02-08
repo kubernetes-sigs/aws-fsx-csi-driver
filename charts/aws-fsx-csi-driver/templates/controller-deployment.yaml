@@ -12,6 +12,10 @@ spec:
       {{- include "aws-fsx-csi-driver.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      {{- with .Values.controller.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
         app: fsx-csi-controller
         {{- include "aws-fsx-csi-driver.labels" . | nindent 8 }}

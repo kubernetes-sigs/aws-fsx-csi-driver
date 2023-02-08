@@ -1,5 +1,8 @@
 # Helm chart
 
+# v1.5.1
+* Support controller annotations in helm chart
+
 # v1.5.0
 * Use driver 0.9.0
 
