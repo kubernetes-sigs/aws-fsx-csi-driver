@@ -35,14 +35,22 @@ spec:
       serviceAccountName: {{ .Values.controller.serviceAccount.name }}
       priorityClassName: system-cluster-critical
       tolerations:
-        - key: CriticalAddonsOnly
-          operator: Exists
-        - operator: Exists
-          effect: NoExecute
-          tolerationSeconds: 300
         {{- with .Values.controller.tolerations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
+      {{- if .Values.controller.topologySpreadConstraints }}
+      {{- $tscLabelSelector := dict "labelSelector" ( dict "matchLabels" ( dict "app" "fsx-csi-controller" ) ) }}
+      {{- $constraints := list }}
+      {{- range .Values.controller.topologySpreadConstraints }}
+        {{- $constraints = mustAppend $constraints (mergeOverwrite . $tscLabelSelector) }}
+      {{- end }}
+      topologySpreadConstraints:
+        {{- $constraints | toYaml | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controller.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: fsx-plugin
           image: {{ printf "%s:%s" .Values.image.repository (default (printf "v%s" .Chart.AppVersion) (toString .Values.image.tag)) }}

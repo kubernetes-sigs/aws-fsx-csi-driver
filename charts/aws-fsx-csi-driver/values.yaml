@@ -47,7 +47,30 @@ controller:
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/fsx-csi-role
     name: fsx-csi-controller-sa
     annotations: {}
-  tolerations: []
+  tolerations:
+    - key: CriticalAddonsOnly
+      operator: Exists
+    - operator: Exists
+      effect: NoExecute
+      tolerationSeconds: 300
+  # TSCs without the label selector stanza
+  #
+  # Example:
+  #
+  # topologySpreadConstraints:
+  #  - maxSkew: 1
+  #    topologyKey: topology.kubernetes.io/zone
+  #    whenUnsatisfiable: ScheduleAnyway
+  #  - maxSkew: 1
+  #    topologyKey: kubernetes.io/hostname
+  #    whenUnsatisfiable: ScheduleAnyway
+  topologySpreadConstraints: []
+  # securityContext on the controller pod
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
   podAnnotations: {}
 
 node:
@@ -69,7 +92,18 @@ node:
     name: fsx-csi-node-sa
     annotations: {}
   tolerateAllTaints: false
-  tolerations: []
+  tolerations:
+    - key: CriticalAddonsOnly
+      operator: Exists
+    - operator: Exists
+      effect: NoExecute
+      tolerationSeconds: 300
+  # securityContext on the controller pod
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
   podAnnotations: {}
 
 nameOverride: ""
