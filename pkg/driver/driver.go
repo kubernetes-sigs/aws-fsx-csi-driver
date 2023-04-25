@@ -19,6 +19,7 @@ package driver
 import (
 	"context"
 	"net"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/internal"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc"
@@ -45,11 +46,10 @@ var (
 type Driver struct {
 	endpoint string
 	srv      *grpc.Server
-
-	cloud cloud.Cloud
-
-	nodeID  string
-	mounter Mounter
+	cloud    cloud.Cloud
+	inFlight *internal.InFlight
+	nodeID   string
+	mounter  Mounter
 }
 
 func NewDriver(endpoint string) *Driver {
@@ -60,11 +60,12 @@ func NewDriver(endpoint string) *Driver {
 
 	region := metadata.GetRegion()
 	cloud := cloud.NewCloud(region)
-
+	inFlight := internal.NewInFlight()
 	return &Driver{
 		endpoint: endpoint,
-		nodeID:   metadata.GetInstanceID(),
 		cloud:    cloud,
+		inFlight: inFlight,
+		nodeID:   metadata.GetInstanceID(),
 		mounter:  newNodeMounter(),
 	}
 }

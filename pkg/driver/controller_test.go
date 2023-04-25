@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/internal"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -68,6 +69,7 @@ func TestCreateVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -138,6 +140,7 @@ func TestCreateVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -213,6 +216,7 @@ func TestCreateVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -293,6 +297,7 @@ func TestCreateVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -323,6 +328,7 @@ func TestCreateVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -354,6 +360,7 @@ func TestCreateVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -382,6 +389,7 @@ func TestCreateVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -431,6 +439,7 @@ func TestDeleteVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -457,6 +466,7 @@ func TestDeleteVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -479,6 +489,7 @@ func TestDeleteVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -504,6 +515,7 @@ func TestDeleteVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -547,6 +559,7 @@ func TestExpandVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -588,6 +601,7 @@ func TestExpandVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -627,6 +641,7 @@ func TestExpandVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -657,6 +672,7 @@ func TestExpandVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -685,6 +701,7 @@ func TestExpandVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -717,6 +734,7 @@ func TestExpandVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -749,6 +767,7 @@ func TestExpandVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -794,6 +813,7 @@ func TestExpandVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 
@@ -838,6 +858,7 @@ func TestExpandVolume(t *testing.T) {
 
 				driver := &Driver{
 					endpoint: endpoint,
+					inFlight: internal.NewInFlight(),
 					cloud:    mockCloud,
 				}
 

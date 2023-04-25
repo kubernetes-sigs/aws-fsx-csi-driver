@@ -18,6 +18,8 @@ package driver
 
 import (
 	"context"
+	"fmt"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/internal"
 	"strconv"
 	"strings"
 
@@ -74,6 +76,13 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	if !d.isValidVolumeCapabilities(volCaps) {
 		return nil, status.Error(codes.InvalidArgument, "Volume capabilities not supported")
 	}
+
+	// check if a request is already in-flight
+	if ok := d.inFlight.Insert(volName); !ok {
+		msg := fmt.Sprintf("Create volume request for %s is already in progress", volName)
+		return nil, status.Error(codes.Aborted, msg)
+	}
+	defer d.inFlight.Delete(volName)
 
 	// create a new volume with idempotency
 	// idempotency is handled by `CreateFileSystem`
@@ -189,6 +198,13 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
 	}
+
+	// check if a request is already in-flight
+	if ok := d.inFlight.Insert(volumeID); !ok {
+		msg := fmt.Sprintf(internal.VolumeOperationAlreadyExistsErrorMsg, volumeID)
+		return nil, status.Error(codes.Aborted, msg)
+	}
+	defer d.inFlight.Delete(volumeID)
 
 	if err := d.cloud.DeleteFileSystem(ctx, volumeID); err != nil {
 		if err == cloud.ErrNotFound {
