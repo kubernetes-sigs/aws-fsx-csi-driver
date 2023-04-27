@@ -19,12 +19,10 @@ package driver
 import (
 	"context"
 	"net"
-	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/internal"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/util"
 )
 
@@ -32,46 +30,40 @@ const (
 	DriverName = "fsx.csi.aws.com"
 )
 
-var (
-	volumeCaps = []csi.VolumeCapability_AccessMode{
-		{
-			Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
-		},
-		{
-			Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
-		},
-	}
-)
-
 type Driver struct {
-	endpoint string
-	srv      *grpc.Server
-	cloud    cloud.Cloud
-	inFlight *internal.InFlight
-	nodeID   string
-	mounter  Mounter
+	controllerService
+	nodeService
+
+	srv     *grpc.Server
+	options *DriverOptions
 }
 
-func NewDriver(endpoint string) *Driver {
-	metadata, err := cloud.NewMetadata()
-	if err != nil {
-		klog.Fatalln(err)
+type DriverOptions struct {
+	endpoint string
+}
+
+func NewDriver(options ...func(*DriverOptions)) (*Driver, error) {
+	klog.InfoS("Driver Information", "Driver", DriverName, "Version", driverVersion)
+
+	driverOptions := DriverOptions{
+		endpoint: DefaultCSIEndpoint,
+	}
+	for _, option := range options {
+		option(&driverOptions)
 	}
 
-	region := metadata.GetRegion()
-	cloud := cloud.NewCloud(region)
-	inFlight := internal.NewInFlight()
-	return &Driver{
-		endpoint: endpoint,
-		cloud:    cloud,
-		inFlight: inFlight,
-		nodeID:   metadata.GetInstanceID(),
-		mounter:  newNodeMounter(),
+	driver := Driver{
+		options: &driverOptions,
 	}
+
+	driver.controllerService = newControllerService(&driverOptions)
+	driver.nodeService = newNodeService(&driverOptions)
+
+	return &driver, nil
 }
 
 func (d *Driver) Run() error {
-	scheme, addr, err := util.ParseEndpoint(d.endpoint)
+	scheme, addr, err := util.ParseEndpoint(d.options.endpoint)
 	if err != nil {
 		return err
 	}
@@ -104,4 +96,10 @@ func (d *Driver) Run() error {
 func (d *Driver) Stop() {
 	klog.Infof("Stopping server")
 	d.srv.Stop()
+}
+
+func WithEndpoint(endpoint string) func(*DriverOptions) {
+	return func(o *DriverOptions) {
+		o.endpoint = endpoint
+	}
 }

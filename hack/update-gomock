@@ -19,5 +19,7 @@ set -euo pipefail
 IMPORT_PATH=sigs.k8s.io/aws-fsx-csi-driver
 mockgen -package=mocks -destination=./pkg/driver/mocks/mock_mount.go --build_flags=--mod=mod ${IMPORT_PATH}/pkg/driver Mounter
 mockgen -package=mocks -destination=./pkg/cloud/mocks/mock_ec2metadata.go --build_flags=--mod=mod ${IMPORT_PATH}/pkg/cloud EC2Metadata
+mockgen -package=mocks -destination=./pkg/cloud/mocks/mock_metadata.go --build_flags=--mod=mod ${IMPORT_PATH}/pkg/cloud MetadataService
+
 mockgen -package=mocks -destination=./pkg/cloud/mocks/mock_fsx.go --build_flags=--mod=mod ${IMPORT_PATH}/pkg/cloud FSx
 mockgen -package=mocks -destination=./pkg/driver/mocks/mock_cloud.go --build_flags=--mod=mod ${IMPORT_PATH}/pkg/cloud Cloud

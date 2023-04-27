@@ -39,7 +39,6 @@ import (
 func TestCreateVolume(t *testing.T) {
 
 	var (
-		endpoint               = "endpoint"
 		volumeName             = "volumeName"
 		fileSystemId           = "fs-1234"
 		volumeSizeGiB    int64 = 1200
@@ -67,10 +66,10 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -138,10 +137,10 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -214,10 +213,10 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -295,10 +294,10 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -326,10 +325,10 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -358,10 +357,10 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -387,10 +386,10 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -424,7 +423,6 @@ func TestCreateVolume(t *testing.T) {
 
 func TestDeleteVolume(t *testing.T) {
 	var (
-		endpoint     = "endpoint"
 		fileSystemId = "fs-1234"
 	)
 	testCases := []struct {
@@ -437,10 +435,10 @@ func TestDeleteVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -464,10 +462,10 @@ func TestDeleteVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				req := &csi.DeleteVolumeRequest{}
@@ -487,10 +485,10 @@ func TestDeleteVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -513,10 +511,10 @@ func TestDeleteVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -542,7 +540,6 @@ func TestDeleteVolume(t *testing.T) {
 
 func TestExpandVolume(t *testing.T) {
 	var (
-		endpoint             = "endpoint"
 		fileSystemId         = "fs-1234"
 		initialSizeGiB int64 = 1200
 		finalSizeGiB   int64 = 2400
@@ -557,10 +554,10 @@ func TestExpandVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				ctx := context.Background()
@@ -599,10 +596,10 @@ func TestExpandVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				ctx := context.Background()
@@ -639,10 +636,10 @@ func TestExpandVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				ctx := context.Background()
@@ -670,10 +667,10 @@ func TestExpandVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				ctx := context.Background()
@@ -699,10 +696,10 @@ func TestExpandVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				ctx := context.Background()
@@ -732,10 +729,10 @@ func TestExpandVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				ctx := context.Background()
@@ -765,10 +762,10 @@ func TestExpandVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				ctx := context.Background()
@@ -811,10 +808,10 @@ func TestExpandVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				ctx := context.Background()
@@ -856,10 +853,10 @@ func TestExpandVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					inFlight: internal.NewInFlight(),
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				ctx := context.Background()
@@ -906,11 +903,11 @@ func TestExpandVolume(t *testing.T) {
 func TestControllerGetCapabilities(t *testing.T) {
 	mockCtl := gomock.NewController(t)
 	mockCloud := mocks.NewMockCloud(mockCtl)
-	endpoint := "endpoint"
 
-	driver := &Driver{
-		endpoint: endpoint,
-		cloud:    mockCloud,
+	driver := controllerService{
+		cloud:         mockCloud,
+		inFlight:      internal.NewInFlight(),
+		driverOptions: &DriverOptions{},
 	}
 
 	ctx := context.Background()
@@ -923,7 +920,6 @@ func TestControllerGetCapabilities(t *testing.T) {
 func TestValidateVolumeCapabilities(t *testing.T) {
 
 	var (
-		endpoint     = "endpoint"
 		fileSystemId = "fs-12345"
 		stdVolCap    = &csi.VolumeCapability{
 			AccessType: &csi.VolumeCapability_Mount{
@@ -944,9 +940,10 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				ctx := context.Background()
@@ -977,9 +974,10 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				ctx := context.Background()
@@ -1003,9 +1001,10 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := &Driver{
-					endpoint: endpoint,
-					cloud:    mockCloud,
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
 				}
 
 				ctx := context.Background()

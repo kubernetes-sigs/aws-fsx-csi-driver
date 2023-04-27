@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,30 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package options
 
 import (
 	flag "github.com/spf13/pflag"
-
-	"k8s.io/klog/v2"
-	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver"
 )
 
-func main() {
-	fs := flag.NewFlagSet("aws-fsx-csi-driver", flag.ExitOnError)
+// ControllerOptions contains options and configuration settings for the controller service.
+type ControllerOptions struct {
+}
 
-	options := GetOptions(fs)
-
-	drv, err := driver.NewDriver(
-		driver.WithEndpoint(options.ServerOptions.Endpoint),
-	)
-
-	if err != nil {
-		klog.ErrorS(err, "failed to create driver")
-		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
-	}
-	if err := drv.Run(); err != nil {
-		klog.ErrorS(err, "failed to run driver")
-		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
-	}
+func (s *ControllerOptions) AddFlags(fs *flag.FlagSet) {
 }

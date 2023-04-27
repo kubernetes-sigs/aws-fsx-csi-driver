@@ -33,10 +33,11 @@ type NodeMounter struct {
 	mount.Interface
 }
 
-func newNodeMounter() Mounter {
+// TODO: understand safe mounter before implementing
+func newNodeMounter() (Mounter, error) {
 	return &NodeMounter{
 		Interface: mount.New(""),
-	}
+	}, nil
 }
 
 func (m *NodeMounter) MakeDir(pathname string) error {
