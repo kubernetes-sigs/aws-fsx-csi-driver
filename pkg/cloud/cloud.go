@@ -127,6 +127,8 @@ func NewCloud(region string) Cloud {
 	awsConfig := &aws.Config{
 		Region:                        aws.String(region),
 		CredentialsChainVerboseErrors: aws.Bool(true),
+		// Set MaxRetries to a high value. It will be "overwritten" if context deadline comes sooner.
+		MaxRetries: aws.Int(8),
 	}
 
 	return &cloud{
