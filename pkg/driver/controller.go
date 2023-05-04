@@ -19,6 +19,7 @@ package driver
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -71,22 +72,31 @@ const (
 	volumeParamsExtraTags                     = "extraTags"
 )
 
+// controllerService represents the controller service of CSI driver
 type controllerService struct {
 	cloud         cloud.Cloud
 	inFlight      *internal.InFlight
 	driverOptions *DriverOptions
 }
 
+// newControllerService creates a new controller service
+// it panics if failed to create the service
 func newControllerService(driverOptions *DriverOptions) controllerService {
-	metadata, err := cloud.NewMetadata()
+	region := os.Getenv("AWS_REGION")
+	if region == "" {
+		klog.V(5).InfoS("[Debug] Retrieving region from metadata service")
+		metadata, err := cloud.NewMetadataService(cloud.DefaultEC2MetadataClient, cloud.DefaultKubernetesAPIClient, region)
+		if err != nil {
+			klog.ErrorS(err, "Could not determine region from any metadata service. The region can be manually supplied via the AWS_REGION environment variable.")
+			panic(err)
+		}
+		region = metadata.GetRegion()
+	}
+
+	cloudSrv, err := cloud.NewCloud(region)
 	if err != nil {
-		klog.ErrorS(err, "Could not determine region from any metadata service. The region can be manually supplied via the AWS_REGION environment variable.")
 		panic(err)
 	}
-	region := metadata.GetRegion()
-
-	cloudSrv := cloud.NewCloud(region)
-
 	return controllerService{
 		cloud:         cloudSrv,
 		inFlight:      internal.NewInFlight(),

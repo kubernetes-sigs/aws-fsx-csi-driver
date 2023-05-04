@@ -30,13 +30,13 @@ func init() {
 }
 
 type FakeCloudProvider struct {
-	m           *metadata
+	m           *Metadata
 	fileSystems map[string]*FileSystem
 }
 
 func NewFakeCloudProvider() *FakeCloudProvider {
 	return &FakeCloudProvider{
-		m:           &metadata{"instanceID", "region", "az"},
+		m:           &Metadata{InstanceID: "InstanceID", InstanceType: "Region", Region: "az"},
 		fileSystems: make(map[string]*FileSystem),
 	}
 }

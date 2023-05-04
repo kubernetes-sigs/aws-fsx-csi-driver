@@ -50,7 +50,7 @@ func TestNewMetadataService(t *testing.T) {
 			err: nil,
 		},
 		{
-			name:        "fail: metadata not available",
+			name:        "fail: Metadata not available",
 			isAvailable: false,
 			identityDocument: ec2metadata.EC2InstanceIdentityDocument{
 				InstanceID:       stdInstanceID,
@@ -81,7 +81,7 @@ func TestNewMetadataService(t *testing.T) {
 			err: nil,
 		},
 		{
-			name:        "fail: GetInstanceIdentityDocument returned empty region",
+			name:        "fail: GetInstanceIdentityDocument returned empty Region",
 			isAvailable: true,
 			isPartial:   true,
 			identityDocument: ec2metadata.EC2InstanceIdentityDocument{

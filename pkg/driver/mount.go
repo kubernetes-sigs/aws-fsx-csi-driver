@@ -33,7 +33,6 @@ type NodeMounter struct {
 	mount.Interface
 }
 
-// TODO: understand safe mounter before implementing
 func newNodeMounter() (Mounter, error) {
 	return &NodeMounter{
 		Interface: mount.New(""),

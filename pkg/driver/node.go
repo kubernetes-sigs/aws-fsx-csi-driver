@@ -42,11 +42,12 @@ type nodeService struct {
 
 func newNodeService(driverOptions *DriverOptions) nodeService {
 	klog.V(5).InfoS("[Debug] Retrieving node info from metadata service")
-
-	metadata, err := cloud.NewMetadata()
+	region := os.Getenv("AWS_REGION")
+	metadata, err := cloud.NewMetadataService(cloud.DefaultEC2MetadataClient, cloud.DefaultKubernetesAPIClient, region)
 	if err != nil {
 		panic(err)
 	}
+	klog.InfoS("regionFromSession Node service", "region", metadata.GetRegion())
 
 	nodeMounter, err := newNodeMounter()
 	if err != nil {

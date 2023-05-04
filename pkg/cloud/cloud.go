@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -52,6 +53,9 @@ const (
 	// VolumeNameTagKey is the key value that refers to the volume's name.
 	VolumeNameTagKey = "CSIVolumeName"
 )
+
+// Set during build time via -ldflags
+var driverVersion string
 
 var (
 	// ErrMultiDisks is an error that is returned when multiple
@@ -118,12 +122,13 @@ type Cloud interface {
 }
 
 type cloud struct {
-	fsx FSx
+	region string
+	fsx    FSx
 }
 
 // NewCloud returns a new instance of AWS cloud
 // It panics if session is invalid
-func NewCloud(region string) Cloud {
+func NewCloud(region string) (Cloud, error) {
 	awsConfig := &aws.Config{
 		Region:                        aws.String(region),
 		CredentialsChainVerboseErrors: aws.Bool(true),
@@ -131,9 +136,13 @@ func NewCloud(region string) Cloud {
 		MaxRetries: aws.Int(8),
 	}
 
+	os.Setenv("AWS_EXECUTION_ENV", "aws-fsx-csi-driver-"+driverVersion)
+
+	svc := fsx.New(session.Must(session.NewSession(awsConfig)))
 	return &cloud{
-		fsx: fsx.New(session.Must(session.NewSession(awsConfig))),
-	}
+		region: region,
+		fsx:    svc,
+	}, nil
 }
 
 func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSystemOptions *FileSystemOptions) (fs *FileSystem, err error) {
