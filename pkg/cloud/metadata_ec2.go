@@ -20,7 +20,7 @@ func EC2MetadataInstanceInfo(svc EC2Metadata, regionFromSession string) (*Metada
 	doc, err := svc.GetInstanceIdentityDocument()
 	klog.InfoS("Retrieving EC2 instance identity Metadata", "regionFromSession", regionFromSession)
 	if err != nil {
-		return nil, fmt.Errorf("could not get EC2 instance identity Metadata: %w", err)
+		return nil, fmt.Errorf("could not get EC2 instance identity metadata: %w", err)
 	}
 
 	if len(doc.InstanceID) == 0 {
@@ -40,11 +40,7 @@ func EC2MetadataInstanceInfo(svc EC2Metadata, regionFromSession string) (*Metada
 	}
 
 	if len(doc.AvailabilityZone) == 0 {
-		if len(regionFromSession) != 0 {
-			doc.AvailabilityZone = regionFromSession
-		} else {
-			return nil, fmt.Errorf("could not get valid EC2 availability zone")
-		}
+		return nil, fmt.Errorf("could not get valid EC2 availability zone")
 	}
 
 	instanceInfo := Metadata{

@@ -19,13 +19,12 @@ package main
 import (
 	"fmt"
 	flag "github.com/spf13/pflag"
+	"k8s.io/component-base/featuregate"
+	logsapi "k8s.io/component-base/logs/api/v1"
 	"k8s.io/klog/v2"
 	"os"
 	"sigs.k8s.io/aws-fsx-csi-driver/cmd/options"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver"
-
-	"k8s.io/component-base/featuregate"
-	logsapi "k8s.io/component-base/logs/api/v1"
 )
 
 // Options is the combined set of options for all operating modes.
@@ -43,14 +42,15 @@ var featureGate = featuregate.NewFeatureGate()
 func GetOptions(fs *flag.FlagSet) *Options {
 	var (
 		version = fs.Bool("version", false, "Print the version and exit.")
-		args    = os.Args[1:]
+
+		args = os.Args[1:]
 
 		serverOptions     = options.ServerOptions{}
 		controllerOptions = options.ControllerOptions{}
 		nodeOptions       = options.NodeOptions{}
 	)
 
-	serverOptions.AddFlags(fs)
+	mode := serverOptions.AddFlags(fs)
 
 	c := logsapi.NewLoggingConfiguration()
 
@@ -60,6 +60,21 @@ func GetOptions(fs *flag.FlagSet) *Options {
 	}
 
 	logsapi.AddFlags(c, fs)
+
+	switch {
+	case mode == driver.ControllerMode:
+		controllerOptions.AddFlags(fs)
+
+	case mode == driver.NodeMode:
+		nodeOptions.AddFlags(fs)
+
+	case mode == driver.AllMode:
+		controllerOptions.AddFlags(fs)
+		nodeOptions.AddFlags(fs)
+	default:
+		fmt.Printf("unknown command: %s: expected %q, %q or %q", mode, driver.ControllerMode, driver.NodeMode, driver.AllMode)
+		os.Exit(1)
+	}
 
 	if err := fs.Parse(args); err != nil {
 		panic(err)

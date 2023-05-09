@@ -24,10 +24,15 @@ import (
 
 // ServerOptions contains options and configuration settings for the driver server.
 type ServerOptions struct {
+	// DriverMode is the service mode the driver server should run in.
+	DriverMode string
 	// Endpoint is the endpoint that the driver server should listen on.
 	Endpoint string
 }
 
-func (s *ServerOptions) AddFlags(fs *flag.FlagSet) {
+func (s *ServerOptions) AddFlags(fs *flag.FlagSet) string {
+	fs.StringVar(&s.DriverMode, "mode", driver.AllMode, "Service mode the driver server should run in")
 	fs.StringVar(&s.Endpoint, "endpoint", driver.DefaultCSIEndpoint, "Endpoint for the CSI driver server")
+
+	return s.DriverMode
 }

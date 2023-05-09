@@ -93,6 +93,8 @@ func newControllerService(driverOptions *DriverOptions) controllerService {
 		region = metadata.GetRegion()
 	}
 
+	klog.InfoS("regionFromSession Controller service", "region", region)
+
 	cloudSrv, err := cloud.NewCloud(region)
 	if err != nil {
 		panic(err)

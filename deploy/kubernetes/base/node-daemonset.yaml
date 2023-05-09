@@ -36,10 +36,15 @@ spec:
           image: public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.9.0
           imagePullPolicy: IfNotPresent
           args:
+            - --mode=node
             - --endpoint=$(CSI_ENDPOINT)
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
+            - name: CSI_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           volumeMounts:
             - name: kubelet-dir
               mountPath: /var/lib/kubelet

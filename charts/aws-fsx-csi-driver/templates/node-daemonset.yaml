@@ -57,10 +57,15 @@ spec:
           image: {{ printf "%s:%s" .Values.image.repository (default (printf "v%s" .Chart.AppVersion) (toString .Values.image.tag)) }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
+            - --mode=node
             - --endpoint=$(CSI_ENDPOINT)
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
+            - name: CSI_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           volumeMounts:
             - name: kubelet-dir
               mountPath: /var/lib/kubelet
