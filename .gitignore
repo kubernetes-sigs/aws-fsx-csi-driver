@@ -6,3 +6,7 @@
 *.swp
 bin/
 *~
+
+# Vendor dir
+vendor/
+

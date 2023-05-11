@@ -34,6 +34,20 @@ func (m *MockMounter) EXPECT() *MockMounterMockRecorder {
 	return m.recorder
 }
 
+// CanSafelySkipMountPointCheck mocks base method.
+func (m *MockMounter) CanSafelySkipMountPointCheck() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CanSafelySkipMountPointCheck")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// CanSafelySkipMountPointCheck indicates an expected call of CanSafelySkipMountPointCheck.
+func (mr *MockMounterMockRecorder) CanSafelySkipMountPointCheck() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CanSafelySkipMountPointCheck", reflect.TypeOf((*MockMounter)(nil).CanSafelySkipMountPointCheck))
+}
+
 // GetMountRefs mocks base method.
 func (m *MockMounter) GetMountRefs(arg0 string) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -76,6 +90,21 @@ func (m *MockMounter) IsLikelyNotMountPoint(arg0 string) (bool, error) {
 func (mr *MockMounterMockRecorder) IsLikelyNotMountPoint(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsLikelyNotMountPoint", reflect.TypeOf((*MockMounter)(nil).IsLikelyNotMountPoint), arg0)
+}
+
+// IsMountPoint mocks base method.
+func (m *MockMounter) IsMountPoint(arg0 string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsMountPoint", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsMountPoint indicates an expected call of IsMountPoint.
+func (mr *MockMounterMockRecorder) IsMountPoint(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMountPoint", reflect.TypeOf((*MockMounter)(nil).IsMountPoint), arg0)
 }
 
 // List mocks base method.
