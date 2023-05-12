@@ -59,6 +59,10 @@ spec:
           args:
             - --mode=node
             - --endpoint=$(CSI_ENDPOINT)
+            {{- with .Values.controller.loggingFormat }}
+            - --logging-format={{ . }}
+            {{- end }}
+            - --v={{ .Values.node.logLevel }}
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
@@ -94,6 +98,7 @@ spec:
           args:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
+            - --v={{ .Values.sidecars.nodeDriverRegistrar.logLevel }}
           env:
             - name: ADDRESS
               value: /csi/csi.sock

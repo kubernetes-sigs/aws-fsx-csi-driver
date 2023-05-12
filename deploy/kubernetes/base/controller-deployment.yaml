@@ -36,6 +36,8 @@ spec:
           args:
             # - --mode={all,controller,node} # specify the driver mode
             - --endpoint=$(CSI_ENDPOINT)
+            - --logging-format=text
+            - --v=2
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
@@ -74,6 +76,7 @@ spec:
           image: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner:v3.4.0-eks-1-23-13
           args:
             - --csi-address=$(ADDRESS)
+            - --v=2
             - --timeout=5m
             - --extra-create-metadata
             - --leader-election=true
@@ -87,6 +90,7 @@ spec:
           image: public.ecr.aws/eks-distro/kubernetes-csi/external-resizer:v1.7.0-eks-1-23-13
           args:
             - --csi-address=$(ADDRESS)
+            - --v=2
             - --leader-election=true
             - --timeout=5m
           env:

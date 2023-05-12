@@ -38,6 +38,8 @@ spec:
           args:
             - --mode=node
             - --endpoint=$(CSI_ENDPOINT)
+            - --logging-format=text
+            - --v=2
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
@@ -69,6 +71,7 @@ spec:
           args:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
+            - --v=2
           env:
             - name: ADDRESS
               value: /csi/csi.sock

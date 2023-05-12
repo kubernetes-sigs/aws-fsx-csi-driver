@@ -18,6 +18,8 @@ package main
 
 import (
 	flag "github.com/spf13/pflag"
+	logsapi "k8s.io/component-base/logs/api/v1"
+	json "k8s.io/component-base/logs/json"
 
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver"
@@ -25,6 +27,10 @@ import (
 
 func main() {
 	fs := flag.NewFlagSet("aws-fsx-csi-driver", flag.ExitOnError)
+
+	if err := logsapi.RegisterLogFormat(logsapi.JSONLogFormat, json.Factory{}, logsapi.LoggingBetaOptions); err != nil {
+		klog.ErrorS(err, "failed to register JSON log format")
+	}
 
 	options := GetOptions(fs)
 

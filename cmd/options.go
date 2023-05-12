@@ -41,7 +41,8 @@ var featureGate = featuregate.NewFeatureGate()
 
 func GetOptions(fs *flag.FlagSet) *Options {
 	var (
-		version = fs.Bool("version", false, "Print the version and exit.")
+		version  = fs.Bool("version", false, "Print the version and exit.")
+		toStderr = fs.Bool("logtostderr", false, "log to standard error instead of files. DEPRECATED: will be removed in a future release.")
 
 		args = os.Args[1:]
 
@@ -93,6 +94,10 @@ func GetOptions(fs *flag.FlagSet) *Options {
 		}
 		fmt.Println(versionInfo)
 		osExit(0)
+	}
+
+	if *toStderr {
+		klog.SetOutput(os.Stderr)
 	}
 
 	return &Options{
