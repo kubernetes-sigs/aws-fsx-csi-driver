@@ -48,15 +48,9 @@ spec:
           image: {{ printf "%s:%s" .Values.image.repository (default (printf "v%s" .Chart.AppVersion) (toString .Values.image.tag)) }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            {{- if ne .Release.Name "kustomize" }}
-            - --mode=controller
-            {{- else }}
-            # - --mode={all,controller,node} # specify the driver mode
-            {{- end }}
+            - --mode={{ .Values.controller.mode }}
             - --endpoint=$(CSI_ENDPOINT)
-            {{- with .Values.controller.loggingFormat }}
-            - --logging-format={{ . }}
-            {{- end }}
+            - --logging-format={{ .Values.controller.loggingFormat }}
             - --v={{ .Values.controller.logLevel }}
           env:
             - name: CSI_ENDPOINT

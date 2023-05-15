@@ -40,6 +40,7 @@ sidecars:
     resources: {}
 
 controller:
+  mode: controller
   loggingFormat: text
   nodeSelector: {}
   replicaCount: 2
@@ -56,6 +57,7 @@ controller:
   podAnnotations: {}
 
 node:
+  mode: node
   loggingFormat: text
   logLevel: 2
   nodeSelector: {}

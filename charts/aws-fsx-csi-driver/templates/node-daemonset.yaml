@@ -57,11 +57,9 @@ spec:
           image: {{ printf "%s:%s" .Values.image.repository (default (printf "v%s" .Chart.AppVersion) (toString .Values.image.tag)) }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - --mode=node
+            - --mode={{ .Values.node.mode }}
             - --endpoint=$(CSI_ENDPOINT)
-            {{- with .Values.controller.loggingFormat }}
-            - --logging-format={{ . }}
-            {{- end }}
+            - --logging-format={{ .Values.node.loggingFormat }}
             - --v={{ .Values.node.logLevel }}
           env:
             - name: CSI_ENDPOINT
