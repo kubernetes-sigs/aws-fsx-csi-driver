@@ -17,33 +17,34 @@ limitations under the License.
 package main
 
 import (
-	"flag"
-	"fmt"
-	"os"
+	flag "github.com/spf13/pflag"
+	logsapi "k8s.io/component-base/logs/api/v1"
+	json "k8s.io/component-base/logs/json"
 
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver"
 )
 
 func main() {
-	var (
-		endpoint = flag.String("endpoint", "unix://tmp/csi.sock", "CSI Endpoint")
-		version  = flag.Bool("version", false, "Print the version and exit")
-	)
-	klog.InitFlags(nil)
-	flag.Parse()
+	fs := flag.NewFlagSet("aws-fsx-csi-driver", flag.ExitOnError)
 
-	if *version {
-		info, err := driver.GetVersionJSON()
-		if err != nil {
-			klog.Fatalln(err)
-		}
-		fmt.Println(info)
-		os.Exit(0)
+	if err := logsapi.RegisterLogFormat(logsapi.JSONLogFormat, json.Factory{}, logsapi.LoggingBetaOptions); err != nil {
+		klog.ErrorS(err, "failed to register JSON log format")
 	}
 
-	drv := driver.NewDriver(*endpoint)
+	options := GetOptions(fs)
+
+	drv, err := driver.NewDriver(
+		driver.WithEndpoint(options.ServerOptions.Endpoint),
+		driver.WithMode(options.ServerOptions.DriverMode),
+	)
+
+	if err != nil {
+		klog.ErrorS(err, "failed to create driver")
+		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
+	}
 	if err := drv.Run(); err != nil {
-		klog.Fatalln(err)
+		klog.ErrorS(err, "failed to run driver")
+		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
 	}
 }

@@ -19,6 +19,7 @@ package driver
 import (
 	"k8s.io/mount-utils"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/internal"
 )
 
 func NewFakeMounter() Mounter {
@@ -31,11 +32,28 @@ func NewFakeMounter() Mounter {
 
 // NewFakeDriver creates a new mock driver used for testing
 func NewFakeDriver(endpoint string) *Driver {
-	cloud := cloud.NewFakeCloudProvider()
-	return &Driver{
+	driverOptions := DriverOptions{
 		endpoint: endpoint,
-		nodeID:   cloud.GetMetadata().GetInstanceID(),
-		cloud:    cloud,
-		mounter:  NewFakeMounter(),
+		mode:     AllMode,
 	}
+
+	driver := &Driver{
+		options: &driverOptions,
+		controllerService: controllerService{
+			cloud:         cloud.NewFakeCloudProvider(),
+			inFlight:      internal.NewInFlight(),
+			driverOptions: &driverOptions,
+		},
+		nodeService: nodeService{
+			metadata: &cloud.Metadata{
+				InstanceID:       "instanceID",
+				Region:           "region",
+				AvailabilityZone: "az",
+			},
+			mounter:       NewFakeMounter(),
+			inFlight:      internal.NewInFlight(),
+			driverOptions: &DriverOptions{},
+		},
+	}
+	return driver
 }

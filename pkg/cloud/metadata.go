@@ -18,80 +18,76 @@ package cloud
 
 import (
 	"fmt"
+	"k8s.io/klog/v2"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
-	"github.com/aws/aws-sdk-go/aws/session"
 )
-
-type EC2Metadata interface {
-	Available() bool
-	GetInstanceIdentityDocument() (ec2metadata.EC2InstanceIdentityDocument, error)
-}
 
 // MetadataService represents AWS metadata service.
 type MetadataService interface {
 	GetInstanceID() string
+	GetInstanceType() string
 	GetRegion() string
 	GetAvailabilityZone() string
 }
 
-type metadata struct {
-	instanceID       string
-	region           string
-	availabilityZone string
+type EC2Metadata interface {
+	Available() bool
+	// ec2 instance metadata endpoints: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html
+	GetMetadata(string) (string, error)
+	GetInstanceIdentityDocument() (ec2metadata.EC2InstanceIdentityDocument, error)
 }
 
-var _ MetadataService = &metadata{}
+type Metadata struct {
+	InstanceID       string
+	InstanceType     string
+	Region           string
+	AvailabilityZone string
+}
+
+var _ MetadataService = &Metadata{}
 
 // GetInstanceID returns the instance identification.
-func (m *metadata) GetInstanceID() string {
-	return m.instanceID
+func (m *Metadata) GetInstanceID() string {
+	return m.InstanceID
 }
 
-// GetRegion returns the region Zone which the instance is in.
-func (m *metadata) GetRegion() string {
-	return m.region
+// GetInstanceType returns the instance type.
+func (m *Metadata) GetInstanceType() string {
+	return m.InstanceType
+}
+
+// GetRegion returns the Region Zone which the instance is in.
+func (m *Metadata) GetRegion() string {
+	return m.Region
 }
 
 // GetAvailabilityZone returns the Availability Zone which the instance is in.
-func (m *metadata) GetAvailabilityZone() string {
-	return m.availabilityZone
+func (m *Metadata) GetAvailabilityZone() string {
+	return m.AvailabilityZone
 }
 
 // NewMetadataService returns a new MetadataServiceImplementation.
-func NewMetadata() (MetadataService, error) {
-	sess := session.Must(session.NewSession(&aws.Config{}))
-	svc := ec2metadata.New(sess)
-	return NewMetadataService(svc)
-}
-
-// NewMetadataService returns a new MetadataServiceImplementation.
-func NewMetadataService(svc EC2Metadata) (MetadataService, error) {
+func NewMetadataService(ec2MetadataClient EC2MetadataClient, k8sAPIClient KubernetesAPIClient, region string) (MetadataService, error) {
+	klog.InfoS("retrieving instance data from ec2 metadata")
+	svc, err := ec2MetadataClient()
 	if !svc.Available() {
-		return nil, fmt.Errorf("EC2 instance metadata is not available")
+		klog.InfoS("ec2 metadata is not available")
+	} else if err != nil {
+		klog.InfoS("error creating ec2 metadata client", "err", err)
+	} else {
+		klog.InfoS("ec2 metadata is available")
+		return EC2MetadataInstanceInfo(svc, region)
 	}
 
-	doc, err := svc.GetInstanceIdentityDocument()
+	klog.InfoS("retrieving instance data from kubernetes api")
+	clientset, err := k8sAPIClient()
 	if err != nil {
-		return nil, fmt.Errorf("could not get EC2 instance identity metadata")
+		klog.InfoS("error creating kubernetes api client", "err", err)
+	} else {
+		klog.InfoS("kubernetes api is available")
+		return KubernetesAPIInstanceInfo(clientset)
 	}
 
-	if len(doc.InstanceID) == 0 {
-		return nil, fmt.Errorf("could not get valid EC2 instance ID")
-	}
-
-	if len(doc.Region) == 0 {
-		return nil, fmt.Errorf("could not get valid EC2 region")
-	}
-
-	if len(doc.AvailabilityZone) == 0 {
-		return nil, fmt.Errorf("could not get valid EC2 availavility zone")
-	}
-
-	return &metadata{
-		instanceID:       doc.InstanceID,
-		region:           doc.Region,
-		availabilityZone: doc.AvailabilityZone,
-	}, nil
+	return nil, fmt.Errorf("error getting instance data from ec2 metadata or kubernetes api")
 }

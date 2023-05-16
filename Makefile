@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-VERSION=v0.9.0
+VERSION?=v0.9.0
 
-PKG=github.com/kubernetes-sigs/aws-fsx-csi-driver
+PKG=sigs.k8s.io/aws-fsx-csi-driver
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE}"
+LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} -X ${PKG}/pkg/cloud.driverVersion=${VERSION} -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE} -s -w"
 
 GO111MODULE=on
 GOPROXY=direct
@@ -108,6 +108,7 @@ verify:
 .PHONY: test
 test:
 	go test -v -race ./pkg/...
+	go test -v ./cmd/...
 	go test -v ./tests/sanity/...
 
 .PHONY: test-e2e

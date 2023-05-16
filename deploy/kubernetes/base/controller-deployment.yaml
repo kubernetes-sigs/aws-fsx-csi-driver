@@ -34,10 +34,17 @@ spec:
           image: public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.9.0
           imagePullPolicy: IfNotPresent
           args:
+            - --mode=controller
             - --endpoint=$(CSI_ENDPOINT)
+            - --logging-format=text
+            - --v=2
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            - name: CSI_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
@@ -69,6 +76,7 @@ spec:
           image: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner:v3.4.0-eks-1-23-13
           args:
             - --csi-address=$(ADDRESS)
+            - --v=2
             - --timeout=5m
             - --extra-create-metadata
             - --leader-election=true
@@ -82,6 +90,7 @@ spec:
           image: public.ecr.aws/eks-distro/kubernetes-csi/external-resizer:v1.7.0-eks-1-23-13
           args:
             - --csi-address=$(ADDRESS)
+            - --v=2
             - --leader-election=true
             - --timeout=5m
           env:
