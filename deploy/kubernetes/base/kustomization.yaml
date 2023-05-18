@@ -7,3 +7,6 @@ resources:
   - node-serviceaccount.yaml
   - controller-deployment.yaml
   - controller-serviceaccount.yaml
+  - clusterrole-csi-node.yaml
+  - clusterrolebinding-csi-node.yaml
+

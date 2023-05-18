@@ -23,3 +23,7 @@ mockgen -package=mocks -destination=./pkg/cloud/mocks/mock_metadata.go --build_f
 
 mockgen -package=mocks -destination=./pkg/cloud/mocks/mock_fsx.go --build_flags=--mod=mod ${IMPORT_PATH}/pkg/cloud FSx
 mockgen -package=mocks -destination=./pkg/driver/mocks/mock_cloud.go --build_flags=--mod=mod ${IMPORT_PATH}/pkg/cloud Cloud
+
+# Reflection-based mocking for external dependencies
+mockgen -package=mocks -destination=./pkg/driver/mocks/mock_k8s_client.go --build_flags=--mod=mod -mock_names='Interface=MockKubernetesClient' k8s.io/client-go/kubernetes Interface
+mockgen -package=mocks -destination=./pkg/driver/mocks/mock_k8s_corev1.go --build_flags=--mod=mod k8s.io/client-go/kubernetes/typed/core/v1 CoreV1Interface,NodeInterface

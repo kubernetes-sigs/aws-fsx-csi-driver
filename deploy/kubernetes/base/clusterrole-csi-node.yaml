@@ -1,0 +1,12 @@
+---
+# Source: aws-fsx-csi-driver/templates/clusterrole-csi-node.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: fsx-csi-node-role
+  labels:
+    app.kubernetes.io/name: aws-fsx-csi-driver
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "patch"]

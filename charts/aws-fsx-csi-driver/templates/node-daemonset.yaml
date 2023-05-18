@@ -41,14 +41,11 @@ spec:
         {{- if .Values.node.tolerateAllTaints }}
         - operator: Exists
         {{- else }}
-        - key: CriticalAddonsOnly
-          operator: Exists
-        - operator: Exists
-          effect: NoExecute
-          tolerationSeconds: 300
-        {{- end }}
         {{- with .Values.node.tolerations }}
         {{- toYaml . | nindent 8 }}
+        {{- end }}
+        - key: "fsx.csi.aws.com/agent-not-ready"
+          operator: "Exists"
         {{- end }}
       containers:
         - name: fsx-plugin
