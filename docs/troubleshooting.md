@@ -15,10 +15,12 @@ For common Lustre issues, you can refer to the [AWS Lustre troubleshooting guide
 ##### Characteristics:
 
 1. The underlying file system has a large number of files
-2. When calling `kubectl get pod <pod-name>` you see an error message similar to this:
+2. Your configuration requires setting volume ownership, which can be verified by seeing `Setting volume ownership` in kubelet logs
+3. When calling `kubectl get pod <pod-name>` you see an error message similar to this:
 ```
 Warning  FailedMount  kubelet    Unable to attach or mount volumes: unmounted volumes=[fsx-volume-name], unattached volumes=[fsx-volume-name]: timed out waiting for the condition
 ```
+
 
 ##### Likely Cause:
 Volume ownership is being set recursively on every file in the volume, which prevents the pod from mounting the volume for an extended period of time. See https://github.com/kubernetes/kubernetes/issues/69699
@@ -28,7 +30,27 @@ Volume ownership is being set recursively on every file in the volume, which pre
 
 For more information on configuring securityContext, see https://kubernetes.io/docs/tasks/configure-pod-container/security-context/.
 
-  
+
+#### Issue: Pod is stuck in ContainerCreating when trying to mount a volume.
+
+##### Characteristics:
+
+1. When calling kubectl `get pod <pod-name>` you see an error message similar to this:
+```
+   Warning  FailedMount  kubelet    Unable to attach or mount volumes: unmounted volumes=[fsx-volume-name], unattached volumes=[fsx-volume-name]: timed out waiting for the condition
+```
+2. In the kubelet logs you see an error message similar to this:
+```
+kubernetes.io/csi: attacher.MountDevice failed to create newCsiDriverClient: driver name fsx.csi.aws.com not found in the list of registered CSI drivers
+```
+
+
+##### Likely Cause:
+A transient race condition is occurring on node startup, where CSI RPC calls are being made before the CSI driver is ready on the node.
+
+##### Mitigation:
+Refer to our [installation documentation](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/blob/master/docs/install.md#configure-node-startup-taint) for instructions on configuring the node startup taint.
+
 
 #### Issue: Pods fail to mount file system with the following error:
 
