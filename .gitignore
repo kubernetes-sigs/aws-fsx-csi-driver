@@ -9,4 +9,5 @@ bin/
 
 # Vendor dir
 vendor/
+tests/e2e/vendor
 
