@@ -7,6 +7,10 @@ The [Amazon FSx for Lustre](https://aws.amazon.com/fsx/lustre/) Container Storag
 
 ### Troubleshooting
 For help with troubleshooting, please refer to our [troubleshooting doc](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/blob/master/docs/troubleshooting.md).
+
+### Installation
+For installation and deployment instructions, please refer to our [installation doc](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/blob/master/docs/install.md)
+
 ### CSI Specification Compatibility Matrix
 | AWS FSx for Lustre CSI Driver \ CSI Version | v0.3.0 | v1.x.x |
 |---------------------------------------------|--------|--------|
@@ -77,87 +81,6 @@ The following sections are Kubernetes-specific. If you are a Kubernetes user, us
 
 **Notes**:
 * For dynamically provisioned volumes, only one subnet is allowed inside a storageclass's `parameters.subnetId`. This is a [limitation](https://docs.aws.amazon.com/fsx/latest/APIReference/API_CreateFileSystem.html#FSx-CreateFileSystem-request-SubnetIds) that is enforced by FSx for Lustre.
-
-### Installation
-#### Set up driver permission
-The driver requires IAM permission to talk to Amazon FSx for Lustre service to create/delete the filesystem on user's behalf. There are several methods to grant driver IAM permission:
-* Using secret object - create an IAM user with proper permission, put that user's credentials in [secret manifest](../deploy/kubernetes/secret.yaml) then deploy the secret.
-
-```sh
-curl https://raw.githubusercontent.com/kubernetes-sigs/aws-fsx-csi-driver/master/deploy/kubernetes/secret.yaml > secret.yaml
-# Edit the secret with user credentials
-kubectl apply -f secret.yaml
-```
-
-* Using worker node instance profile - grant all the worker nodes with proper permission by attach policy to the instance profile of the worker.
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "iam:CreateServiceLinkedRole",
-        "iam:AttachRolePolicy",
-        "iam:PutRolePolicy"
-       ],
-      "Resource": "arn:aws:iam::*:role/aws-service-role/s3.data-source.lustre.fsx.amazonaws.com/*"
-    },
-    {
-      "Action":"iam:CreateServiceLinkedRole",
-      "Effect":"Allow",
-      "Resource":"*",
-      "Condition":{
-        "StringLike":{
-          "iam:AWSServiceName":[
-            "fsx.amazonaws.com"
-          ]
-        }
-      }
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:ListBucket",
-        "fsx:CreateFileSystem",
-        "fsx:DeleteFileSystem",
-        "fsx:DescribeFileSystems",
-        "fsx:TagResource"
-      ],
-      "Resource": ["*"]
-    }
-  ]
-}
-```
-
-#### Deploy driver
-```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-0.9"
-# Alternatively,, to pull from
-# public ECR (public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver) instead of
-# private ECR (602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/aws-fsx-csi-driver):
-kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/ecr-public?ref=release-0.9"
-```
-
-Alternatively, you could also install the driver using helm:
-
-```sh
-helm repo add aws-fsx-csi-driver https://kubernetes-sigs.github.io/aws-fsx-csi-driver/
-helm repo update
-helm upgrade --install aws-fsx-csi-driver --namespace kube-system aws-fsx-csi-driver/aws-fsx-csi-driver
-```
-
-###### Upgrading from version release-0.4 to release-0.5 of the kustomize configuration
-
-In the master branch and the next release there are breaking changes that require you to `--force` to `kubectl apply`:
-```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/?ref=master" --force
-```
-
-##### Upgrading from version 0.x to 1.x of the helm chart
-
-Version 1.0.0 removed and renamed almost all values to be more consistent with the EBS and EFS CSI driver helm charts. For details, see the [CHANGELOG](./charts/aws-fsx-csi-driver/CHANGELOG.md).
 
 ### Examples
 Before the example, you need to:

@@ -12,4 +12,5 @@ keywords:
   - fsx
   - csi
 maintainers:
-  - name: leakingtapan
+  - name: Kubernetes Authors
+    url: https://github.com/kubernetes-sigs/aws-fsx-csi-driver/
