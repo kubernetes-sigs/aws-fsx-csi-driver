@@ -1,3 +1,14 @@
+# v0.10.0
+
+### Misc.
+* Have CSI driver use 2.12 Lustre client ([#293](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/293), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Add inflight checks to Create and Delete RPCs ([#309](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/309), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Modularize Node Service and Controller Service ([#309](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/309), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Increase MaxRetries for AWS client ([#309](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/309), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Implement operating modes ([#309](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/309), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Enable json logging ([#309](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/309), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Add Startup Taint Removal Feature ([#311](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/311), [@jacobwolfaws](https://github.com/jacobwolfaws))
+
 # v0.9.0
 
 ### Misc.
