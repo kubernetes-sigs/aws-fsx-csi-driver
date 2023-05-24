@@ -1,5 +1,12 @@
 # Helm chart
 
+# v1.6.0
+* Use driver image 0.10.0
+* Add driver modes for controller and node pods
+* Allow for json logging
+* parametrized pod tolerations
+* Added support for startup taint (please see install documentation for more information)
+
 # v1.5.1
 * Support controller pod annotations in helm chart
 * Support node pod annotations in helm chart

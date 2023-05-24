@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-VERSION?=v0.9.0
+VERSION?=v0.10.0
 
 PKG=sigs.k8s.io/aws-fsx-csi-driver
 GIT_COMMIT?=$(shell git rev-parse HEAD)
