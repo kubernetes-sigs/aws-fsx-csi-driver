@@ -1,4 +1,4 @@
-# Copyright 2019 The Kubernetes Authors.
+# Copyright 2023 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,20 +58,22 @@ bin/aws-fsx-csi-driver: | bin
 .PHONY: all
 all: all-image-docker
 
+# Builds all images and pushes them
 .PHONY: all-push
-all-push:
-	docker buildx build \
-		--no-cache-filter=linux-amazon \
-		--platform=$(PLATFORM) \
-		--progress=plain \
-		--target=$(OS)-$(OSVERSION) \
-		--output=type=registry \
-		-t=$(IMAGE):$(TAG) \
-		.
-	touch $@
+all-push: create-manifest-and-images
+	docker manifest push --purge $(IMAGE):$(TAG)
+
+.PHONY: create-manifest-and-images
+create-manifest-and-images: all-image-registry
+# sed expression:
+# LHS: match 0 or more not space characters
+# RHS: replace with $(IMAGE):$(TAG)-& where & is what was matched on LHS
+	docker manifest create --amend $(IMAGE):$(TAG) $(shell echo $(ALL_OS_ARCH_OSVERSION) | sed -e "s~[^ ]*~$(IMAGE):$(TAG)\-&~g")
 
 .PHONY: all-image-docker
 all-image-docker: $(addprefix sub-image-docker-,$(ALL_OS_ARCH_OSVERSION_linux))
+.PHONY: all-image-registry
+all-image-registry: $(addprefix sub-image-registry-,$(ALL_OS_ARCH_OSVERSION))
 
 sub-image-%:
 	$(MAKE) OUTPUT_TYPE=$(call word-hyphen,$*,1) OS=$(call word-hyphen,$*,2) ARCH=$(call word-hyphen,$*,3) OSVERSION=$(call word-hyphen,$*,4) image
@@ -80,12 +82,13 @@ sub-image-%:
 image: .image-$(TAG)-$(OS)-$(ARCH)-$(OSVERSION)
 .image-$(TAG)-$(OS)-$(ARCH)-$(OSVERSION):
 	docker buildx build \
-		--no-cache-filter=linux-amazon \
 		--platform=$(OS)/$(ARCH) \
 		--progress=plain \
 		--target=$(OS)-$(OSVERSION) \
 		--output=type=$(OUTPUT_TYPE) \
 		-t=$(IMAGE):$(TAG)-$(OS)-$(ARCH)-$(OSVERSION) \
+		--build-arg=GOPROXY=$(GOPROXY) \
+		--build-arg=VERSION=$(VERSION) \
 		.
 	touch $@
 
