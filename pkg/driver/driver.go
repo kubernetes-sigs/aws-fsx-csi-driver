@@ -100,7 +100,7 @@ func (d *Driver) Run() error {
 	logErr := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		resp, err := handler(ctx, req)
 		if err != nil {
-			klog.Errorf("GRPC error: %v", err)
+			klog.ErrorS(err, "GRPC error")
 		}
 		return resp, err
 	}
@@ -123,12 +123,12 @@ func (d *Driver) Run() error {
 		return fmt.Errorf("unknown mode: %s", d.options.mode)
 	}
 
-	klog.Infof("Listening for connections on address: %#v", listener.Addr())
+	klog.V(4).InfoS("Listening for connections", "address", listener.Addr())
 	return d.srv.Serve(listener)
 }
 
 func (d *Driver) Stop() {
-	klog.Infof("Stopping server")
+	klog.InfoS("Stopping server")
 	d.srv.Stop()
 }
 
