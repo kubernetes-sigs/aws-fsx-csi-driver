@@ -70,5 +70,5 @@ func (db *InFlight) Delete(key string) {
 	defer db.mux.Unlock()
 
 	delete(db.inFlight, key)
-	klog.V(4).InfoS("Node Service: volume operation finished", "key", key)
+	klog.V(4).InfoS("Volume operation finished", "key", key)
 }
