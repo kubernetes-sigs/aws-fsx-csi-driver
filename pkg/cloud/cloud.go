@@ -338,7 +338,7 @@ func (c *cloud) WaitForFileSystemAvailable(ctx context.Context, fileSystemId str
 		if err != nil {
 			return true, err
 		}
-		klog.V(2).Infof("WaitForFileSystemAvailable filesystem %q status is: %q", fileSystemId, *fs.Lifecycle)
+		klog.V(2).InfoS("WaitForFileSystemAvailable", "filesystem", fileSystemId, "status", *fs.Lifecycle)
 		switch *fs.Lifecycle {
 		case "AVAILABLE":
 			return true, nil
@@ -361,7 +361,7 @@ func (c *cloud) WaitForFileSystemResize(ctx context.Context, fileSystemId string
 			return true, err
 		}
 
-		klog.V(2).Infof("WaitForFileSystemResize filesystem %q update status is: %q", fileSystemId, *updateAction.Status)
+		klog.V(2).InfoS("WaitForFileSystemResize", "filesystem", fileSystemId, "update status", *updateAction.Status)
 		switch *updateAction.Status {
 		case "PENDING", "IN_PROGRESS":
 			// The resizing workflow has not completed

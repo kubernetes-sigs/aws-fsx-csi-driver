@@ -106,7 +106,7 @@ func newControllerService(driverOptions *DriverOptions) controllerService {
 	}
 }
 func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
-	klog.V(4).Infof("CreateVolume: called with args %#v", req)
+	klog.V(4).InfoS("CreateVolume: called", "args", *req)
 	volName := req.GetName()
 	if len(volName) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume name not provided")
@@ -237,7 +237,7 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 }
 
 func (d *controllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
-	klog.V(4).Infof("DeleteVolume: called with args: %#v", req)
+	klog.V(4).InfoS("DeleteVolume: called", "args", *req)
 	volumeID := req.GetVolumeId()
 	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
@@ -252,7 +252,7 @@ func (d *controllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 
 	if err := d.cloud.DeleteFileSystem(ctx, volumeID); err != nil {
 		if err == cloud.ErrNotFound {
-			klog.V(4).Infof("DeleteVolume: volume not found, returning with success")
+			klog.V(4).InfoS("DeleteVolume: volume not found, returning with success")
 			return &csi.DeleteVolumeResponse{}, nil
 		}
 		return nil, status.Errorf(codes.Internal, "Could not delete volume ID %q: %v", volumeID, err)
@@ -269,7 +269,7 @@ func (d *controllerService) ControllerUnpublishVolume(ctx context.Context, req *
 }
 
 func (d *controllerService) ControllerGetCapabilities(ctx context.Context, req *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
-	klog.V(4).Infof("ControllerGetCapabilities: called with args %#v", req)
+	klog.V(4).InfoS("ControllerGetCapabilities: called", "args", *req)
 	var caps []*csi.ControllerServiceCapability
 	for _, cap := range controllerCaps {
 		c := &csi.ControllerServiceCapability{
@@ -285,17 +285,17 @@ func (d *controllerService) ControllerGetCapabilities(ctx context.Context, req *
 }
 
 func (d *controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
-	klog.V(4).Infof("GetCapacity: called with args %#v", req)
+	klog.V(4).InfoS("GetCapacity: called", "args", *req)
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
 func (d *controllerService) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
-	klog.V(4).Infof("ListVolumes: called with args %#v", req)
+	klog.V(4).InfoS("ListVolumes: called", "args", *req)
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
 func (d *controllerService) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
-	klog.V(4).Infof("ValidateVolumeCapabilities: called with args %#v", req)
+	klog.V(4).InfoS("ValidateVolumeCapabilities: called", "args", *req)
 	volumeID := req.GetVolumeId()
 	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
@@ -361,7 +361,7 @@ func (d *controllerService) ListSnapshots(ctx context.Context, req *csi.ListSnap
 }
 
 func (d *controllerService) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
-	klog.V(4).Infof("ControllerExpandVolume: called with args %+v", *req)
+	klog.V(4).InfoS("ControllerExpandVolume: called", "args", *req)
 	volumeID := req.GetVolumeId()
 	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
@@ -389,7 +389,7 @@ func (d *controllerService) ControllerExpandVolume(ctx context.Context, req *csi
 	}
 	if newSizeGiB <= fs.CapacityGiB {
 		// Current capacity is sufficient to satisfy the request
-		klog.V(4).Infof("ControllerExpandVolume: current filesystem capacity of %d GiB matches or exceeds requested storage capacity of %d GiB, returning with success", fs.CapacityGiB, newSizeGiB)
+		klog.V(4).InfoS("ControllerExpandVolume: current filesystem capacity matches or exceeds requested storage capacity, returning with success", "current capacity", fs.CapacityGiB, "requested capacity", newSizeGiB)
 		return &csi.ControllerExpandVolumeResponse{
 			CapacityBytes:         util.GiBToBytes(fs.CapacityGiB),
 			NodeExpansionRequired: false,
