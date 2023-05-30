@@ -5,7 +5,7 @@ metadata:
 spec:
   containers:
   - name: app1
-    image: centos
+    image: amazonlinux:2
     command: ["/bin/sh"]
     args: ["-c", "while true; do echo $(date -u) >> /data/out1.txt; sleep 5; done"]
     volumeMounts:
