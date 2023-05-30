@@ -66,6 +66,10 @@ spec:
                   name: aws-secret
                   key: access_key
                   optional: true
+            {{- with .Values.controller.region }}
+            - name: AWS_REGION
+              value: {{ . }}
+            {{- end }}
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/

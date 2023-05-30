@@ -54,6 +54,11 @@ controller:
     annotations: {}
   logLevel: 2
   podAnnotations: {}
+  # AWS region to use. If not specified then the region will be looked up via the AWS EC2 metadata
+  # service.
+  # ---
+  # region: us-east-1
+  region:
   tolerations:
     - key: CriticalAddonsOnly
       operator: Exists
