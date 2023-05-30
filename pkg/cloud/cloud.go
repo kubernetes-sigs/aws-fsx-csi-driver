@@ -235,9 +235,6 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 
 	output, err := c.fsx.CreateFileSystemWithContext(ctx, input)
 	if err != nil {
-		if isIncompatibleParameter(err) {
-			return nil, ErrFsExistsDiffSize
-		}
 		return nil, fmt.Errorf("CreateFileSystem failed: %v", err)
 	}
 
@@ -427,15 +424,6 @@ func (c *cloud) getUpdateResizeAdministrativeAction(ctx context.Context, fileSys
 func isFileSystemNotFound(err error) bool {
 	if awsErr, ok := err.(awserr.Error); ok {
 		if awsErr.Code() == fsx.ErrCodeFileSystemNotFound {
-			return true
-		}
-	}
-	return false
-}
-
-func isIncompatibleParameter(err error) bool {
-	if awsErr, ok := err.(awserr.Error); ok {
-		if awsErr.Code() == fsx.ErrCodeIncompatibleParameterError {
 			return true
 		}
 	}
