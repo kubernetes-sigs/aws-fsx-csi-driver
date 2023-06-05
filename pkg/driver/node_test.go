@@ -19,6 +19,8 @@ package driver
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"reflect"
@@ -29,6 +31,10 @@ import (
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
 	driverMocks "sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/mocks"
+)
+
+var (
+	volumeID = "voltest"
 )
 
 func TestNodePublishVolume(t *testing.T) {
@@ -431,6 +437,36 @@ func TestNodePublishVolume(t *testing.T) {
 				mockCtl.Finish()
 			},
 		},
+		{
+			name: "fail another operation in-flight on given volumeId",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				defer mockCtl.Finish()
+
+				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
+				mockMounter := driverMocks.NewMockMounter(mockCtl)
+
+				awsDriver := &nodeService{
+					metadata: mockMetadata,
+					mounter:  mockMounter,
+					inFlight: internal.NewInFlight(),
+				}
+
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId: volumeID,
+					VolumeContext: map[string]string{
+						volumeContextDnsName:   dnsname,
+						volumeContextMountName: mountname,
+					},
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+				}
+
+				awsDriver.inFlight.Insert(volumeID)
+				_, err := awsDriver.NodePublishVolume(context.TODO(), req)
+				expectErr(t, err, codes.Aborted)
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -564,6 +600,31 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "fail another operation in-flight on given volumeId",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				defer mockCtl.Finish()
+
+				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
+				mockMounter := driverMocks.NewMockMounter(mockCtl)
+
+				awsDriver := &nodeService{
+					metadata: mockMetadata,
+					mounter:  mockMounter,
+					inFlight: internal.NewInFlight(),
+				}
+
+				req := &csi.NodeUnpublishVolumeRequest{
+					VolumeId:   volumeID,
+					TargetPath: targetPath,
+				}
+
+				awsDriver.inFlight.Insert(volumeID)
+				_, err := awsDriver.NodeUnpublishVolume(context.TODO(), req)
+				expectErr(t, err, codes.Aborted)
+			},
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, tc.testFunc)
@@ -691,4 +752,19 @@ func getNodeMock(mockCtl *gomock.Controller, nodeName string, returnNode *corev1
 	mockNode.EXPECT().Get(gomock.Any(), gomock.Eq(nodeName), gomock.Any()).Return(returnNode, returnError).MinTimes(1)
 
 	return mockClient, mockNode
+}
+
+func expectErr(t *testing.T, actualErr error, expectedCode codes.Code) {
+	if actualErr == nil {
+		t.Fatalf("Expect error but got no error")
+	}
+
+	status, ok := status.FromError(actualErr)
+	if !ok {
+		t.Fatalf("Failed to get error status code from error: %v", actualErr)
+	}
+
+	if status.Code() != expectedCode {
+		t.Fatalf("Expected error code %d, got %d message %s", expectedCode, status.Code(), status.Message())
+	}
 }
