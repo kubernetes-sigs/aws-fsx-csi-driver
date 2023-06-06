@@ -37,6 +37,9 @@ var (
 	nodeCaps = []csi.NodeServiceCapability_RPC_Type{}
 )
 
+// VolumeOperationAlreadyExists is message fmt returned to CO when there is another in-flight call on the given volumeID
+const VolumeOperationAlreadyExists = "An operation with the given volume=%q is already in progress"
+
 type nodeService struct {
 	metadata      cloud.MetadataService
 	mounter       Mounter
@@ -117,6 +120,14 @@ func (d *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Error(codes.InvalidArgument, "Volume capability not supported")
 	}
 
+	if ok := d.inFlight.Insert(volumeID); !ok {
+		return nil, status.Errorf(codes.Aborted, VolumeOperationAlreadyExists, volumeID)
+	}
+	defer func() {
+		klog.V(4).InfoS("NodePublishVolume: volume operation finished", "volumeId", volumeID)
+		d.inFlight.Delete(volumeID)
+	}()
+
 	mountOptions := []string{}
 	if req.GetReadonly() {
 		mountOptions = append(mountOptions, "ro")
@@ -170,6 +181,14 @@ func (d *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	if len(target) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Target path not provided")
 	}
+
+	if ok := d.inFlight.Insert(volumeID); !ok {
+		return nil, status.Errorf(codes.Aborted, VolumeOperationAlreadyExists, volumeID)
+	}
+	defer func() {
+		klog.V(4).InfoS("NodeUnpublishVolume: volume operation finished", "volumeId", volumeID)
+		d.inFlight.Delete(volumeID)
+	}()
 
 	// Check if the target is mounted before unmounting
 	notMnt, _ := d.mounter.IsLikelyNotMountPoint(target)
