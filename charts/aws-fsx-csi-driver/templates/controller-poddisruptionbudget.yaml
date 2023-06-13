@@ -1,0 +1,14 @@
+{{- if .Values.controller.podDisruptionBudget }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fsx-csi-controller
+  labels:
+    app.kubernetes.io/name: fsx-csi-controller
+spec:
+  selector:
+    matchLabels:
+      app: fsx-csi-controller
+      {{- include "aws-fsx-csi-driver.labels" . | nindent 6 }}
+{{ toYaml .Values.controller.podDisruptionBudget | indent 2 }}
+{{- end }}
