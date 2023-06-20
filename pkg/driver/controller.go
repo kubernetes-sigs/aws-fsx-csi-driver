@@ -213,10 +213,18 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		fsOptions.CapacityGiB = util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fsOptions.DeploymentType, fsOptions.StorageType, fsOptions.PerUnitStorageThroughput)
 	}
 
+	var tagArray []string
+	optionsTags := d.driverOptions.extraTags
+
+	if optionsTags != "" {
+		tagArray = strings.Split(optionsTags, ",")
+	}
+
 	if val, ok := volumeParams[volumeParamsExtraTags]; ok {
 		extraTags := strings.Split(val, ",")
-		fsOptions.ExtraTags = extraTags
+		tagArray = append(tagArray, extraTags...)
 	}
+	fsOptions.ExtraTags = tagArray
 
 	fs, err := d.cloud.CreateFileSystem(ctx, volName, fsOptions)
 	if err != nil {
