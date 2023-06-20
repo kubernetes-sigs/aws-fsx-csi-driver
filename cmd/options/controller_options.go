@@ -22,7 +22,10 @@ import (
 
 // ControllerOptions contains options and configuration settings for the controller service.
 type ControllerOptions struct {
+	// ExtraTags is a map of tags that will be attached to each dynamically provisioned resource.
+	ExtraTags string
 }
 
 func (s *ControllerOptions) AddFlags(fs *flag.FlagSet) {
+	fs.StringVar(&s.ExtraTags, "extra-tags", "", "Extra tags to attach to each dynamically provisioned resource. It is a comma separated list of key value pairs like '<key1>=<value1>,<key2>=<value2>'")
 }
