@@ -31,7 +31,6 @@ spec:
         {{- with .Values.controller.nodeSelector }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      hostNetwork: true
       serviceAccountName: {{ .Values.controller.serviceAccount.name }}
       priorityClassName: system-cluster-critical
       tolerations:

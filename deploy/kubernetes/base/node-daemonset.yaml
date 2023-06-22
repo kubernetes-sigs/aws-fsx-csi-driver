@@ -19,7 +19,6 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/os: linux
-      hostNetwork: true
       dnsPolicy: ClusterFirst
       serviceAccountName: fsx-csi-node-sa
       priorityClassName: system-node-critical
