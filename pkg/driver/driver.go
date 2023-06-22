@@ -52,8 +52,9 @@ type Driver struct {
 }
 
 type DriverOptions struct {
-	endpoint string
-	mode     string
+	endpoint  string
+	mode      string
+	extraTags string
 }
 
 func NewDriver(options ...func(*DriverOptions)) (*Driver, error) {
@@ -100,7 +101,7 @@ func (d *Driver) Run() error {
 	logErr := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		resp, err := handler(ctx, req)
 		if err != nil {
-			klog.Errorf("GRPC error: %v", err)
+			klog.ErrorS(err, "GRPC error")
 		}
 		return resp, err
 	}
@@ -123,12 +124,12 @@ func (d *Driver) Run() error {
 		return fmt.Errorf("unknown mode: %s", d.options.mode)
 	}
 
-	klog.Infof("Listening for connections on address: %#v", listener.Addr())
+	klog.V(4).InfoS("Listening for connections", "address", listener.Addr())
 	return d.srv.Serve(listener)
 }
 
 func (d *Driver) Stop() {
-	klog.Infof("Stopping server")
+	klog.InfoS("Stopping server")
 	d.srv.Stop()
 }
 
@@ -141,5 +142,11 @@ func WithEndpoint(endpoint string) func(*DriverOptions) {
 func WithMode(mode string) func(*DriverOptions) {
 	return func(o *DriverOptions) {
 		o.mode = mode
+	}
+}
+
+func WithExtraTags(extraTags string) func(*DriverOptions) {
+	return func(o *DriverOptions) {
+		o.extraTags = extraTags
 	}
 }

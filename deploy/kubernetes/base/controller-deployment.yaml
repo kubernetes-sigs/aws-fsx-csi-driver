@@ -20,7 +20,6 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/os: linux
-      hostNetwork: true
       serviceAccountName: fsx-csi-controller-sa
       priorityClassName: system-cluster-critical
       tolerations:
@@ -73,7 +72,7 @@ spec:
             periodSeconds: 2
             failureThreshold: 5
         - name: csi-provisioner
-          image: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner:v3.5.0-eks-1-26-9
+          image: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner:v3.5.0-eks-1-27-5
           args:
             - --csi-address=$(ADDRESS)
             - --v=2
@@ -87,7 +86,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-resizer
-          image: public.ecr.aws/eks-distro/kubernetes-csi/external-resizer:v1.8.0-eks-1-26-9
+          image: public.ecr.aws/eks-distro/kubernetes-csi/external-resizer:v1.8.0-eks-1-27-5
           args:
             - --csi-address=$(ADDRESS)
             - --v=2
@@ -100,7 +99,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: liveness-probe
-          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.10.0-eks-1-26-9
+          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.10.0-eks-1-27-5
           args:
             - --csi-address=/csi/csi.sock
             - --health-port=9910

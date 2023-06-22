@@ -235,9 +235,6 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 
 	output, err := c.fsx.CreateFileSystemWithContext(ctx, input)
 	if err != nil {
-		if isIncompatibleParameter(err) {
-			return nil, ErrFsExistsDiffSize
-		}
 		return nil, fmt.Errorf("CreateFileSystem failed: %v", err)
 	}
 
@@ -338,7 +335,7 @@ func (c *cloud) WaitForFileSystemAvailable(ctx context.Context, fileSystemId str
 		if err != nil {
 			return true, err
 		}
-		klog.V(2).Infof("WaitForFileSystemAvailable filesystem %q status is: %q", fileSystemId, *fs.Lifecycle)
+		klog.V(2).InfoS("WaitForFileSystemAvailable", "filesystem", fileSystemId, "status", *fs.Lifecycle)
 		switch *fs.Lifecycle {
 		case "AVAILABLE":
 			return true, nil
@@ -361,7 +358,7 @@ func (c *cloud) WaitForFileSystemResize(ctx context.Context, fileSystemId string
 			return true, err
 		}
 
-		klog.V(2).Infof("WaitForFileSystemResize filesystem %q update status is: %q", fileSystemId, *updateAction.Status)
+		klog.V(2).InfoS("WaitForFileSystemResize", "filesystem", fileSystemId, "update status", *updateAction.Status)
 		switch *updateAction.Status {
 		case "PENDING", "IN_PROGRESS":
 			// The resizing workflow has not completed
@@ -427,15 +424,6 @@ func (c *cloud) getUpdateResizeAdministrativeAction(ctx context.Context, fileSys
 func isFileSystemNotFound(err error) bool {
 	if awsErr, ok := err.(awserr.Error); ok {
 		if awsErr.Code() == fsx.ErrCodeFileSystemNotFound {
-			return true
-		}
-	}
-	return false
-}
-
-func isIncompatibleParameter(err error) bool {
-	if awsErr, ok := err.(awserr.Error); ok {
-		if awsErr.Code() == fsx.ErrCodeIncompatibleParameterError {
 			return true
 		}
 	}
