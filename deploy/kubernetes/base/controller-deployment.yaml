@@ -30,7 +30,7 @@ spec:
           tolerationSeconds: 300
       containers:
         - name: fsx-plugin
-          image: public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.10.0
+          image: public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.10.1
           imagePullPolicy: IfNotPresent
           args:
             - --mode=controller
