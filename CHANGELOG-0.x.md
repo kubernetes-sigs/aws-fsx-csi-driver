@@ -1,3 +1,21 @@
+# v0.10.1
+
+### Announcement
+To improve the security of the container images, the base image will be substantially reduced in scope to only contain the necessary driver dependencies in an upcoming release.
+**The CSI driver image should only be used in the CSI driver Deployment and Daemonset pods as documented in our Helm chart and Kustomize manifests. While this change won’t negatively impact workloads that rely on volumes managed by the FSx for Lustre CSI Driver, it may break unsupported uses of the CSI driver image outside of the aforementioned official deployment methods.**
+
+### Notable Changes
+* Add inflight check to node operations ([#325](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/325), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Allow for extra tags in controller deployment ([#331](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/331), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Remove hostNetwork from helm and manifests ([#332](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/332), [@jacobwolfaws](https://github.com/jacobwolfaws))
+
+### Bug fixes
+* Remove ErrFsExistsDiffSize error on incompatible parameter ([#322](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/322), [@jacobwolfaws](https://github.com/jacobwolfaws))
+
+### Improvements
+* Update log functions ([#320](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/320), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Bump sidecar images ([#333](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/333), [@jacobwolfaws](https://github.com/jacobwolfaws))
+
 # v0.10.0
 
 ### Misc.
