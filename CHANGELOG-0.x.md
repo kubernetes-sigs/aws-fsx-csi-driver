@@ -1,8 +1,21 @@
+# v1.0.0
+## Notable Changes
+* Substantially reduced driver dependencies ([#318](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/318), [@jacobwolfaws](https://github.com/jacobwolfaws))
+
+### Improvements
+* Added arch prefix to images ([#318](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/318), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Update go version, dependencies, and bump sidecars ([#338](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/338), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Remove ebs references from e2e testing ([#339](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/339), [@jacobwolfaws](https://github.com/jacobwolfaws))
+
+### Acknowledgments
+* We would like to sincerely thank:
+  [@jaxesn](https://github.com/jaxesn)
+
 # v0.10.1
 
 ### Announcement
 To improve the security of the container images, the base image will be substantially reduced in scope to only contain the necessary driver dependencies in an upcoming release.
-**The CSI driver image should only be used in the CSI driver Deployment and Daemonset pods as documented in our Helm chart and Kustomize manifests. While this change won’t negatively impact workloads that rely on volumes managed by the FSx for Lustre CSI Driver, it may break unsupported uses of the CSI driver image outside of the aforementioned official deployment methods.**
+**The CSI driver image should only be used in the CSI driver Deployment and Daemonset pods as documented in our Helm chart and Kustomize manifests. While this change won’t negatively impact workloads that rely on volumes managed by the FSx for Lustre CSI Driver, it may break unsupported uses of the CSI driver image outside the aforementioned official deployment methods.**
 
 ### Notable Changes
 * Add inflight check to node operations ([#325](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/325), [@jacobwolfaws](https://github.com/jacobwolfaws))
