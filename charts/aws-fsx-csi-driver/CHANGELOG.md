@@ -1,5 +1,8 @@
 # Helm chart
 
+# v.1.7.0
+* Use driver image 1.0.0
+
 # v1.6.1
 * Removed hostNetwork: true from helm deployment
 * Allow for extra tags in controller deployment
