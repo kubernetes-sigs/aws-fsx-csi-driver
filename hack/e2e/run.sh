@@ -49,14 +49,15 @@ IMAGE_TAG=${IMAGE_TAG:-${TEST_ID}}
 
 # kops: must include patch version (e.g. 1.19.1)
 # eksctl: mustn't include patch version (e.g. 1.19)
-K8S_VERSION=${K8S_VERSION:-1.20.8}
+K8S_VERSION_KOPS=${K8S_VERSION_KOPS:-${K8S_VERSION:-1.23.0}}
+K8S_VERSION_EKSCTL=${K8S_VERSION_EKSCTL:-${K8S_VERSION:-1.23}}
 
-KOPS_VERSION=${KOPS_VERSION:-1.21.0}
+KOPS_VERSION=${KOPS_VERSION:-1.23.1}
 KOPS_STATE_FILE=${KOPS_STATE_FILE:-s3://k8s-kops-csi-e2e}
 KOPS_PATCH_FILE=${KOPS_PATCH_FILE:-./hack/kops-patch.yaml}
 KOPS_PATCH_NODE_FILE=${KOPS_PATCH_NODE_FILE:-./hack/kops-patch-node.yaml}
 
-EKSCTL_VERSION=${EKSCTL_VERSION:-0.69.0}
+EKSCTL_VERSION=${EKSCTL_VERSION:-0.133.0}
 EKSCTL_PATCH_FILE=${EKSCTL_PATCH_FILE:-./hack/eksctl-patch.yaml}
 EKSCTL_ADMIN_ROLE=${EKSCTL_ADMIN_ROLE:-}
 
@@ -115,7 +116,7 @@ if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
     "$ZONES" \
     "$NODE_COUNT" \
     "$INSTANCE_TYPE" \
-    "$K8S_VERSION" \
+    "$K8S_VERSION_KOPS" \
     "$CLUSTER_FILE" \
     "$KUBECONFIG" \
     "$KOPS_PATCH_FILE" \
@@ -131,7 +132,7 @@ elif [[ "${CLUSTER_TYPE}" == "eksctl" ]]; then
     "$EKSCTL_BIN" \
     "$ZONES" \
     "$INSTANCE_TYPE" \
-    "$K8S_VERSION" \
+    "$K8S_VERSION_EKSCTL" \
     "$CLUSTER_FILE" \
     "$KUBECONFIG" \
     "$EKSCTL_PATCH_FILE" \
