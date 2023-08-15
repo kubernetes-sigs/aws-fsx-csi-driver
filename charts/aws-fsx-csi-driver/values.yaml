@@ -8,7 +8,7 @@ image:
   pullPolicy: IfNotPresent
 
 csidriver:
-  fsGroupPolicy: ReadWriteOnceWithFSType
+  fsGroupPolicy: File
 
 sidecars:
   livenessProbe:

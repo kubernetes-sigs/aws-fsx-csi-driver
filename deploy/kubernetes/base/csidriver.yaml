@@ -6,4 +6,4 @@ metadata:
   name: fsx.csi.aws.com
 spec:
   attachRequired: false
-  fsGroupPolicy: ReadWriteOnceWithFSType
+  fsGroupPolicy: File
