@@ -36,10 +36,11 @@ func NewCloud(region string) *cloud {
 	}
 	sess := session.Must(session.NewSession(config))
 
+	newCloud, _ := fsx.NewCloud(region)
 	return &cloud{
 		ec2.New(sess),
 		s3.New(sess),
-		fsx.NewCloud(region),
+		newCloud,
 	}
 }
 

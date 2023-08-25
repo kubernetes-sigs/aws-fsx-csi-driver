@@ -9,12 +9,12 @@ require (
 	github.com/onsi/gomega v1.27.4
 	github.com/spf13/pflag v1.0.5
 	google.golang.org/grpc v1.56.2
-	k8s.io/api v0.27.3
-	k8s.io/apimachinery v0.27.3
-	k8s.io/client-go v0.27.3
-	k8s.io/component-base v0.27.3
+	k8s.io/api v0.27.4
+	k8s.io/apimachinery v0.27.4
+	k8s.io/client-go v0.27.4
+	k8s.io/component-base v0.27.4
 	k8s.io/klog/v2 v2.100.1
-	k8s.io/mount-utils v0.27.3
+	k8s.io/mount-utils v0.27.4
 
 )
 
