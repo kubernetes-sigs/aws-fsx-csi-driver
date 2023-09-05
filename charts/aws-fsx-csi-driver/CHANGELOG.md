@@ -1,5 +1,13 @@
 # Helm chart
 
+# v.1.7.0
+* Use driver image 1.0.0
+
+# v1.6.1
+* Removed hostNetwork: true from helm deployment
+* Allow for extra tags in controller deployment
+* Add region for controller to helm chart
+
 # v1.6.0
 * Use driver image 0.10.0
 * Add driver modes for controller and node pods

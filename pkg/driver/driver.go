@@ -52,8 +52,9 @@ type Driver struct {
 }
 
 type DriverOptions struct {
-	endpoint string
-	mode     string
+	endpoint  string
+	mode      string
+	extraTags string
 }
 
 func NewDriver(options ...func(*DriverOptions)) (*Driver, error) {
@@ -141,5 +142,11 @@ func WithEndpoint(endpoint string) func(*DriverOptions) {
 func WithMode(mode string) func(*DriverOptions) {
 	return func(o *DriverOptions) {
 		o.mode = mode
+	}
+}
+
+func WithExtraTags(extraTags string) func(*DriverOptions) {
+	return func(o *DriverOptions) {
+		o.extraTags = extraTags
 	}
 }

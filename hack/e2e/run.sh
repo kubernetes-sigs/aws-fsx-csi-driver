@@ -17,15 +17,14 @@
 set -euo pipefail
 
 BASE_DIR=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
-source "${BASE_DIR}"/ebs.sh
 source "${BASE_DIR}"/ecr.sh
 source "${BASE_DIR}"/eksctl.sh
 source "${BASE_DIR}"/helm.sh
 source "${BASE_DIR}"/kops.sh
 source "${BASE_DIR}"/util.sh
 
-DRIVER_NAME=${DRIVER_NAME:-aws-ebs-csi-driver}
-CONTAINER_NAME=${CONTAINER_NAME:-ebs-plugin}
+DRIVER_NAME=${DRIVER_NAME:-aws-fsx-csi-driver}
+CONTAINER_NAME=${CONTAINER_NAME:-fsx-plugin}
 DRIVER_START_TIME_THRESHOLD_SECONDS=60
 
 TEST_ID=${TEST_ID:-$RANDOM}
@@ -50,33 +49,28 @@ IMAGE_TAG=${IMAGE_TAG:-${TEST_ID}}
 
 # kops: must include patch version (e.g. 1.19.1)
 # eksctl: mustn't include patch version (e.g. 1.19)
-K8S_VERSION=${K8S_VERSION:-1.20.8}
+K8S_VERSION_KOPS=${K8S_VERSION_KOPS:-${K8S_VERSION:-1.23.0}}
+K8S_VERSION_EKSCTL=${K8S_VERSION_EKSCTL:-${K8S_VERSION:-1.23}}
 
-KOPS_VERSION=${KOPS_VERSION:-1.21.0}
+KOPS_VERSION=${KOPS_VERSION:-1.23.1}
 KOPS_STATE_FILE=${KOPS_STATE_FILE:-s3://k8s-kops-csi-e2e}
 KOPS_PATCH_FILE=${KOPS_PATCH_FILE:-./hack/kops-patch.yaml}
 KOPS_PATCH_NODE_FILE=${KOPS_PATCH_NODE_FILE:-./hack/kops-patch-node.yaml}
 
-EKSCTL_VERSION=${EKSCTL_VERSION:-0.69.0}
+EKSCTL_VERSION=${EKSCTL_VERSION:-0.133.0}
 EKSCTL_PATCH_FILE=${EKSCTL_PATCH_FILE:-./hack/eksctl-patch.yaml}
 EKSCTL_ADMIN_ROLE=${EKSCTL_ADMIN_ROLE:-}
-# Creates a windows node group. The windows ami doesn't (yet) install csi-proxy
-# so that has to be done separately.
-WINDOWS=${WINDOWS:-"false"}
 
 HELM_VALUES_FILE=${HELM_VALUES_FILE:-./hack/values.yaml}
 HELM_EXTRA_FLAGS=${HELM_EXTRA_FLAGS:-}
 
 TEST_PATH=${TEST_PATH:-"./tests/e2e"}
 ARTIFACTS=${ARTIFACTS:-"${TEST_DIR}/artifacts"}
-GINKGO_FOCUS=${GINKGO_FOCUS:-"\[ebs-csi-e2e\]"}
+GINKGO_FOCUS=${GINKGO_FOCUS:-"\[fsx-csi-e2e\]"}
 GINKGO_SKIP=${GINKGO_SKIP:-"\[Disruptive\]"}
 GINKGO_NODES=${GINKGO_NODES:-4}
 TEST_EXTRA_FLAGS=${TEST_EXTRA_FLAGS:-}
 
-EBS_INSTALL_SNAPSHOT=${EBS_INSTALL_SNAPSHOT:-"false"}
-EBS_INSTALL_SNAPSHOT_VERSION=${EBS_INSTALL_SNAPSHOT_VERSION:-"v4.1.1"}
-EBS_CHECK_MIGRATION=${EBS_CHECK_MIGRATION:-"false"}
 
 CLEAN=${CLEAN:-"true"}
 
@@ -122,7 +116,7 @@ if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
     "$ZONES" \
     "$NODE_COUNT" \
     "$INSTANCE_TYPE" \
-    "$K8S_VERSION" \
+    "$K8S_VERSION_KOPS" \
     "$CLUSTER_FILE" \
     "$KUBECONFIG" \
     "$KOPS_PATCH_FILE" \
@@ -138,24 +132,14 @@ elif [[ "${CLUSTER_TYPE}" == "eksctl" ]]; then
     "$EKSCTL_BIN" \
     "$ZONES" \
     "$INSTANCE_TYPE" \
-    "$K8S_VERSION" \
+    "$K8S_VERSION_EKSCTL" \
     "$CLUSTER_FILE" \
     "$KUBECONFIG" \
     "$EKSCTL_PATCH_FILE" \
-    "$EKSCTL_ADMIN_ROLE" \
-    "$WINDOWS"
+    "$EKSCTL_ADMIN_ROLE"
   if [[ $? -ne 0 ]]; then
     exit 1
   fi
-fi
-
-if [[ "${EBS_INSTALL_SNAPSHOT}" == true ]]; then
-  loudecho "Installing snapshot controller and CRDs"
-  kubectl apply --kubeconfig "${KUBECONFIG}" -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/"${EBS_INSTALL_SNAPSHOT_VERSION}"/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
-  kubectl apply --kubeconfig "${KUBECONFIG}" -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/"${EBS_INSTALL_SNAPSHOT_VERSION}"/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
-  kubectl apply --kubeconfig "${KUBECONFIG}" -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/"${EBS_INSTALL_SNAPSHOT_VERSION}"/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
-  kubectl apply --kubeconfig "${KUBECONFIG}" -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/"${EBS_INSTALL_SNAPSHOT_VERSION}"/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
-  kubectl apply --kubeconfig "${KUBECONFIG}" -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/"${EBS_INSTALL_SNAPSHOT_VERSION}"/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
 fi
 
 loudecho "Deploying driver"
@@ -201,19 +185,6 @@ loudecho "TEST_PASSED: ${TEST_PASSED}"
 popd
 
 OVERALL_TEST_PASSED="${TEST_PASSED}"
-if [[ "${EBS_CHECK_MIGRATION}" == true ]]; then
-  exec 5>&1
-  OUTPUT=$(ebs_check_migration "${KUBECONFIG}" | tee /dev/fd/5)
-  MIGRATION_PASSED=$(echo "${OUTPUT}" | tail -1)
-  loudecho "MIGRATION_PASSED: ${MIGRATION_PASSED}"
-  if [ "${TEST_PASSED}" == 0 ] && [ "${MIGRATION_PASSED}" == 0 ]; then
-    loudecho "Both test and migration passed"
-    OVERALL_TEST_PASSED=0
-  else
-    loudecho "One of test or migration failed"
-    OVERALL_TEST_PASSED=1
-  fi
-fi
 
 PODS=$(kubectl get pod -n kube-system -l "app.kubernetes.io/name=${DRIVER_NAME},app.kubernetes.io/instance=${DRIVER_NAME}" -o json --kubeconfig "${KUBECONFIG}" | jq -r .items[].metadata.name)
 

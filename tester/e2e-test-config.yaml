@@ -65,7 +65,7 @@ uninstall: |
   helm delete aws-fsx-csi-driver --namespace kube-system
 
 test: |
-  go get github.com/onsi/ginkgo/ginkgo
+  go install github.com/onsi/ginkgo/ginkgo
   export KUBECONFIG=$HOME/.kube/config
   cluster_name=test-cluster-{{TEST_ID}}.k8s.local
   skip="\[Disruptive\]\

@@ -19,7 +19,6 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/os: linux
-      hostNetwork: true
       dnsPolicy: ClusterFirst
       serviceAccountName: fsx-csi-node-sa
       priorityClassName: system-node-critical
@@ -29,7 +28,7 @@ spec:
         - name: fsx-plugin
           securityContext:
             privileged: true
-          image: public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.10.0
+          image: public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v1.0.0
           imagePullPolicy: IfNotPresent
           args:
             - --mode=node
@@ -62,7 +61,7 @@ spec:
             periodSeconds: 2
             failureThreshold: 5
         - name: node-driver-registrar
-          image: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar:v2.8.0-eks-1-26-9
+          image: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar:v2.8.0-eks-1-27-7
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=$(ADDRESS)
@@ -83,7 +82,7 @@ spec:
             - name: registration-dir
               mountPath: /registration
         - name: liveness-probe
-          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.10.0-eks-1-26-9
+          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.10.0-eks-1-27-7
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/csi/csi.sock

@@ -14,6 +14,8 @@ For installation and deployment instructions, please refer to our [installation 
 ### CSI Specification Compatibility Matrix
 | AWS FSx for Lustre CSI Driver \ CSI Version | v0.3.0 | v1.x.x |
 |---------------------------------------------|--------|--------|
+| v1.0.0                                      | no     | yes    |
+| v0.10.1                                     | no     | yes    |
 | v0.10.0                                     | no     | yes    |
 | v0.9.0                                      | no     | yes    |
 | v0.8.3                                      | no     | yes    |
@@ -41,6 +43,8 @@ The following sections are Kubernetes-specific. If you are a Kubernetes user, us
 ### Kubernetes Version Compatibility Matrix
 | AWS FSx for Lustre CSI Driver \ Kubernetes Version | v1.11 | v1.12 | v1.13 | v1.14-16 | v1.17+ |
 |----------------------------------------------------|-------|-------|-------|----------|--------|
+| v1.0.0                                             | no    | no    | no    | no       | yes    |
+| v0.10.1                                            | no    | no    | no    | no       | yes    |
 | v0.10.0                                            | no    | no    | no    | no       | yes    |
 | v0.9.0                                             | no    | no    | no    | no       | yes    |
 | v0.8.3                                             | no    | no    | no    | no       | yes    |
@@ -59,6 +63,8 @@ The following sections are Kubernetes-specific. If you are a Kubernetes user, us
 ### Container Images
 | FSx CSI Driver Version | Image                                                    |
 |------------------------|----------------------------------------------------------|
+| v1.0.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v1.0.0  |
+| v0.10.1                | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.10.1 |
 | v0.10.0                | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.10.0 |
 | v0.9.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.9.0  |
 | v0.8.3                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.8.3  |
@@ -100,7 +106,7 @@ Before the example, you need to:
 Please go through [CSI Spec](https://github.com/container-storage-interface/spec/blob/master/spec.md) and [General CSI driver development guideline](https://kubernetes-csi.github.io/docs/Development.html) to get some basic understanding of CSI driver before you start.
 
 ### Requirements
-* Golang 1.19.0+
+* Golang 1.20.0+
 
 ### Dependency
 Dependencies are managed through go module. To build the project, first turn on go mod using `export GO111MODULE=on`, to build the project run: `make`
