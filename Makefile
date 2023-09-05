@@ -130,12 +130,12 @@ test-e2e:
 
 .PHONY: generate-kustomize
 generate-kustomize: bin/helm
-	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/csidriver.yaml > ../../deploy/kubernetes/base/csidriver.yaml
-	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/node-daemonset.yaml > ../../deploy/kubernetes/base/node-daemonset.yaml
-	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/node-serviceaccount.yaml > ../../deploy/kubernetes/base/node-serviceaccount.yaml
-	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/controller-deployment.yaml > ../../deploy/kubernetes/base/controller-deployment.yaml
-	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/controller-serviceaccount.yaml > ../../deploy/kubernetes/base/controller-serviceaccount.yaml
 	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/clusterrole-csi-node.yaml > ../../deploy/kubernetes/base/clusterrole-csi-node.yaml
 	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/clusterrolebinding-csi-node.yaml > ../../deploy/kubernetes/base/clusterrolebinding-csi-node.yaml
-
-
+	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/controller-deployment.yaml > ../../deploy/kubernetes/base/controller-deployment.yaml
+	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/controller-serviceaccount.yaml > ../../deploy/kubernetes/base/controller-serviceaccount.yaml
+	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/csidriver.yaml > ../../deploy/kubernetes/base/csidriver.yaml
+	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/node-daemonset.yaml > ../../deploy/kubernetes/base/node-daemonset.yaml
+	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/node-daemonset.yaml > ../../deploy/kubernetes/base/node-daemonset.yaml
+	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/node-serviceaccount.yaml > ../../deploy/kubernetes/base/node-poddistruptionbudget.yaml
+	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/node-serviceaccount.yaml > ../../deploy/kubernetes/base/node-serviceaccount.yaml
