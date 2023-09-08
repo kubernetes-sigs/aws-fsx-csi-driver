@@ -20,9 +20,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"os"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/internal"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
@@ -40,6 +42,15 @@ var (
 // VolumeOperationAlreadyExists is message fmt returned to CO when there is another in-flight call on the given volumeID
 const VolumeOperationAlreadyExists = "An operation with the given volume=%q is already in progress"
 
+// Configurations for node taint removal retry mechanism
+const (
+	RemoveNotReadyTaintRetryTrue     = 11
+	RemoveNotReadyNumTaintRetryFalse = 2
+	RemoveNotReadyTaintPollDelay     = 1 * time.Second
+	RemoveNotReadyTaintPollFactor    = 1.5
+	RemoveNotReadyTimeout            = 90 * time.Second
+)
+
 type nodeService struct {
 	metadata      cloud.MetadataService
 	mounter       Mounter
@@ -49,6 +60,7 @@ type nodeService struct {
 
 func newNodeService(driverOptions *DriverOptions) nodeService {
 	klog.V(5).InfoS("[Debug] Retrieving node info from metadata service")
+
 	region := os.Getenv("AWS_REGION")
 	metadata, err := cloud.NewMetadataService(cloud.DefaultEC2MetadataClient, cloud.DefaultKubernetesAPIClient, region)
 	if err != nil {
@@ -63,7 +75,7 @@ func newNodeService(driverOptions *DriverOptions) nodeService {
 
 	// Remove taint from node to indicate driver startup success
 	// This is done at the last possible moment to prevent race conditions or false positive removals
-	err = removeNotReadyTaint(cloud.DefaultKubernetesAPIClient)
+	err = removeNotReadyTaint(cloud.DefaultKubernetesAPIClient, driverOptions.retryTaintRemoval)
 	if err != nil {
 		klog.ErrorS(err, "Unexpected failure when attempting to remove node taint(s)")
 	}
@@ -291,60 +303,93 @@ type JSONPatch struct {
 // removeNotReadyTaint removes the taint fsx.csi.aws.com/agent-not-ready from the local node
 // This taint can be optionally applied by users to prevent startup race conditions such as
 // https://github.com/kubernetes/kubernetes/issues/95911
-func removeNotReadyTaint(k8sClient cloud.KubernetesAPIClient) error {
+func removeNotReadyTaint(k8sClient cloud.KubernetesAPIClient, retryTaintRemoval bool) error {
 	nodeName := os.Getenv("CSI_NODE_NAME")
 	if nodeName == "" {
 		klog.V(4).InfoS("CSI_NODE_NAME missing, skipping taint removal")
 		return nil
 	}
 
-	clientset, err := k8sClient()
-	if err != nil {
-		klog.V(4).InfoS("Failed to communicate with k8s API, skipping taint removal")
-		return nil
+	numSteps := RemoveNotReadyNumTaintRetryFalse
+	if retryTaintRemoval {
+		numSteps = RemoveNotReadyTaintRetryTrue
 	}
 
-	node, err := clientset.CoreV1().Nodes().Get(context.Background(), nodeName, metav1.GetOptions{})
-	if err != nil {
-		return err
+	backoff := wait.Backoff{
+		Duration: RemoveNotReadyTaintPollDelay,
+		Factor:   RemoveNotReadyTaintPollFactor,
+		Steps:    numSteps,
+		Cap:      RemoveNotReadyTimeout,
 	}
 
-	var taintsToKeep []corev1.Taint
-	for _, taint := range node.Spec.Taints {
-		if taint.Key != AgentNotReadyNodeTaintKey {
-			taintsToKeep = append(taintsToKeep, taint)
-		} else {
-			klog.V(4).InfoS("Queued taint for removal", "key", taint.Key, "effect", taint.Effect)
+	var mostRecentError error
+
+	removeTaint := func() (bool, error) {
+		clientset, err := k8sClient()
+
+		if err != nil {
+			mostRecentError = err
+			klog.V(4).InfoS("Failed to communicate with k8s API")
+			return false, nil
 		}
+
+		node, err := clientset.CoreV1().Nodes().Get(context.Background(), nodeName, metav1.GetOptions{})
+		if err != nil {
+			mostRecentError = err
+			klog.ErrorS(err, "Error when collecting node information.")
+			return false, nil
+		}
+
+		var taintsToKeep []corev1.Taint
+		for _, taint := range node.Spec.Taints {
+			if taint.Key != AgentNotReadyNodeTaintKey {
+				taintsToKeep = append(taintsToKeep, taint)
+			} else {
+				klog.V(4).InfoS("Queued taint for removal", "key", taint.Key, "effect", taint.Effect)
+			}
+		}
+
+		if len(taintsToKeep) == len(node.Spec.Taints) {
+			mostRecentError = err
+			klog.V(4).InfoS("No taints to remove on node, skipping taint removal")
+			return true, nil
+		}
+
+		patchRemoveTaints := []JSONPatch{
+			{
+				OP:    "test",
+				Path:  "/spec/taints",
+				Value: node.Spec.Taints,
+			},
+			{
+				OP:    "replace",
+				Path:  "/spec/taints",
+				Value: taintsToKeep,
+			},
+		}
+
+		patch, err := json.Marshal(patchRemoveTaints)
+		if err != nil {
+			mostRecentError = err
+			klog.ErrorS(err, "Error when marshalling taints.")
+			return false, nil
+		}
+
+		_, err = clientset.CoreV1().Nodes().Patch(context.Background(), nodeName, k8stypes.JSONPatchType, patch, metav1.PatchOptions{})
+		if err != nil {
+			mostRecentError = err
+			klog.ErrorS(err, "Error when executing patch.")
+			return false, nil
+		}
+		klog.InfoS("Removed taint(s) from local node", "node", nodeName)
+		mostRecentError = nil
+		return true, nil
 	}
 
-	if len(taintsToKeep) == len(node.Spec.Taints) {
-		klog.V(4).InfoS("No taints to remove on node, skipping taint removal")
-		return nil
+	err := wait.ExponentialBackoff(backoff, removeTaint)
+	if mostRecentError != nil {
+		klog.ErrorS(err, "Node taint removal failed to complete within the specified number of attempts.")
+		return mostRecentError
 	}
-
-	patchRemoveTaints := []JSONPatch{
-		{
-			OP:    "test",
-			Path:  "/spec/taints",
-			Value: node.Spec.Taints,
-		},
-		{
-			OP:    "replace",
-			Path:  "/spec/taints",
-			Value: taintsToKeep,
-		},
-	}
-
-	patch, err := json.Marshal(patchRemoveTaints)
-	if err != nil {
-		return err
-	}
-
-	_, err = clientset.CoreV1().Nodes().Patch(context.Background(), nodeName, k8stypes.JSONPatchType, patch, metav1.PatchOptions{})
-	if err != nil {
-		return err
-	}
-	klog.InfoS("Removed taint(s) from local node", "node", nodeName)
 	return nil
 }

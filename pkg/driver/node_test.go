@@ -656,7 +656,7 @@ func TestRemoveNotReadyTaint(t *testing.T) {
 					return nil, fmt.Errorf("Failed setup!")
 				}
 			},
-			expResult: nil,
+			expResult: fmt.Errorf("Failed setup!"),
 		},
 		{
 			name: "failed to get node",
@@ -696,7 +696,7 @@ func TestRemoveNotReadyTaint(t *testing.T) {
 						},
 					},
 				}, nil)
-				mockNode.EXPECT().Patch(gomock.Any(), gomock.Eq(nodeName), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("Failed to patch node!"))
+				mockNode.EXPECT().Patch(gomock.Any(), gomock.Eq(nodeName), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("Failed to patch node!")).Times(RemoveNotReadyNumTaintRetryFalse)
 
 				return func() (kubernetes.Interface, error) {
 					return getNodeMock, nil
@@ -732,8 +732,12 @@ func TestRemoveNotReadyTaint(t *testing.T) {
 			mockCtl := gomock.NewController(t)
 			defer mockCtl.Finish()
 
+			driverOptions := DriverOptions{
+				retryTaintRemoval: false,
+			}
+
 			k8sClientGetter := tc.setup(t, mockCtl)
-			result := removeNotReadyTaint(k8sClientGetter)
+			result := removeNotReadyTaint(k8sClientGetter, driverOptions.retryTaintRemoval)
 
 			if !reflect.DeepEqual(result, tc.expResult) {
 				t.Fatalf("Expected result `%v`, got result `%v`", tc.expResult, result)

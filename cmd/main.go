@@ -38,6 +38,7 @@ func main() {
 		driver.WithEndpoint(options.ServerOptions.Endpoint),
 		driver.WithMode(options.ServerOptions.DriverMode),
 		driver.WithExtraTags(options.ControllerOptions.ExtraTags),
+		driver.WithRetryTaintRemoval(options.NodeOptions.RetryTaintRemoval),
 	)
 
 	if err != nil {

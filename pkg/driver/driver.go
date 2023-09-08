@@ -52,9 +52,10 @@ type Driver struct {
 }
 
 type DriverOptions struct {
-	endpoint  string
-	mode      string
-	extraTags string
+	endpoint          string
+	mode              string
+	extraTags         string
+	retryTaintRemoval bool
 }
 
 func NewDriver(options ...func(*DriverOptions)) (*Driver, error) {
@@ -148,5 +149,11 @@ func WithMode(mode string) func(*DriverOptions) {
 func WithExtraTags(extraTags string) func(*DriverOptions) {
 	return func(o *DriverOptions) {
 		o.extraTags = extraTags
+	}
+}
+
+func WithRetryTaintRemoval(retryRemoval bool) func(options *DriverOptions) {
+	return func(o *DriverOptions) {
+		o.retryTaintRemoval = retryRemoval
 	}
 }

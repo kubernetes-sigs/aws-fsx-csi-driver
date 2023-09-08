@@ -22,7 +22,9 @@ import (
 
 // NodeOptions contains options and configuration settings for the node service.
 type NodeOptions struct {
+	RetryTaintRemoval bool
 }
 
-func (o *NodeOptions) AddFlags(fs *flag.FlagSet) {
+func (s *NodeOptions) AddFlags(fs *flag.FlagSet) {
+	fs.BoolVar(&s.RetryTaintRemoval, "retry-taint-removal", false, "Max number of tries for node taint removal")
 }
