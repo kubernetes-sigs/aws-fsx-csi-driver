@@ -1,6 +1,6 @@
 cluster:
   kops:
-    stateFile: s3://k8s-kops-csi-e2e
+    stateFile: s3://k8s-kops-csi-shared-e2e
     zones: us-west-2a
     nodeCount: 3
     nodeSize: c5.large
