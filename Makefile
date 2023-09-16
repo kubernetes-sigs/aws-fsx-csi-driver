@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 VERSION?=v1.0.0
 
 PKG=sigs.k8s.io/aws-fsx-csi-driver
