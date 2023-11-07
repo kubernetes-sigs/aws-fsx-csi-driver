@@ -276,6 +276,10 @@ func (d *controllerService) ControllerUnpublishVolume(ctx context.Context, req *
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
+func (d *controllerService) ControllerModifyVolume(ctx context.Context, req *csi.ControllerModifyVolumeRequest) (*csi.ControllerModifyVolumeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "")
+}
+
 func (d *controllerService) ControllerGetCapabilities(ctx context.Context, req *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
 	klog.V(4).InfoS("ControllerGetCapabilities: called", "args", *req)
 	var caps []*csi.ControllerServiceCapability
