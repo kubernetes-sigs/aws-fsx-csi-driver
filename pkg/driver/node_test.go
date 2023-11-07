@@ -40,10 +40,11 @@ var (
 func TestNodePublishVolume(t *testing.T) {
 
 	var (
-		dnsname    = "fs-0a2d0632b5ff567e9.fsx.us-west-2.amazonaws.com"
-		mountname  = "random"
-		targetPath = "/target/path"
-		stdVolCap  = &csi.VolumeCapability{
+		dnsname       = "fs-0a2d0632b5ff567e9.fsx.us-west-2.amazonaws.com"
+		mountname     = "random"
+		targetPath    = "/target/path"
+		targetPathAlt = "/target/alt_path"
+		stdVolCap     = &csi.VolumeCapability{
 			AccessType: &csi.VolumeCapability_Mount{
 				Mount: &csi.VolumeCapability_MountVolume{},
 			},
@@ -438,7 +439,7 @@ func TestNodePublishVolume(t *testing.T) {
 			},
 		},
 		{
-			name: "fail another operation in-flight on given volumeId",
+			name: "fail another operation in-flight on given volumeId-targetPath",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
@@ -462,9 +463,54 @@ func TestNodePublishVolume(t *testing.T) {
 					TargetPath:       targetPath,
 				}
 
-				awsDriver.inFlight.Insert(volumeID)
+				rpcKey := fmt.Sprintf("%s-%s", volumeID, targetPath)
+
+				awsDriver.inFlight.Insert(rpcKey)
 				_, err := awsDriver.NodePublishVolume(context.TODO(), req)
 				expectErr(t, err, codes.Aborted)
+			},
+		},
+		{
+			name: "success: operation in-flight with different volumeId-targetPath",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				defer mockCtl.Finish()
+
+				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
+				mockMounter := driverMocks.NewMockMounter(mockCtl)
+
+				awsDriver := &nodeService{
+					metadata: mockMetadata,
+					mounter:  mockMounter,
+					inFlight: internal.NewInFlight(),
+				}
+
+				source := dnsname + "@tcp:/" + mountname
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId: "volumeId",
+					VolumeContext: map[string]string{
+						volumeContextDnsName:   dnsname,
+						volumeContextMountName: mountname,
+					},
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+				}
+
+				rpcKeyAlt := fmt.Sprintf("%s-%s", volumeID, targetPathAlt)
+
+				awsDriver.inFlight.Insert(rpcKeyAlt)
+
+				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(targetPath)).Return(true, nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("lustre"), gomock.Any()).Return(nil)
+				_, err := awsDriver.NodePublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("NodePublishVolume is failed: %v", err)
+				}
+
+				mockCtl.Finish()
 			},
 		},
 	}
@@ -477,7 +523,8 @@ func TestNodePublishVolume(t *testing.T) {
 func TestNodeUnpublishVolume(t *testing.T) {
 
 	var (
-		targetPath = "/target/path"
+		targetPath    = "/target/path"
+		targetPathAlt = "/target/alt_path"
 	)
 
 	testCases := []struct {
@@ -601,7 +648,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 			},
 		},
 		{
-			name: "fail another operation in-flight on given volumeId",
+			name: "fail another operation in-flight on given volumeId-targetPath",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
@@ -620,9 +667,44 @@ func TestNodeUnpublishVolume(t *testing.T) {
 					TargetPath: targetPath,
 				}
 
-				awsDriver.inFlight.Insert(volumeID)
+				rpcKey := fmt.Sprintf("%s-%s", volumeID, targetPath)
+
+				awsDriver.inFlight.Insert(rpcKey)
 				_, err := awsDriver.NodeUnpublishVolume(context.TODO(), req)
 				expectErr(t, err, codes.Aborted)
+			},
+		},
+		{
+			name: "success: operation in-flight with different volumeId-targetPath",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				defer mockCtl.Finish()
+
+				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
+				mockMounter := driverMocks.NewMockMounter(mockCtl)
+
+				awsDriver := &nodeService{
+					metadata: mockMetadata,
+					mounter:  mockMounter,
+					inFlight: internal.NewInFlight(),
+				}
+
+				ctx := context.Background()
+				req := &csi.NodeUnpublishVolumeRequest{
+					VolumeId:   "volumeId",
+					TargetPath: targetPath,
+				}
+
+				rpcKeyAlt := fmt.Sprintf("%s-%s", volumeID, targetPathAlt)
+				awsDriver.inFlight.Insert(rpcKeyAlt)
+
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(targetPath)).Return(false, nil)
+				mockMounter.EXPECT().Unmount(gomock.Eq(targetPath)).Return(nil)
+
+				_, err := awsDriver.NodeUnpublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("NodeUnpublishVolume is failed: %v", err)
+				}
 			},
 		},
 	}

@@ -37,8 +37,8 @@ var (
 	nodeCaps = []csi.NodeServiceCapability_RPC_Type{}
 )
 
-// VolumeOperationAlreadyExists is message fmt returned to CO when there is another in-flight call on the given volumeID
-const VolumeOperationAlreadyExists = "An operation with the given volume=%q is already in progress"
+// VolumeOperationAlreadyExists is message fmt returned to CO when there is another in-flight call on the given rpcKey
+const VolumeOperationAlreadyExists = "An operation with the given volume=%q and target=%q is already in progress"
 
 type nodeService struct {
 	metadata      cloud.MetadataService
@@ -120,12 +120,14 @@ func (d *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Error(codes.InvalidArgument, "Volume capability not supported")
 	}
 
-	if ok := d.inFlight.Insert(volumeID); !ok {
-		return nil, status.Errorf(codes.Aborted, VolumeOperationAlreadyExists, volumeID)
+	rpcKey := fmt.Sprintf("%s-%s", volumeID, target)
+
+	if ok := d.inFlight.Insert(rpcKey); !ok {
+		return nil, status.Errorf(codes.Aborted, VolumeOperationAlreadyExists, volumeID, target)
 	}
 	defer func() {
-		klog.V(4).InfoS("NodePublishVolume: volume operation finished", "volumeId", volumeID)
-		d.inFlight.Delete(volumeID)
+		klog.V(4).InfoS("NodePublishVolume: volume operation finished", "rpcKey", rpcKey)
+		d.inFlight.Delete(rpcKey)
 	}()
 
 	mountOptions := []string{}
@@ -182,12 +184,13 @@ func (d *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 		return nil, status.Error(codes.InvalidArgument, "Target path not provided")
 	}
 
-	if ok := d.inFlight.Insert(volumeID); !ok {
-		return nil, status.Errorf(codes.Aborted, VolumeOperationAlreadyExists, volumeID)
+	rpcKey := fmt.Sprintf("%s-%s", volumeID, target)
+	if ok := d.inFlight.Insert(rpcKey); !ok {
+		return nil, status.Errorf(codes.Aborted, VolumeOperationAlreadyExists, volumeID, target)
 	}
 	defer func() {
-		klog.V(4).InfoS("NodeUnpublishVolume: volume operation finished", "volumeId", volumeID)
-		d.inFlight.Delete(volumeID)
+		klog.V(4).InfoS("NodeUnpublishVolume: volume operation finished", "rpcKey", rpcKey)
+		d.inFlight.Delete(rpcKey)
 	}()
 
 	// Check if the target is mounted before unmounting
