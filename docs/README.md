@@ -1,3 +1,4 @@
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/kubernetes-sigs/aws-fsx-csi-driver)](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-sigs/aws-fsx-csi-driver)](https://goreportcard.com/report/github.com/kubernetes-sigs/aws-fsx-csi-driver)
 
 ## Amazon FSx for Lustre CSI Driver
