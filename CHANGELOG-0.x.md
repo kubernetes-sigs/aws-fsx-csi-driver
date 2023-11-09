@@ -1,3 +1,15 @@
+# v1.1.0
+
+### Bug fixes
+* Change node-level idempotency to use volume-target ([#360](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/360), [@jacobwolfaws](https://github.com/jacobwolfaws))
+
+### Improvements
+* Only trigger container images wf on v* tag ([#345](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/345), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Upgrade k8s and eksctl in testing ([#347](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/347), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Move to new s3 bucket ([#354](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/354), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Bump dependencies for v1.1.0 ([#361](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/361), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Don't mark helm chart release as latest & Show latest release badge in README ([#362](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/362), [@jacobwolfaws](https://github.com/jacobwolfaws))
+
 # v1.0.0
 ## Notable Changes
 * Substantially reduced driver dependencies ([#318](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/318), [@jacobwolfaws](https://github.com/jacobwolfaws))
