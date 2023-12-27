@@ -19,8 +19,9 @@ import (
 	"log"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/service/fsx"
 	. "github.com/onsi/ginkgo"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"sigs.k8s.io/aws-fsx-csi-driver/tests/e2e/driver"
@@ -178,4 +179,98 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning with s3 data repository", f
 		test.Run(cs, ns)
 	})
 
+})
+
+var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning with PERSISTENT_2 deploymentType and Multiple Data Repository Associations", func() {
+	f := framework.NewDefaultFramework("fsx")
+
+	var (
+		cs               clientset.Interface
+		ns               *v1.Namespace
+		dvr              driver.PVTestDriver
+		cloud            *cloud
+		subnetId         string
+		securityGroupIds []string
+		bucketName       string
+		bucketName2      string
+	)
+
+	BeforeEach(func() {
+		cs = f.ClientSet
+		ns = f.Namespace
+		dvr = driver.InitFSxCSIDriver()
+		cloud = NewCloud(*region)
+		instance, err := cloud.getNodeInstance(*clusterName)
+		if err != nil {
+			Fail(fmt.Sprintf("failed to get node instance %v", err))
+		}
+		securityGroupIds = getSecurityGroupIds(instance)
+		subnetId = *instance.SubnetId
+
+		bucketName = fmt.Sprintf("fsx-e2e-%s", ns.Name)
+		bucketName2 = fmt.Sprintf("%s-2", bucketName)
+		for _, name := range []string{bucketName, bucketName2} {
+			fmt.Println("bucket name: " + name)
+			err = cloud.createS3Bucket(name)
+			if err != nil {
+				Fail(fmt.Sprintf("failed to create s3 bucket %v", err))
+			}
+		}
+	})
+
+	AfterEach(func() {
+		for _, name := range []string{bucketName, bucketName2} {
+			err := cloud.deleteS3Bucket(name)
+			if err != nil {
+				Fail(fmt.Sprintf("failed to delete s3 bucket %v", err))
+			}
+		}
+	})
+
+	It("should create a volume on demand with PERSISTENT_2 deploymentType and multiple data repository associations", func() {
+		log.Printf("Using subnet ID %s security group ID %s", subnetId, securityGroupIds)
+		pods := []testsuites.PodDetails{
+			{
+				Cmd: "for b in bucket-1 bucket-2; do echo 'hello world' > /mnt/test-1/$b/data && grep 'hello world' /mnt/test-1/$b/data; done",
+				Volumes: []testsuites.VolumeDetails{
+					{
+						Parameters: map[string]string{
+							"deploymentType":           fsx.LustreDeploymentTypePersistent2,
+							"subnetId":                 subnetId,
+							"securityGroupIds":         strings.Join(securityGroupIds, ","),
+							"perUnitStorageThroughput": "125",
+							"dataRepositoryAssociations": fmt.Sprintf(`
+- batchImportMetaDataOnCreate: true
+  dataRepositoryPath: s3://%s
+  fileSystemPath: "/bucket-1"
+  s3:
+    autoImportPolicy:
+      events: ["NEW", "CHANGED", "DELETED" ]
+    autoExportPolicy:
+      events: ["NEW", "CHANGED", "DELETED" ]
+- batchImportMetaDataOnCreate: true
+  dataRepositoryPath: s3://%s
+  fileSystemPath: "/bucket-2"
+  s3:
+    autoImportPolicy:
+      events: ["NEW", "CHANGED", "DELETED" ]
+    autoExportPolicy:
+      events: ["NEW", "CHANGED", "DELETED" ]
+`, bucketName, bucketName2),
+						},
+						ClaimSize: "1200Gi",
+						VolumeMount: testsuites.VolumeMountDetails{
+							NameGenerate:      "test-volume-",
+							MountPathGenerate: "/mnt/test-",
+						},
+					},
+				},
+			},
+		}
+		test := testsuites.DynamicallyProvisionedCmdVolumeTest{
+			CSIDriver: dvr,
+			Pods:      pods,
+		}
+		test.Run(cs, ns)
+	})
 })

@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	fsx "sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 )
 
@@ -82,6 +83,15 @@ func (c *cloud) createS3Bucket(name string) error {
 }
 
 func (c *cloud) deleteS3Bucket(name string) error {
+	if err := s3manager.NewBatchDeleteWithClient(c.s3client).Delete(
+		aws.BackgroundContext(),
+		s3manager.NewDeleteListIterator(c.s3client, &s3.ListObjectsInput{
+			Bucket: aws.String(name),
+		}),
+	); err != nil {
+		return err
+	}
+
 	request := &s3.DeleteBucketInput{
 		Bucket: aws.String(name),
 	}
