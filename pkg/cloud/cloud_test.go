@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -1426,6 +1427,531 @@ func TestIsBadRequestUpdateInProgress(t *testing.T) {
 				if isBadRequestUpdateInProgress(errorInput) {
 					t.Fatalf("isBadRequestUpdateInProgress returned true, expected false")
 				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
+	}
+}
+
+func TestCreateDataRepositoryAssociation(t *testing.T) {
+	var (
+		fileSystemId                  = "fs-1234"
+		associationId                 = "dummy-association-id"
+		dataRepositoryPath            = "s3://fsx-s3-data-repository"
+		filesystemPath                = "/fsx-s3-data-repository/"
+		batchImportMetaDataOnCreate   = true
+		s3DataRepositoryConfiguration = &S3DataRepositoryConfiguration{
+			AutoImportPolicy: &AutoImportPolicy{
+				Events: []*string{
+					aws.String("NEW"), aws.String("CHANGED"), aws.String("DELETED"),
+				},
+			},
+			AutoExportPolicy: &AutoExportPolicy{
+				Events: []*string{
+					aws.String("NEW"), aws.String("CHANGED"), aws.String("DELETED"),
+				},
+			},
+		}
+	)
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "success: normal without S3 RepositoryConfiguration",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &DataRepositoryAssociationOptions{
+					FileSystemPath:              filesystemPath,
+					DataRepositoryPath:          dataRepositoryPath,
+					BatchImportMetaDataOnCreate: batchImportMetaDataOnCreate,
+				}
+				output := &fsx.CreateDataRepositoryAssociationOutput{
+					Association: &fsx.DataRepositoryAssociation{
+						FileSystemId:                aws.String(fileSystemId),
+						AssociationId:               aws.String(associationId),
+						DataRepositoryPath:          aws.String(dataRepositoryPath),
+						FileSystemPath:              aws.String(filesystemPath),
+						BatchImportMetaDataOnCreate: aws.Bool(batchImportMetaDataOnCreate),
+					},
+				}
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateDataRepositoryAssociationWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				resp, err := c.CreateDataRepositoryAssociation(ctx, fileSystemId, req)
+				if err != nil {
+					t.Fatalf("CreateDataRepositoryAssociation is failed: %v", err)
+				}
+
+				if resp == nil {
+					t.Fatal("resp is nil")
+				}
+
+				if resp.AssociationId != associationId {
+					t.Fatalf("AssociationId mismatches. actual: %v expected: %v", resp.AssociationId, associationId)
+
+				}
+				if resp.FileSystemId != fileSystemId {
+					t.Fatalf("FileSystemId mismatches. actual: %v expected: %v", resp.FileSystemId, fileSystemId)
+				}
+				if resp.BatchImportMetaDataOnCreate != batchImportMetaDataOnCreate {
+					t.Fatalf("FileSystemId mismatches. actual: %v expected: %v", resp.FileSystemId, batchImportMetaDataOnCreate)
+
+				}
+				if resp.DataRepositoryPath != dataRepositoryPath {
+					t.Fatalf("DataRepositoryPath mismatches. actual: %v expected: %v", resp.DataRepositoryPath, dataRepositoryPath)
+				}
+				if resp.FileSystemPath != filesystemPath {
+					t.Fatalf("FileSystemPath mismatches. actual: %v expected: %v", resp.FileSystemPath, filesystemPath)
+				}
+				if resp.S3 != nil {
+					t.Fatalf("S3 mismatches. actual: %v expected: %v", resp.S3, nil)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "success: normal with S3 Repository Configuration",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &DataRepositoryAssociationOptions{
+					FileSystemPath:              filesystemPath,
+					DataRepositoryPath:          dataRepositoryPath,
+					BatchImportMetaDataOnCreate: batchImportMetaDataOnCreate,
+					S3:                          s3DataRepositoryConfiguration,
+				}
+				output := &fsx.CreateDataRepositoryAssociationOutput{
+					Association: &fsx.DataRepositoryAssociation{
+						FileSystemId:                aws.String(fileSystemId),
+						AssociationId:               aws.String(associationId),
+						DataRepositoryPath:          aws.String(dataRepositoryPath),
+						FileSystemPath:              aws.String(filesystemPath),
+						BatchImportMetaDataOnCreate: aws.Bool(batchImportMetaDataOnCreate),
+						S3: &fsx.S3DataRepositoryConfiguration{
+							AutoImportPolicy: &fsx.AutoImportPolicy{
+								Events: s3DataRepositoryConfiguration.AutoImportPolicy.Events,
+							},
+							AutoExportPolicy: &fsx.AutoExportPolicy{
+								Events: s3DataRepositoryConfiguration.AutoExportPolicy.Events,
+							},
+						},
+					},
+				}
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateDataRepositoryAssociationWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				resp, err := c.CreateDataRepositoryAssociation(ctx, fileSystemId, req)
+				if err != nil {
+					t.Fatalf("CreateDataRepositoryAssociation is failed: %v", err)
+				}
+
+				if resp == nil {
+					t.Fatal("resp is nil")
+				}
+
+				if resp.AssociationId != associationId {
+					t.Fatalf("AssociationId mismatches. actual: %v expected: %v", resp.AssociationId, associationId)
+
+				}
+				if resp.FileSystemId != fileSystemId {
+					t.Fatalf("FileSystemId mismatches. actual: %v expected: %v", resp.FileSystemId, fileSystemId)
+				}
+				if resp.BatchImportMetaDataOnCreate != batchImportMetaDataOnCreate {
+					t.Fatalf("FileSystemId mismatches. actual: %v expected: %v", resp.FileSystemId, batchImportMetaDataOnCreate)
+
+				}
+				if resp.DataRepositoryPath != dataRepositoryPath {
+					t.Fatalf("DataRepositoryPath mismatches. actual: %v expected: %v", resp.DataRepositoryPath, dataRepositoryPath)
+				}
+				if resp.FileSystemPath != filesystemPath {
+					t.Fatalf("FileSystemPath mismatches. actual: %v expected: %v", resp.FileSystemPath, filesystemPath)
+				}
+				if !reflect.DeepEqual(resp.S3, s3DataRepositoryConfiguration) {
+					t.Fatalf("S3 mismatches. actual: %v expected: %v", resp.S3, s3DataRepositoryConfiguration)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "fail: non-exist filesystemId",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &DataRepositoryAssociationOptions{
+					FileSystemPath: "non-exist",
+				}
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateDataRepositoryAssociationWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateDataRepositoryAssociationWithContext failed"))
+				_, err := c.CreateDataRepositoryAssociation(ctx, fileSystemId, req)
+				if err == nil {
+					t.Fatalf("CreateDataRepositoryAssociation is not failed")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "fail: empty dataRepositoryPath",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &DataRepositoryAssociationOptions{
+					FileSystemPath:              filesystemPath,
+					DataRepositoryPath:          "",
+					BatchImportMetaDataOnCreate: batchImportMetaDataOnCreate,
+				}
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateDataRepositoryAssociationWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateDataRepositoryAssociationWithContext failed"))
+				_, err := c.CreateDataRepositoryAssociation(ctx, fileSystemId, req)
+				if err == nil {
+					t.Fatalf("CreateDataRepositoryAssociation is not failed")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "fail: empty FileSystemPath",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &DataRepositoryAssociationOptions{
+					FileSystemPath:              "",
+					DataRepositoryPath:          dataRepositoryPath,
+					BatchImportMetaDataOnCreate: batchImportMetaDataOnCreate,
+				}
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateDataRepositoryAssociationWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateDataRepositoryAssociationWithContext failed"))
+				_, err := c.CreateDataRepositoryAssociation(ctx, fileSystemId, req)
+				if err == nil {
+					t.Fatalf("CreateDataRepositoryAssociation is not failed")
+				}
+				mockCtl.Finish()
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
+	}
+}
+
+func TestDescribeDataRepositoryAssociationsInFileSystem(t *testing.T) {
+	var (
+		fileSystemId               = "fs-1234"
+		dataRepositoryAssociations = []*DataRepositoryAssociation{
+			{
+				FileSystemId:                fileSystemId,
+				AssociationId:               "assoc-1",
+				DataRepositoryPath:          "s3://bucket-1",
+				FileSystemPath:              "/bucket-1",
+				BatchImportMetaDataOnCreate: true,
+			},
+			{
+				FileSystemId:                fileSystemId,
+				AssociationId:               "assoc-2",
+				DataRepositoryPath:          "s3://bucket-2",
+				FileSystemPath:              "/bucket-2",
+				BatchImportMetaDataOnCreate: false,
+				S3: &S3DataRepositoryConfiguration{
+					AutoImportPolicy: &AutoImportPolicy{
+						Events: []*string{
+							aws.String("NEW"), aws.String("CHANGED"), aws.String("DELETED"),
+						},
+					},
+					AutoExportPolicy: &AutoExportPolicy{
+						Events: []*string{
+							aws.String("NEW"), aws.String("CHANGED"), aws.String("DELETED"),
+						},
+					},
+				},
+			},
+		}
+	)
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "success: normal case",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				output := &fsx.DescribeDataRepositoryAssociationsOutput{
+					Associations: []*fsx.DataRepositoryAssociation{{
+						FileSystemId:                aws.String(fileSystemId),
+						AssociationId:               aws.String(dataRepositoryAssociations[0].AssociationId),
+						BatchImportMetaDataOnCreate: aws.Bool(dataRepositoryAssociations[0].BatchImportMetaDataOnCreate),
+						DataRepositoryPath:          aws.String(dataRepositoryAssociations[0].DataRepositoryPath),
+						FileSystemPath:              aws.String(dataRepositoryAssociations[0].FileSystemPath),
+						S3:                          nil,
+					}, {
+						FileSystemId:                aws.String(fileSystemId),
+						AssociationId:               aws.String(dataRepositoryAssociations[1].AssociationId),
+						BatchImportMetaDataOnCreate: aws.Bool(dataRepositoryAssociations[1].BatchImportMetaDataOnCreate),
+						DataRepositoryPath:          aws.String(dataRepositoryAssociations[1].DataRepositoryPath),
+						FileSystemPath:              aws.String(dataRepositoryAssociations[1].FileSystemPath),
+						S3: &fsx.S3DataRepositoryConfiguration{
+							AutoImportPolicy: &fsx.AutoImportPolicy{
+								Events: dataRepositoryAssociations[1].S3.AutoImportPolicy.Events,
+							},
+							AutoExportPolicy: &fsx.AutoExportPolicy{
+								Events: dataRepositoryAssociations[1].S3.AutoExportPolicy.Events,
+							},
+						},
+					}},
+				}
+				ctx := context.Background()
+				mockFSx.EXPECT().DescribeDataRepositoryAssociationsWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				resp, err := c.DescribeDataRepositoryAssociationsInFileSystem(ctx, fileSystemId)
+				if err != nil {
+					t.Fatalf("DescribeDataRepositoryAssociationsInFileSystem is failed: %v", err)
+				}
+				if !reflect.DeepEqual(resp, dataRepositoryAssociations) {
+					t.Fatalf("response mismatches. actual: %v expected: %v", resp, dataRepositoryAssociations)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "failure: some DescribeDataRepositoryAssociationsWithContext returns error",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+				ctx := context.Background()
+				mockFSx.EXPECT().DescribeDataRepositoryAssociationsWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("DescribeDataRepositoryAssociationsWithContext fails"))
+				_, err := c.DescribeDataRepositoryAssociationsInFileSystem(ctx, fileSystemId)
+				if err == nil {
+					t.Fatalf("DescribeDataRepositoryAssociationsInFileSystem is not failed")
+				}
+				mockCtl.Finish()
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
+	}
+}
+
+func TestWaitForDataRepositoryAssociationAvailable(t *testing.T) {
+	associationId := "assoc-1"
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "success: data repository association is available",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				ctx := context.Background()
+				describeInput := &fsx.DescribeDataRepositoryAssociationsInput{
+					AssociationIds: []*string{aws.String(associationId)},
+				}
+				describeOutput := &fsx.DescribeDataRepositoryAssociationsOutput{
+					Associations: []*fsx.DataRepositoryAssociation{
+						{
+							AssociationId: aws.String(associationId),
+							Lifecycle:     aws.String("AVAILABLE"),
+						},
+					},
+				}
+
+				mockFSx.EXPECT().DescribeDataRepositoryAssociationsWithContext(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(describeOutput, nil)
+				err := c.WaitForDataRepositoryAssociationAvailable(ctx, associationId)
+				if err != nil {
+					t.Fatalf("WaitForDataRepositoryAssociationAvailable is failed: %v", err)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "failure: data repository association lifecycle is failed",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				ctx := context.Background()
+				describeInput := &fsx.DescribeDataRepositoryAssociationsInput{
+					AssociationIds: []*string{aws.String(associationId)},
+				}
+				describeOutput := &fsx.DescribeDataRepositoryAssociationsOutput{
+					Associations: []*fsx.DataRepositoryAssociation{
+						{
+							AssociationId: aws.String(associationId),
+							Lifecycle:     aws.String("FAILED"),
+						},
+					},
+				}
+				waitError := fmt.Errorf("unexpected state for data repository association %s: %q", associationId, "FAILED")
+				mockFSx.EXPECT().DescribeDataRepositoryAssociationsWithContext(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(describeOutput, nil)
+				err := c.WaitForDataRepositoryAssociationAvailable(ctx, associationId)
+				if err == nil {
+					t.Fatalf("WaitForDataRepositoryAssociationAvailable did not return error, expected [%v]", waitError)
+				}
+				if err.Error() != waitError.Error() {
+					t.Fatalf("WaitForDataRepositoryAssociationAvailable returned error [%v], expected [%v]", err, waitError)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "failure: no data repository associations",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				ctx := context.Background()
+				describeInput := &fsx.DescribeDataRepositoryAssociationsInput{
+					AssociationIds: []*string{aws.String(associationId)},
+				}
+				describeOutput := &fsx.DescribeDataRepositoryAssociationsOutput{
+					Associations: []*fsx.DataRepositoryAssociation{},
+				}
+				waitError := ErrNotFound
+				mockFSx.EXPECT().DescribeDataRepositoryAssociationsWithContext(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(describeOutput, nil)
+				err := c.WaitForDataRepositoryAssociationAvailable(ctx, associationId)
+				if err == nil {
+					t.Fatalf("WaitForDataRepositoryAssociationAvailable did not return error, expected [%v]", waitError)
+				}
+				if err.Error() != waitError.Error() {
+					t.Fatalf("WaitForDataRepositoryAssociationAvailable returned error [%v], expected [%v]", err, waitError)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "failure: multiple data repository associations",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				ctx := context.Background()
+				describeInput := &fsx.DescribeDataRepositoryAssociationsInput{
+					AssociationIds: []*string{aws.String(associationId)},
+				}
+				describeOutput := &fsx.DescribeDataRepositoryAssociationsOutput{
+					Associations: []*fsx.DataRepositoryAssociation{
+						{
+							AssociationId: aws.String(associationId),
+							Lifecycle:     aws.String("AVAILABLE"),
+						},
+						{
+							AssociationId: aws.String("assoc-another"),
+							Lifecycle:     aws.String("AVAILABLE"),
+						},
+					},
+				}
+				waitError := ErrMultiAssociations
+				mockFSx.EXPECT().DescribeDataRepositoryAssociationsWithContext(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(describeOutput, nil)
+				err := c.WaitForDataRepositoryAssociationAvailable(ctx, associationId)
+				if err == nil {
+					t.Fatalf("WaitForDataRepositoryAssociationAvailable did not return error, expected [%v]", waitError)
+				}
+				if err.Error() != waitError.Error() {
+					t.Fatalf("WaitForDataRepositoryAssociationAvailable returned error [%v], expected [%v]", err, waitError)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
+	}
+}
+
+func TestDeleteDataRepositoryAssociation(t *testing.T) {
+	var (
+		associationId = "fs-1234"
+	)
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "success: normal",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				output := &fsx.DeleteDataRepositoryAssociationOutput{}
+				ctx := context.Background()
+				mockFSx.EXPECT().DeleteDataRepositoryAssociationWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				err := c.DeleteDataRepositoryAssociation(ctx, associationId)
+				if err != nil {
+					t.Fatalf("DeleteDataRepositoryAssociation is failed: %v", err)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "fail: DeleteDataRepositoryAssociation return error",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				ctx := context.Background()
+				mockFSx.EXPECT().DeleteDataRepositoryAssociationWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("DeleteDataRepositoryAssociationWithContext failed"))
+				err := c.DeleteDataRepositoryAssociation(ctx, associationId)
+				if err == nil {
+					t.Fatal("DeleteDataRepositoryAssociation is not failed")
+				}
+
+				mockCtl.Finish()
 			},
 		},
 	}

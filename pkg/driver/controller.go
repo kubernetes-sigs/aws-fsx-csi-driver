@@ -26,6 +26,7 @@ import (
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/internal"
@@ -53,11 +54,13 @@ var (
 const (
 	volumeContextDnsName                      = "dnsname"
 	volumeContextMountName                    = "mountname"
+	volumeContextDataRepositoryAssociationIds = "dataRepositoryAssociationIds"
 	volumeParamsSubnetId                      = "subnetId"
 	volumeParamsSecurityGroupIds              = "securityGroupIds"
 	volumeParamsAutoImportPolicy              = "autoImportPolicy"
 	volumeParamsS3ImportPath                  = "s3ImportPath"
 	volumeParamsS3ExportPath                  = "s3ExportPath"
+	volumeDataRepositoryAssociations          = "dataRepositoryAssociations"
 	volumeParamsDeploymentType                = "deploymentType"
 	volumeParamsKmsKeyId                      = "kmsKeyId"
 	volumeParamsPerUnitStorageThroughput      = "perUnitStorageThroughput"
@@ -150,6 +153,20 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		fsOptions.S3ExportPath = val
 	}
 
+	drasOptions := []*cloud.DataRepositoryAssociationOptions{}
+	if val, ok := volumeParams[volumeDataRepositoryAssociations]; ok {
+		if err := yaml.Unmarshal(([]byte)(val), &drasOptions); err != nil {
+			msg := fmt.Sprintf("Fail to decode '%s' parameter for volume '%s': %s", volumeDataRepositoryAssociations, volName, err.Error())
+			return nil, status.Error(codes.Aborted, msg)
+		}
+		if (fsOptions.S3ImportPath != "" ||
+			fsOptions.S3ExportPath != "" ||
+			fsOptions.AutoImportPolicy != "") &&
+			len(drasOptions) > 0 {
+			return nil, status.Error(codes.InvalidArgument, "When specifying dataRepositoryAssociations, s3ImportPath,s3ExportPath and autoImportPolicy can not be specified")
+		}
+	}
+
 	if val, ok := volumeParams[volumeParamsDeploymentType]; ok {
 		fsOptions.DeploymentType = val
 	}
@@ -235,13 +252,27 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 			return nil, status.Errorf(codes.Internal, "Could not create volume %q: %v", volName, err)
 		}
 	}
+	dras := []*cloud.DataRepositoryAssociation{}
+	for _, draOptions := range drasOptions {
+		dra, err := d.cloud.CreateDataRepositoryAssociation(ctx, fs.FileSystemId, draOptions)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not create data repository association for %q in volume %q: %v", draOptions.DataRepositoryPath, volName, err)
+		}
+		dras = append(dras, dra)
+	}
 
 	err = d.cloud.WaitForFileSystemAvailable(ctx, fs.FileSystemId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Filesystem is not ready: %v", err)
 	}
 
-	return newCreateVolumeResponse(fs), nil
+	for _, dra := range dras {
+		if err := d.cloud.WaitForDataRepositoryAssociationAvailable(ctx, dra.AssociationId); err != nil {
+			return nil, status.Errorf(codes.Internal, "Data repository association for %q is not ready %q: %v", dra.DataRepositoryPath, volName, err)
+		}
+	}
+
+	return newCreateVolumeResponse(fs, dras), nil
 }
 
 func (d *controllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
@@ -257,6 +288,17 @@ func (d *controllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 		return nil, status.Error(codes.Aborted, msg)
 	}
 	defer d.inFlight.Delete(volumeID)
+
+	dras, err := d.cloud.DescribeDataRepositoryAssociationsInFileSystem(ctx, volumeID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Could not get data repository associations in volume ID %q: %v", volumeID, err)
+	}
+
+	for _, dra := range dras {
+		if err := d.cloud.DeleteDataRepositoryAssociation(ctx, dra.AssociationId); err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not delete data repository association in volume ID %q: %v", volumeID, err)
+		}
+	}
 
 	if err := d.cloud.DeleteFileSystem(ctx, volumeID); err != nil {
 		if err == cloud.ErrNotFound {
@@ -428,8 +470,8 @@ func (d *controllerService) ControllerGetVolume(ctx context.Context, req *csi.Co
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-func newCreateVolumeResponse(fs *cloud.FileSystem) *csi.CreateVolumeResponse {
-	return &csi.CreateVolumeResponse{
+func newCreateVolumeResponse(fs *cloud.FileSystem, dras []*cloud.DataRepositoryAssociation) *csi.CreateVolumeResponse {
+	response := &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			VolumeId:      fs.FileSystemId,
 			CapacityBytes: util.GiBToBytes(fs.CapacityGiB),
@@ -439,4 +481,13 @@ func newCreateVolumeResponse(fs *cloud.FileSystem) *csi.CreateVolumeResponse {
 			},
 		},
 	}
+	if len(dras) > 0 {
+		associtationIds := []string{}
+		for _, dra := range dras {
+			associtationIds = append(associtationIds, dra.AssociationId)
+		}
+		response.Volume.VolumeContext[volumeContextDataRepositoryAssociationIds] = strings.Join(associtationIds, ",")
+	}
+
+	return response
 }

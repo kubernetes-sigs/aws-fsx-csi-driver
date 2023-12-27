@@ -41,11 +41,13 @@ const (
 	// PollCheckInterval specifies the interval to check if filesystem is ready;
 	// needs to be shorter than the provisioner timeout
 	PollCheckInterval = 30 * time.Second
-	// PollCheckTimeout specifies the time limit for polling DescribeFileSystems
-	// for a completed create/update operation. FSx for Lustre filesystem
-	// creation time is around 5 minutes, and update time varies depending on
+	// PollCheckTimeout specifies the time limit for polling
+	// DescribeFileSystems/DescribeDataRepositoryAssociation for a completed
+	// create/update operation. FSx for Lustre filesystem
+	// creation time is around 5 minutes, Data Repository Association
+	// creation time is around 10 minutes, and update time varies depending on
 	// target file system values
-	PollCheckTimeout = 10 * time.Minute
+	PollCheckTimeout = 15 * time.Minute
 )
 
 // Tags
@@ -61,6 +63,10 @@ var (
 	// ErrMultiDisks is an error that is returned when multiple
 	// disks are found with the same volume name.
 	ErrMultiFileSystems = errors.New("Multiple filesystems with same ID")
+
+	// ErrMultiAssociations is an error that is returned when multiple
+	// associations are found with the same volume name.
+	ErrMultiAssociations = errors.New("Multiple data repository associations with same ID")
 
 	// ErrFsExistsDiffSize is an error that is returned if a filesystem
 	// exists with a given ID, but a different capacity is requested.
@@ -103,6 +109,35 @@ type FileSystemOptions struct {
 	ExtraTags                     []string
 }
 
+type DataRepositoryAssociation struct {
+	AssociationId               string
+	FileSystemId                string
+	BatchImportMetaDataOnCreate bool
+	DataRepositoryPath          string
+	FileSystemPath              string
+	S3                          *S3DataRepositoryConfiguration
+}
+
+type DataRepositoryAssociationOptions struct {
+	BatchImportMetaDataOnCreate bool                           `yaml:"batchImportMetaDataOnCreate,omitempty" json:"batchImportMetaDataOnCreate,omitempty"`
+	DataRepositoryPath          string                         `yaml:"dataRepositoryPath,omitempty" json:"dataRepositoryPath,omitempty"`
+	FileSystemPath              string                         `yaml:"fileSystemPath,omitempty" json:"fileSystemPath,omitempty"`
+	S3                          *S3DataRepositoryConfiguration `yaml:"s3,omitempty" json:"s3,omitempty"`
+}
+
+type S3DataRepositoryConfiguration struct {
+	AutoExportPolicy *AutoExportPolicy `yaml:"autoExportPolicy,omitempty" json:"autoExportPolicy,omitempty"`
+	AutoImportPolicy *AutoImportPolicy `yaml:"autoImportPolicy,omitempty" json:"autoImportPolicy,omitempty"`
+}
+
+type AutoExportPolicy struct {
+	Events []*string `yaml:"events" json:"events"`
+}
+
+type AutoImportPolicy struct {
+	Events []*string `yaml:"events" json:"events"`
+}
+
 // FSx abstracts FSx client to facilitate its mocking.
 // See https://docs.aws.amazon.com/sdk-for-go/api/service/fsx/ for details
 type FSx interface {
@@ -110,6 +145,9 @@ type FSx interface {
 	UpdateFileSystemWithContext(aws.Context, *fsx.UpdateFileSystemInput, ...request.Option) (*fsx.UpdateFileSystemOutput, error)
 	DeleteFileSystemWithContext(aws.Context, *fsx.DeleteFileSystemInput, ...request.Option) (*fsx.DeleteFileSystemOutput, error)
 	DescribeFileSystemsWithContext(aws.Context, *fsx.DescribeFileSystemsInput, ...request.Option) (*fsx.DescribeFileSystemsOutput, error)
+	CreateDataRepositoryAssociationWithContext(ctx aws.Context, input *fsx.CreateDataRepositoryAssociationInput, opts ...request.Option) (*fsx.CreateDataRepositoryAssociationOutput, error)
+	DescribeDataRepositoryAssociationsWithContext(ctx aws.Context, input *fsx.DescribeDataRepositoryAssociationsInput, opts ...request.Option) (*fsx.DescribeDataRepositoryAssociationsOutput, error)
+	DeleteDataRepositoryAssociationWithContext(ctx aws.Context, input *fsx.DeleteDataRepositoryAssociationInput, opts ...request.Option) (*fsx.DeleteDataRepositoryAssociationOutput, error)
 }
 
 type Cloud interface {
@@ -119,6 +157,10 @@ type Cloud interface {
 	DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error)
 	WaitForFileSystemAvailable(ctx context.Context, fileSystemId string) error
 	WaitForFileSystemResize(ctx context.Context, fileSystemId string, resizeGiB int64) error
+	CreateDataRepositoryAssociation(ctx context.Context, filesystemId string, draOptions *DataRepositoryAssociationOptions) (*DataRepositoryAssociation, error)
+	DescribeDataRepositoryAssociationsInFileSystem(ctx context.Context, fileSystemId string) ([]*DataRepositoryAssociation, error)
+	WaitForDataRepositoryAssociationAvailable(ctx context.Context, associationId string) error
+	DeleteDataRepositoryAssociation(ctx context.Context, associationId string) error
 }
 
 type cloud struct {
@@ -375,6 +417,136 @@ func (c *cloud) WaitForFileSystemResize(ctx context.Context, fileSystemId string
 	return err
 }
 
+func (c *cloud) CreateDataRepositoryAssociation(
+	ctx context.Context, filesystemId string, draOptions *DataRepositoryAssociationOptions,
+) (*DataRepositoryAssociation, error) {
+
+	input := &fsx.CreateDataRepositoryAssociationInput{
+		BatchImportMetaDataOnCreate: aws.Bool(draOptions.BatchImportMetaDataOnCreate),
+		DataRepositoryPath:          aws.String(draOptions.DataRepositoryPath),
+		FileSystemId:                aws.String(filesystemId),
+		FileSystemPath:              aws.String(draOptions.FileSystemPath),
+	}
+	if draOptions.S3 != nil {
+		s3config := &fsx.S3DataRepositoryConfiguration{}
+		if draOptions.S3.AutoExportPolicy != nil {
+			s3config.AutoExportPolicy = &fsx.AutoExportPolicy{
+				Events: draOptions.S3.AutoExportPolicy.Events,
+			}
+		}
+		if draOptions.S3.AutoImportPolicy != nil {
+			s3config.AutoImportPolicy = &fsx.AutoImportPolicy{
+				Events: draOptions.S3.AutoImportPolicy.Events,
+			}
+		}
+		input.S3 = s3config
+	}
+
+	output, err := c.fsx.CreateDataRepositoryAssociationWithContext(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("CreateDataRepositoryAssociation failed: %v", err)
+	}
+
+	dra := &DataRepositoryAssociation{
+		AssociationId:               *output.Association.AssociationId,
+		FileSystemId:                *output.Association.FileSystemId,
+		BatchImportMetaDataOnCreate: *output.Association.BatchImportMetaDataOnCreate,
+		DataRepositoryPath:          *output.Association.DataRepositoryPath,
+		FileSystemPath:              *output.Association.FileSystemPath,
+	}
+	if output.Association.S3 != nil {
+		s3 := S3DataRepositoryConfiguration{}
+		if output.Association.S3.AutoExportPolicy != nil {
+			s3.AutoExportPolicy = &AutoExportPolicy{
+				Events: output.Association.S3.AutoExportPolicy.Events,
+			}
+		}
+		if output.Association.S3.AutoImportPolicy != nil {
+			s3.AutoImportPolicy = &AutoImportPolicy{
+				Events: output.Association.S3.AutoImportPolicy.Events,
+			}
+		}
+		dra.S3 = &s3
+	}
+	return dra, nil
+}
+
+func (c *cloud) DescribeDataRepositoryAssociationsInFileSystem(ctx context.Context, fileSystemId string) ([]*DataRepositoryAssociation, error) {
+	input := &fsx.DescribeDataRepositoryAssociationsInput{
+		Filters: []*fsx.Filter{{
+			Name:   aws.String("file-system-id"),
+			Values: []*string{aws.String(fileSystemId)},
+		}},
+	}
+
+	output, err := c.fsx.DescribeDataRepositoryAssociationsWithContext(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	dras := []*DataRepositoryAssociation{}
+	for _, fsxDra := range output.Associations {
+		dra := &DataRepositoryAssociation{
+			AssociationId:               *fsxDra.AssociationId,
+			FileSystemId:                *fsxDra.FileSystemId,
+			BatchImportMetaDataOnCreate: *fsxDra.BatchImportMetaDataOnCreate,
+			DataRepositoryPath:          *fsxDra.DataRepositoryPath,
+			FileSystemPath:              *fsxDra.FileSystemPath,
+		}
+		if fsxDra.S3 != nil {
+			s3 := S3DataRepositoryConfiguration{}
+			if fsxDra.S3.AutoExportPolicy != nil {
+				s3.AutoExportPolicy = &AutoExportPolicy{
+					Events: fsxDra.S3.AutoExportPolicy.Events,
+				}
+			}
+			if fsxDra.S3.AutoImportPolicy != nil {
+				s3.AutoImportPolicy = &AutoImportPolicy{
+					Events: fsxDra.S3.AutoImportPolicy.Events,
+				}
+			}
+			dra.S3 = &s3
+		}
+		dras = append(dras, dra)
+	}
+
+	return dras, nil
+}
+
+func (c *cloud) WaitForDataRepositoryAssociationAvailable(ctx context.Context, associationId string) error {
+	err := wait.Poll(PollCheckInterval, PollCheckTimeout, func() (done bool, err error) {
+		assoc, err := c.getDataRepositoryAssociation(ctx, associationId)
+		if err != nil {
+			return true, err
+		}
+		klog.V(2).InfoS("WaitForDataRepositoryAssociationAvailable", "associationId", associationId, "status", *assoc.Lifecycle)
+		switch *assoc.Lifecycle {
+		case "AVAILABLE":
+			return true, nil
+		case "CREATING":
+			return false, nil
+		default:
+			return true, fmt.Errorf("unexpected state for data repository association %s: %q", associationId, *assoc.Lifecycle)
+		}
+	})
+
+	return err
+}
+
+func (c *cloud) DeleteDataRepositoryAssociation(ctx context.Context, associationId string) error {
+	input := &fsx.DeleteDataRepositoryAssociationInput{
+		AssociationId:          aws.String(associationId),
+		DeleteDataInFileSystem: aws.Bool(true),
+	}
+	if _, err := c.fsx.DeleteDataRepositoryAssociationWithContext(ctx, input); err != nil {
+		if isAssociationNotFound(err) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("DeleteDataRepositoryAssociation failed: %v", err)
+	}
+	return nil
+}
+
 func (c *cloud) getFileSystem(ctx context.Context, fileSystemId string) (*fsx.FileSystem, error) {
 	input := &fsx.DescribeFileSystemsInput{
 		FileSystemIds: []*string{aws.String(fileSystemId)},
@@ -421,9 +593,39 @@ func (c *cloud) getUpdateResizeAdministrativeAction(ctx context.Context, fileSys
 	return nil, fmt.Errorf("there is no update with storage capacity of %d GiB on filesystem %s", resizeGiB, fileSystemId)
 }
 
+func (c *cloud) getDataRepositoryAssociation(ctx context.Context, associationId string) (*fsx.DataRepositoryAssociation, error) {
+	input := &fsx.DescribeDataRepositoryAssociationsInput{
+		AssociationIds: []*string{aws.String(associationId)},
+	}
+
+	output, err := c.fsx.DescribeDataRepositoryAssociationsWithContext(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(output.Associations) > 1 {
+		return nil, ErrMultiAssociations
+	}
+
+	if len(output.Associations) == 0 {
+		return nil, ErrNotFound
+	}
+
+	return output.Associations[0], nil
+}
+
 func isFileSystemNotFound(err error) bool {
 	if awsErr, ok := err.(awserr.Error); ok {
 		if awsErr.Code() == fsx.ErrCodeFileSystemNotFound {
+			return true
+		}
+	}
+	return false
+}
+
+func isAssociationNotFound(err error) bool {
+	if awsErr, ok := err.(awserr.Error); ok {
+		if awsErr.Code() == fsx.ErrCodeDataRepositoryAssociationNotFound {
 			return true
 		}
 	}
