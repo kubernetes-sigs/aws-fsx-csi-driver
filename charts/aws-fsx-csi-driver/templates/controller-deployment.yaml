@@ -93,12 +93,14 @@ spec:
           args:
             - --csi-address=$(ADDRESS)
             - --v={{ .Values.sidecars.provisioner.logLevel }}
-            - --timeout=5m
+            - --timeout=$(TIMEOUT)
             - --extra-create-metadata
             - --leader-election=true
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
+            - name: TIMEOUT
+              value: {{ .Values.controller.provisionerTimeout }}
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/

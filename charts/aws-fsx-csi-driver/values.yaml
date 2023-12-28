@@ -65,6 +65,7 @@ controller:
     - effect: NoExecute
       operator: Exists
       tolerationSeconds: 300
+  provisionerTimeout: 5m
 
 node:
   mode: node
