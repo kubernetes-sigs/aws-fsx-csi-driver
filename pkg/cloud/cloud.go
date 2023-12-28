@@ -65,7 +65,7 @@ var (
 	ErrMultiFileSystems = errors.New("Multiple filesystems with same ID")
 
 	// ErrMultiAssociations is an error that is returned when multiple
-	// associations are found with the same volume name.
+	// data repository associations are found with the same ID.
 	ErrMultiAssociations = errors.New("Multiple data repository associations with same ID")
 
 	// ErrFsExistsDiffSize is an error that is returned if a filesystem
