@@ -123,6 +123,12 @@ type DataRepositoryAssociationOptions struct {
 	DataRepositoryPath          string                         `yaml:"dataRepositoryPath,omitempty" json:"dataRepositoryPath,omitempty"`
 	FileSystemPath              string                         `yaml:"fileSystemPath,omitempty" json:"fileSystemPath,omitempty"`
 	S3                          *S3DataRepositoryConfiguration `yaml:"s3,omitempty" json:"s3,omitempty"`
+
+	extraTags []string
+}
+
+func (o *DataRepositoryAssociationOptions) SetExtraTags(extraTags []string) {
+	o.extraTags = extraTags
 }
 
 type S3DataRepositoryConfiguration struct {
@@ -420,12 +426,27 @@ func (c *cloud) WaitForFileSystemResize(ctx context.Context, fileSystemId string
 func (c *cloud) CreateDataRepositoryAssociation(
 	ctx context.Context, filesystemId string, draOptions *DataRepositoryAssociationOptions,
 ) (*DataRepositoryAssociation, error) {
+	var tags []*fsx.Tag
+	if len(draOptions.extraTags) > 0 {
+		tags = make([]*fsx.Tag, len(draOptions.extraTags))
+		for _, extraTag := range draOptions.extraTags {
+			extraTagSplit := strings.Split(extraTag, "=")
+			tagKey := extraTagSplit[0]
+			tagValue := extraTagSplit[1]
+
+			tags = append(tags, &fsx.Tag{
+				Key:   aws.String(tagKey),
+				Value: aws.String(tagValue),
+			})
+		}
+	}
 
 	input := &fsx.CreateDataRepositoryAssociationInput{
 		BatchImportMetaDataOnCreate: aws.Bool(draOptions.BatchImportMetaDataOnCreate),
 		DataRepositoryPath:          aws.String(draOptions.DataRepositoryPath),
 		FileSystemId:                aws.String(filesystemId),
 		FileSystemPath:              aws.String(draOptions.FileSystemPath),
+		Tags:                        tags,
 	}
 	if draOptions.S3 != nil {
 		s3config := &fsx.S3DataRepositoryConfiguration{}

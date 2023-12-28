@@ -153,20 +153,6 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		fsOptions.S3ExportPath = val
 	}
 
-	drasOptions := []*cloud.DataRepositoryAssociationOptions{}
-	if val, ok := volumeParams[volumeDataRepositoryAssociations]; ok {
-		if err := yaml.Unmarshal(([]byte)(val), &drasOptions); err != nil {
-			msg := fmt.Sprintf("Fail to decode '%s' parameter for volume '%s': %s", volumeDataRepositoryAssociations, volName, err.Error())
-			return nil, status.Error(codes.Aborted, msg)
-		}
-		if (fsOptions.S3ImportPath != "" ||
-			fsOptions.S3ExportPath != "" ||
-			fsOptions.AutoImportPolicy != "") &&
-			len(drasOptions) > 0 {
-			return nil, status.Error(codes.InvalidArgument, "When specifying dataRepositoryAssociations, s3ImportPath,s3ExportPath and autoImportPolicy can not be specified")
-		}
-	}
-
 	if val, ok := volumeParams[volumeParamsDeploymentType]; ok {
 		fsOptions.DeploymentType = val
 	}
@@ -242,6 +228,23 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		tagArray = append(tagArray, extraTags...)
 	}
 	fsOptions.ExtraTags = tagArray
+
+	drasOptions := []*cloud.DataRepositoryAssociationOptions{}
+	if val, ok := volumeParams[volumeDataRepositoryAssociations]; ok {
+		if err := yaml.Unmarshal(([]byte)(val), &drasOptions); err != nil {
+			msg := fmt.Sprintf("Fail to decode '%s' parameter for volume '%s': %s", volumeDataRepositoryAssociations, volName, err.Error())
+			return nil, status.Error(codes.Aborted, msg)
+		}
+		if (fsOptions.S3ImportPath != "" ||
+			fsOptions.S3ExportPath != "" ||
+			fsOptions.AutoImportPolicy != "") &&
+			len(drasOptions) > 0 {
+			return nil, status.Error(codes.InvalidArgument, "When specifying dataRepositoryAssociations, s3ImportPath,s3ExportPath and autoImportPolicy can not be specified")
+		}
+		for _, draOptions := range drasOptions {
+			draOptions.SetExtraTags(fsOptions.ExtraTags)
+		}
+	}
 
 	fs, err := d.cloud.CreateFileSystem(ctx, volName, fsOptions)
 	if err != nil {
