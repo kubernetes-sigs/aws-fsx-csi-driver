@@ -20,9 +20,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"os"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/internal"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
@@ -35,6 +37,13 @@ import (
 
 var (
 	nodeCaps = []csi.NodeServiceCapability_RPC_Type{}
+
+	// taintRemovalBackoff is the exponential backoff configuration for node taint removal
+	taintRemovalBackoff = wait.Backoff{
+		Duration: 500 * time.Millisecond,
+		Factor:   2,
+		Steps:    10, // Max delay = 0.5 * 2^9 = ~4 minutes
+	}
 )
 
 // VolumeOperationAlreadyExists is message fmt returned to CO when there is another in-flight call on the given rpcKey
@@ -62,11 +71,8 @@ func newNodeService(driverOptions *DriverOptions) nodeService {
 	}
 
 	// Remove taint from node to indicate driver startup success
-	// This is done at the last possible moment to prevent race conditions or false positive removals
-	err = removeNotReadyTaint(cloud.DefaultKubernetesAPIClient)
-	if err != nil {
-		klog.ErrorS(err, "Unexpected failure when attempting to remove node taint(s)")
-	}
+	// This is done in the background as a goroutine to allow for driver startup
+	go removeTaintInBackground(cloud.DefaultKubernetesAPIClient)
 
 	return nodeService{
 		metadata:      metadata,
@@ -291,6 +297,22 @@ type JSONPatch struct {
 	Value interface{} `json:"value"`
 }
 
+// removeTaintInBackground is a goroutine that retries removeNotReadyTaint with exponential backoff
+func removeTaintInBackground(k8sClient cloud.KubernetesAPIClient) {
+	backoffErr := wait.ExponentialBackoff(taintRemovalBackoff, func() (bool, error) {
+		err := removeNotReadyTaint(k8sClient)
+		if err != nil {
+			klog.ErrorS(err, "Unexpected failure when attempting to remove node taint(s)")
+			return false, err
+		}
+		return true, nil
+	})
+
+	if backoffErr != nil {
+		klog.ErrorS(backoffErr, "Retries exhausted, giving up attempting to remove node taint(s)")
+	}
+}
+
 // removeNotReadyTaint removes the taint fsx.csi.aws.com/agent-not-ready from the local node
 // This taint can be optionally applied by users to prevent startup race conditions such as
 // https://github.com/kubernetes/kubernetes/issues/95911
@@ -303,7 +325,7 @@ func removeNotReadyTaint(k8sClient cloud.KubernetesAPIClient) error {
 
 	clientset, err := k8sClient()
 	if err != nil {
-		klog.V(4).InfoS("Failed to communicate with k8s API, skipping taint removal")
+		klog.V(4).InfoS("Failed to setup k8s client, skipping taint removal")
 		return nil
 	}
 
