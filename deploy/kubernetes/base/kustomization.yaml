@@ -10,3 +10,7 @@ resources:
   - clusterrole-csi-node.yaml
   - clusterrolebinding-csi-node.yaml
 
+configMapGenerator:
+  - name: fsx-csi-controller
+    envs: 
+      - controller.env
