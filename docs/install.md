@@ -84,12 +84,26 @@ There are potential race conditions on node startup (especially when a node is f
 
 This feature is activated by default, and cluster administrators should use the taint `fsx.csi.aws.com/agent-not-ready:NoExecute` (any effect will work, but `NoExecute` is recommended). For example, EKS Managed Node Groups [support automatically tainting nodes](https://docs.aws.amazon.com/eks/latest/userguide/node-taints-managed-node-groups.html).
 
+### CSI controller's provisioner timeout
+
+**WARNING** If you will use [Dynamic Provisioning with Data Repository Associations](../examples/kubernetes/dynamic_provisioning_s3_association/README.md), you are strongly recommended to set longer CSI controller's provisioner timeout (e.g. `60m`) because attaching Data Repository Associations to FSx for Lustre filesystem is prone to take long time. Please see the next section for how to set the timeout.
+
 ### Deploy driver
 You may deploy the FSx for Lustre CSI driver via Kustomize or Helm
 
 #### Kustomize
 ```sh
 kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.1"
+```
+
+```sh
+# To set CSI controller's provisioner timeout,
+# Please follow the instruction
+$ cd $(mktemp -d)
+$ kustomize init
+$ kustomize edit add resource "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.1"
+$ kustomize edit add configmap fsx-csi-controller --from-literal=CONTROLLER_PROVISIONER_TIMEOUT=30m --behavior=merge
+$ kubectl apply -k .
 ```
 
 *Note: Using the master branch to deploy the driver is not supported as the master branch may contain upcoming features incompatible with the currently released stable version of the driver.*
@@ -105,6 +119,15 @@ helm repo update
 ```sh
 helm upgrade --install aws-fsx-csi-driver \
     --namespace kube-system \
+    aws-fsx-csi-driver/aws-fsx-csi-driver
+```
+
+```sh
+# To set CSI controller's provisioner timeout,
+# Please follow the instruction
+helm template --install aws-fsx-csi-driver \
+    --namespace kube-system \
+    --set-string "controller.provisionerTimeout=60m" \
     aws-fsx-csi-driver/aws-fsx-csi-driver
 ```
 

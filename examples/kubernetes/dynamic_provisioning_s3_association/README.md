@@ -5,6 +5,8 @@ Please note that data repository associations are supported on FSx for Lustre 2.
 
 This integration means that you can seamlessly access the objects stored in your Amazon S3 buckets from applications mounting your Amazon FSx for Lustre file system. Please check [Using Data Repositories](https://docs.aws.amazon.com/fsx/latest/LustreGuide/fsx-data-repositories.html) for details.
 
+**WARNING** If you will use this feature, you are strongly recommended to set longer CSI controller's provisioner timeout (e.g. `60m`). See [here](../../../docs/install.md#csi-controllers-provisioner-timeout).
+
 ### Edit [StorageClass](./specs/storageclass.yaml)
 ```yaml
 kind: StorageClass
