@@ -1,7 +1,7 @@
 module sigs.k8s.io/aws-fsx-csi-driver
 
 require (
-	github.com/aws/aws-sdk-go v1.47.4
+	github.com/aws/aws-sdk-go v1.50.3
 	github.com/container-storage-interface/spec v1.9.0
 	github.com/golang/mock v1.6.0
 	github.com/kubernetes-csi/csi-test v2.0.1+incompatible
