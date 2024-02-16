@@ -19,18 +19,19 @@ package driver
 import (
 	"context"
 	"fmt"
+	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"reflect"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 	cloudMock "sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud/mocks"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/internal"
-	"testing"
-
-	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/golang/mock/gomock"
 	driverMocks "sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/mocks"
+	"testing"
 )
 
 var (
@@ -822,6 +823,21 @@ func TestRemoveNotReadyTaint(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRemoveTaintInBackground(t *testing.T) {
+	mockRemovalCount := 0
+	mockRemovalFunc := func(_ cloud.KubernetesAPIClient) error {
+		mockRemovalCount += 1
+		if mockRemovalCount == 3 {
+			return nil
+		} else {
+			return fmt.Errorf("Taint removal failed!")
+		}
+	}
+
+	removeTaintInBackground(nil, mockRemovalFunc)
+	assert.Equal(t, mockRemovalCount, 3)
 }
 
 func getNodeMock(mockCtl *gomock.Controller, nodeName string, returnNode *corev1.Node, returnError error) (kubernetes.Interface, *driverMocks.MockNodeInterface) {
