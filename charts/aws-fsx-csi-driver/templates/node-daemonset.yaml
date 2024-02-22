@@ -46,6 +46,9 @@ spec:
         - key: "fsx.csi.aws.com/agent-not-ready"
           operator: "Exists"
         {{- end }}
+      {{- with .Values.node.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: fsx-plugin
           securityContext:

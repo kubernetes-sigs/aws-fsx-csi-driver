@@ -93,6 +93,15 @@ node:
     - operator: Exists
       effect: NoExecute
       tolerationSeconds: 300
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: eks.amazonaws.com/compute-type
+            operator: NotIn
+            values:
+            - fargate
 
 nameOverride: ""
 fullnameOverride: ""
