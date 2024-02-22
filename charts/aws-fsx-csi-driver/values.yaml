@@ -93,6 +93,7 @@ node:
     - operator: Exists
       effect: NoExecute
       tolerationSeconds: 300
+  affinity: {}
 
 nameOverride: ""
 fullnameOverride: ""
