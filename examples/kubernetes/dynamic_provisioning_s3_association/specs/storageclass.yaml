@@ -1,0 +1,92 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: fsx-sc
+provisioner: fsx.csi.aws.com
+parameters:
+  subnetId: subnet-0d7b5e117ad7b4961
+  securityGroupIds: sg-05a37bfe01467059a
+  deploymentType: PERSISTENT_2
+  dataRepositoryAssociations: |
+    - batchImportMetaDataOnCreate: true
+      dataRepositoryPath: s3://ml-training-data-000
+      fileSystemPath: /ml-training-data-000
+      s3:
+        autoExportPolicy:
+          events: ["NEW", "CHANGED", "DELETED" ]
+        autoImportPolicy:
+          events: ["NEW", "CHANGED", "DELETED" ]
+    - batchImportMetaDataOnCreate: true
+      dataRepositoryPath: s3://ml-training-data-000
+      fileSystemPath: /ml-training-data-000
+      s3:
+        autoExportPolicy:
+          events: ["NEW", "CHANGED", "DELETED" ]
+        autoImportPolicy:
+          events: ["NEW", "CHANGED", "DELETED" ]
+
+    # - # Set to true to run an import data repository task to import metadata from
+    #   # the data repository to the file system after the data repository association
+    #   # is created. Default is false.
+    #   batchImportMetaDataOnCreate: true
+    #
+    #   # The path to the Amazon S3 data repository that will be linked to the file
+    #   # system. The path can be an S3 bucket or prefix in the format s3:#myBucket/myPrefix/.
+    #   # This path specifies where in the S3 data repository files will be imported
+    #   # from or exported to.
+    #   # DataRepositoryPath is a required field
+    #   dataRepositoryPath: s3://ml-training-data-000
+    #
+    #   # A path on the file system that points to a high-level directory (such as
+    #   # /ns1/) or subdirectory (such as /ns1/subdir/) that will be mapped 1-1 with
+    #   # DataRepositoryPath. The leading forward slash in the name is required. Two
+    #   # data repository associations cannot have overlapping file system paths. For
+    #   # example, if a data repository is associated with file system path /ns1/,
+    #   # then you cannot link another data repository with file system path /ns1/ns2.
+    #   #
+    #   # This path specifies where in your file system files will be exported from
+    #   # or imported to. This file system directory can be linked to only one Amazon
+    #   # S3 bucket, and no other S3 bucket can be linked to the directory.
+    #   #
+    #   # If you specify only a forward slash (/) as the file system path, you can
+    #   # link only one data repository to the file system. You can only specify "/"
+    #   # as the file system path for the first data repository associated with a file
+    #   # system.
+    #   fileSystemPath: /
+    #
+    #   # The configuration for an Amazon S3 data repository linked to an Amazon FSx
+    #   # Lustre file system with a data repository association. The configuration
+    #   # defines which file events (new, changed, or deleted files or directories)
+    #   # are automatically imported from the linked data repository to the file system
+    #   # or automatically exported from the file system to the data repository.
+    #   s3:
+    #     # Specifies the type of updated objects (new, changed, deleted) that will be
+    #     # automatically exported from your file system to the linked S3 bucket.
+    #     autoExportPolicy:
+    #       # The AutoExportPolicy can have the following event values:
+    #       #    * NEW - New files and directories are automatically exported to the data
+    #       #    repository as they are added to the file system.
+    #       #    * CHANGED - Changes to files and directories on the file system are automatically
+    #       #    exported to the data repository.
+    #       #    * DELETED - Files and directories are automatically deleted on the data
+    #       #    repository when they are deleted on the file system.
+    #       # You can define any combination of event types for your AutoExportPolicy.        
+    #       events: ["NEW", "CHANGED", "DELETED" ]
+    #     # Specifies the type of updated objects (new, changed, deleted) that will be
+    #     # automatically imported from the linked S3 bucket to your file system.
+    #     autoImportPolicy:
+    #       # The AutoImportPolicy can have the following event values:
+    #       #
+    #       #    * NEW - Amazon FSx automatically imports metadata of files added to the
+    #       #    linked S3 bucket that do not currently exist in the FSx file system.
+    #       #
+    #       #    * CHANGED - Amazon FSx automatically updates file metadata and invalidates
+    #       #    existing file content on the file system as files change in the data repository.
+    #       #
+    #       #    * DELETED - Amazon FSx automatically deletes files on the file system
+    #       #    as corresponding files are deleted in the data repository.
+    #       #
+    #       # You can define any combination of event types for your AutoImportPolicy.
+    #       events: ["NEW", "CHANGED", "DELETED" ]
+mountOptions:
+  - flock

@@ -20,9 +20,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/internal"
+	"strings"
 	"testing"
 
+	"gopkg.in/yaml.v3"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/internal"
+
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 
 	"github.com/aws/aws-sdk-go/service/fsx"
@@ -55,6 +59,8 @@ func TestCreateVolume(t *testing.T) {
 			},
 		}
 		extraTags = "key1=value1,key2=value2"
+
+		associationId = "assoc-1234"
 	)
 	testCases := []struct {
 		name     string
@@ -289,6 +295,124 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "success: normal with deploymentType PERSISTENT_2 and DataRepositoryAssociations",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
+				}
+
+				dataRepositoryAssociationOptions := []cloud.DataRepositoryAssociationOptions{{
+					BatchImportMetaDataOnCreate: true,
+					FileSystemPath:              "/ns1/bucket-1",
+					DataRepositoryPath:          "s3://bucket-1",
+					S3: &cloud.S3DataRepositoryConfiguration{
+						AutoImportPolicy: &cloud.AutoImportPolicy{
+							Events: []*string{
+								aws.String("NEW"), aws.String("CHANGED"), aws.String("DELETED"),
+							},
+						},
+						AutoExportPolicy: &cloud.AutoExportPolicy{
+							Events: []*string{
+								aws.String("NEW"), aws.String("CHANGED"), aws.String("DELETED"),
+							},
+						},
+					},
+				}}
+				dataRepositoryAssociationOptionsYamlRaw, _ := yaml.Marshal(dataRepositoryAssociationOptions)
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					Parameters: map[string]string{
+						volumeParamsSubnetId:                      subnetId,
+						volumeParamsSecurityGroupIds:              securityGroupIds,
+						volumeParamsDeploymentType:                fsx.LustreDeploymentTypePersistent2,
+						volumeParamsKmsKeyId:                      "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe",
+						volumeParamsPerUnitStorageThroughput:      "200",
+						volumeParamsStorageType:                   fsx.StorageTypeSsd,
+						volumeParamsAutomaticBackupRetentionDays:  "1",
+						volumeParamsDailyAutomaticBackupStartTime: "00:00",
+						volumeParamsCopyTagsToBackups:             "true",
+						volumeParamsDataCompressionType:           "LZ4",
+						volumeParamsWeeklyMaintenanceStartTime:    "7:08:00",
+						volumeParamsFileSystemTypeVersion:         "2.12",
+						volumeDataRepositoryAssociations:          string(dataRepositoryAssociationOptionsYamlRaw),
+					},
+				}
+
+				ctx := context.Background()
+				fs := &cloud.FileSystem{
+					FileSystemId: fileSystemId,
+					CapacityGiB:  volumeSizeGiB,
+					DnsName:      dnsName,
+					MountName:    mountName,
+				}
+				dataRepositoryAssociation := &cloud.DataRepositoryAssociation{
+					AssociationId:               associationId,
+					FileSystemId:                fileSystemId,
+					BatchImportMetaDataOnCreate: dataRepositoryAssociationOptions[0].BatchImportMetaDataOnCreate,
+					DataRepositoryPath:          dataRepositoryAssociationOptions[0].DataRepositoryPath,
+					FileSystemPath:              dataRepositoryAssociationOptions[0].FileSystemPath,
+					S3:                          dataRepositoryAssociationOptions[0].S3,
+				}
+				mockCloud.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(fs, nil)
+				mockCloud.EXPECT().WaitForFileSystemAvailable(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(nil)
+				mockCloud.EXPECT().CreateDataRepositoryAssociation(gomock.Eq(ctx), gomock.Eq(fileSystemId), gomock.Any()).Return(dataRepositoryAssociation, nil)
+				mockCloud.EXPECT().WaitForDataRepositoryAssociationAvailable(gomock.Any(), gomock.Eq(associationId)).Return(nil)
+
+				resp, err := driver.CreateVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("CreateVolume is failed: %v", err)
+				}
+
+				if resp.Volume == nil {
+					t.Fatal("resp.Volume is nil")
+				}
+
+				if resp.Volume.VolumeId != fileSystemId {
+					t.Fatalf("VolumeId mismatches. actual: %v expected: %v", resp.Volume.VolumeId, fileSystemId)
+				}
+
+				if resp.Volume.CapacityBytes == 0 {
+					t.Fatalf("resp.Volume.CapacityGiB is zero")
+				}
+
+				dnsname, exists := resp.Volume.VolumeContext[volumeContextDnsName]
+				if !exists {
+					t.Fatal("dnsname is missing")
+				}
+
+				if dnsname != dnsName {
+					t.Fatalf("dnsname mismatches. actual: %v expected: %v", dnsname, dnsName)
+				}
+
+				mountname, exists := resp.Volume.VolumeContext[volumeContextMountName]
+				if !exists {
+					t.Fatal("mountname is missing")
+				}
+
+				if mountname != mountName {
+					t.Fatalf("mountname mismatches. actual: %v expected: %v", mountname, mountName)
+				}
+
+				associationIds, exists := resp.Volume.VolumeContext[volumeContextDataRepositoryAssociationIds]
+				if !exists {
+					t.Fatal("dataRepositoryAssociationIds is missing")
+				}
+				expectedAssociationIds := strings.Join([]string{associationId}, ",")
+				if associationIds != expectedAssociationIds {
+					t.Fatalf("dataRepositoryAssociationIds mismatches. actual: %v expected: %v", associationIds, expectedAssociationIds)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "fail: volume name missing",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
@@ -414,6 +538,120 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl.Finish()
 			},
 		},
+		{
+			name: "fail: deploymentType PERSISTENT_2 with LustreConfiguration.ImportPath(s3ImportPath) return error",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					Parameters: map[string]string{
+						volumeParamsSubnetId:                      subnetId,
+						volumeParamsSecurityGroupIds:              securityGroupIds,
+						volumeParamsDeploymentType:                fsx.LustreDeploymentTypePersistent2,
+						volumeParamsKmsKeyId:                      "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe",
+						volumeParamsPerUnitStorageThroughput:      "200",
+						volumeParamsStorageType:                   fsx.StorageTypeSsd,
+						volumeParamsAutomaticBackupRetentionDays:  "1",
+						volumeParamsDailyAutomaticBackupStartTime: "00:00",
+						volumeParamsCopyTagsToBackups:             "true",
+						volumeParamsDataCompressionType:           "LZ4",
+						volumeParamsWeeklyMaintenanceStartTime:    "7:08:00",
+						volumeParamsFileSystemTypeVersion:         "2.12",
+						volumeParamsS3ImportPath:                  "s3://bucket",
+						volumeParamsS3ExportPath:                  "s3://bucket/export",
+						volumeParamsAutoImportPolicy:              "true",
+					},
+				}
+
+				ctx := context.Background()
+				mockCloud.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(
+					nil,
+					errors.New("Linking a Persistent 2 file system to an S3 bucket using the LustreConfiguration is not supported."),
+				)
+
+				_, err := driver.CreateVolume(ctx, req)
+				if err == nil {
+					t.Fatal("CreateVolume is not failed")
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "fail: Both LustreConfiguration.ImportPath(s3ImportPath) and DataRepositoryAssociations return error",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
+				}
+
+				dataRepositoryAssociationOptions := []cloud.DataRepositoryAssociationOptions{{
+					BatchImportMetaDataOnCreate: true,
+					FileSystemPath:              "/ns1/bucket-1",
+					DataRepositoryPath:          "s3://bucket-1",
+					S3: &cloud.S3DataRepositoryConfiguration{
+						AutoImportPolicy: &cloud.AutoImportPolicy{
+							Events: []*string{
+								aws.String("NEW"), aws.String("CHANGED"), aws.String("DELETED"),
+							},
+						},
+						AutoExportPolicy: &cloud.AutoExportPolicy{
+							Events: []*string{
+								aws.String("NEW"), aws.String("CHANGED"), aws.String("DELETED"),
+							},
+						},
+					},
+				}}
+				dataRepositoryAssociationOptionsYamlRaw, _ := yaml.Marshal(dataRepositoryAssociationOptions)
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					Parameters: map[string]string{
+						volumeParamsSubnetId:                      subnetId,
+						volumeParamsSecurityGroupIds:              securityGroupIds,
+						volumeParamsDeploymentType:                fsx.LustreDeploymentTypePersistent2,
+						volumeParamsKmsKeyId:                      "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe",
+						volumeParamsPerUnitStorageThroughput:      "200",
+						volumeParamsStorageType:                   fsx.StorageTypeSsd,
+						volumeParamsAutomaticBackupRetentionDays:  "1",
+						volumeParamsDailyAutomaticBackupStartTime: "00:00",
+						volumeParamsCopyTagsToBackups:             "true",
+						volumeParamsDataCompressionType:           "LZ4",
+						volumeParamsWeeklyMaintenanceStartTime:    "7:08:00",
+						volumeParamsFileSystemTypeVersion:         "2.12",
+						volumeParamsS3ImportPath:                  "s3://bucket",
+						volumeParamsS3ExportPath:                  "s3://bucket/export",
+						volumeParamsAutoImportPolicy:              "true",
+						volumeDataRepositoryAssociations:          string(dataRepositoryAssociationOptionsYamlRaw),
+					},
+				}
+
+				ctx := context.Background()
+				_, err := driver.CreateVolume(ctx, req)
+				if err == nil {
+					t.Fatal("CreateVolume is not failed")
+				}
+
+				mockCtl.Finish()
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -446,7 +684,7 @@ func TestDeleteVolume(t *testing.T) {
 				}
 
 				ctx := context.Background()
-
+				mockCloud.EXPECT().DescribeDataRepositoryAssociationsInFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return([]*cloud.DataRepositoryAssociation{}, nil)
 				mockCloud.EXPECT().DeleteFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(nil)
 				_, err := driver.DeleteVolume(ctx, req)
 				if err != nil {
@@ -496,6 +734,7 @@ func TestDeleteVolume(t *testing.T) {
 				}
 
 				ctx := context.Background()
+				mockCloud.EXPECT().DescribeDataRepositoryAssociationsInFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return([]*cloud.DataRepositoryAssociation{}, nil)
 				mockCloud.EXPECT().DeleteFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(cloud.ErrNotFound)
 				_, err := driver.DeleteVolume(ctx, req)
 				if err != nil {
@@ -522,6 +761,7 @@ func TestDeleteVolume(t *testing.T) {
 				}
 
 				ctx := context.Background()
+				mockCloud.EXPECT().DescribeDataRepositoryAssociationsInFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return([]*cloud.DataRepositoryAssociation{}, nil)
 				mockCloud.EXPECT().DeleteFileSystem(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(errors.New("DeleteFileSystem failed"))
 				_, err := driver.DeleteVolume(ctx, req)
 				if err == nil {

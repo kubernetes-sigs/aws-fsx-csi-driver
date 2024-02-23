@@ -36,6 +36,26 @@ func (m *MockFSx) EXPECT() *MockFSxMockRecorder {
 	return m.recorder
 }
 
+// CreateDataRepositoryAssociationWithContext mocks base method.
+func (m *MockFSx) CreateDataRepositoryAssociationWithContext(arg0 context.Context, arg1 *fsx.CreateDataRepositoryAssociationInput, arg2 ...request.Option) (*fsx.CreateDataRepositoryAssociationOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateDataRepositoryAssociationWithContext", varargs...)
+	ret0, _ := ret[0].(*fsx.CreateDataRepositoryAssociationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateDataRepositoryAssociationWithContext indicates an expected call of CreateDataRepositoryAssociationWithContext.
+func (mr *MockFSxMockRecorder) CreateDataRepositoryAssociationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDataRepositoryAssociationWithContext", reflect.TypeOf((*MockFSx)(nil).CreateDataRepositoryAssociationWithContext), varargs...)
+}
+
 // CreateFileSystemWithContext mocks base method.
 func (m *MockFSx) CreateFileSystemWithContext(arg0 context.Context, arg1 *fsx.CreateFileSystemInput, arg2 ...request.Option) (*fsx.CreateFileSystemOutput, error) {
 	m.ctrl.T.Helper()
@@ -56,6 +76,26 @@ func (mr *MockFSxMockRecorder) CreateFileSystemWithContext(arg0, arg1 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFileSystemWithContext", reflect.TypeOf((*MockFSx)(nil).CreateFileSystemWithContext), varargs...)
 }
 
+// DeleteDataRepositoryAssociationWithContext mocks base method.
+func (m *MockFSx) DeleteDataRepositoryAssociationWithContext(arg0 context.Context, arg1 *fsx.DeleteDataRepositoryAssociationInput, arg2 ...request.Option) (*fsx.DeleteDataRepositoryAssociationOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteDataRepositoryAssociationWithContext", varargs...)
+	ret0, _ := ret[0].(*fsx.DeleteDataRepositoryAssociationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteDataRepositoryAssociationWithContext indicates an expected call of DeleteDataRepositoryAssociationWithContext.
+func (mr *MockFSxMockRecorder) DeleteDataRepositoryAssociationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDataRepositoryAssociationWithContext", reflect.TypeOf((*MockFSx)(nil).DeleteDataRepositoryAssociationWithContext), varargs...)
+}
+
 // DeleteFileSystemWithContext mocks base method.
 func (m *MockFSx) DeleteFileSystemWithContext(arg0 context.Context, arg1 *fsx.DeleteFileSystemInput, arg2 ...request.Option) (*fsx.DeleteFileSystemOutput, error) {
 	m.ctrl.T.Helper()
@@ -74,6 +114,26 @@ func (mr *MockFSxMockRecorder) DeleteFileSystemWithContext(arg0, arg1 interface{
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFileSystemWithContext", reflect.TypeOf((*MockFSx)(nil).DeleteFileSystemWithContext), varargs...)
+}
+
+// DescribeDataRepositoryAssociationsWithContext mocks base method.
+func (m *MockFSx) DescribeDataRepositoryAssociationsWithContext(arg0 context.Context, arg1 *fsx.DescribeDataRepositoryAssociationsInput, arg2 ...request.Option) (*fsx.DescribeDataRepositoryAssociationsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeDataRepositoryAssociationsWithContext", varargs...)
+	ret0, _ := ret[0].(*fsx.DescribeDataRepositoryAssociationsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeDataRepositoryAssociationsWithContext indicates an expected call of DescribeDataRepositoryAssociationsWithContext.
+func (mr *MockFSxMockRecorder) DescribeDataRepositoryAssociationsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeDataRepositoryAssociationsWithContext", reflect.TypeOf((*MockFSx)(nil).DescribeDataRepositoryAssociationsWithContext), varargs...)
 }
 
 // DescribeFileSystemsWithContext mocks base method.
