@@ -1,3 +1,12 @@
+# v1.2.0
+
+### Bug fixes
+*  Fix taint removal retry for non-swallowed errors ([#373](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/373), [@jacobwolfaws](https://github.com/jacobwolfaws))
+
+### Improvements
+* Add retry and background run to node taint removal ([#370](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/370), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Bump dependencies for v1.2.0 ([#374](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/374), [@jacobwolfaws](https://github.com/jacobwolfaws))
+
 # v1.1.0
 
 ### Bug fixes

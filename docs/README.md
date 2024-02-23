@@ -15,6 +15,7 @@ For installation and deployment instructions, please refer to our [installation 
 ### CSI Specification Compatibility Matrix
 | AWS FSx for Lustre CSI Driver \ CSI Version | v0.3.0 | v1.x.x |
 |---------------------------------------------|--------|--------|
+| v1.2.0                                      | no     | yes    |
 | v1.1.0                                      | no     | yes    |
 | v1.0.0                                      | no     | yes    |
 | v0.10.1                                     | no     | yes    |
@@ -45,6 +46,7 @@ The following sections are Kubernetes-specific. If you are a Kubernetes user, us
 ### Kubernetes Version Compatibility Matrix
 | AWS FSx for Lustre CSI Driver \ Kubernetes Version | v1.11 | v1.12 | v1.13 | v1.14-16 | v1.17+ |
 |----------------------------------------------------|-------|-------|-------|----------|--------|
+| v1.2.0                                             | no    | no    | no    | no       | yes    |
 | v1.1.0                                             | no    | no    | no    | no       | yes    |
 | v1.0.0                                             | no    | no    | no    | no       | yes    |
 | v0.10.1                                            | no    | no    | no    | no       | yes    |
@@ -66,6 +68,7 @@ The following sections are Kubernetes-specific. If you are a Kubernetes user, us
 ### Container Images
 | FSx CSI Driver Version | Image                                                    |
 |------------------------|----------------------------------------------------------|
+| v1.2.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v1.2.0  |
 | v1.1.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v1.1.0  |
 | v1.0.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v1.0.0  |
 | v0.10.1                | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v0.10.1 |
