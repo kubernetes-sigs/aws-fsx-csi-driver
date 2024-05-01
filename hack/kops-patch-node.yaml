@@ -1,4 +1,4 @@
 spec:
-  image: 137112412989/amzn2-ami-hvm-2.0.20220218.3-x86_64-gp2
+  image: 137112412989/amzn2-ami-kernel-5.10-hvm-2.0.20240412.0-x86_64-gp2
   instanceMetadata:
     httpPutResponseHopLimit: 3
