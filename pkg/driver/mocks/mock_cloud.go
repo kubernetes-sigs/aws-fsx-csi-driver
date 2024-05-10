@@ -35,6 +35,21 @@ func (m *MockCloud) EXPECT() *MockCloudMockRecorder {
 	return m.recorder
 }
 
+// CreateDataRepositoryAssociation mocks base method.
+func (m *MockCloud) CreateDataRepositoryAssociation(arg0 context.Context, arg1 string, arg2 *cloud.DataRepositoryAssociationOptions) (*cloud.DataRepositoryAssociation, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateDataRepositoryAssociation", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*cloud.DataRepositoryAssociation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateDataRepositoryAssociation indicates an expected call of CreateDataRepositoryAssociation.
+func (mr *MockCloudMockRecorder) CreateDataRepositoryAssociation(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDataRepositoryAssociation", reflect.TypeOf((*MockCloud)(nil).CreateDataRepositoryAssociation), arg0, arg1, arg2)
+}
+
 // CreateFileSystem mocks base method.
 func (m *MockCloud) CreateFileSystem(arg0 context.Context, arg1 string, arg2 *cloud.FileSystemOptions) (*cloud.FileSystem, error) {
 	m.ctrl.T.Helper()
@@ -50,6 +65,20 @@ func (mr *MockCloudMockRecorder) CreateFileSystem(arg0, arg1, arg2 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFileSystem", reflect.TypeOf((*MockCloud)(nil).CreateFileSystem), arg0, arg1, arg2)
 }
 
+// DeleteDataRepositoryAssociation mocks base method.
+func (m *MockCloud) DeleteDataRepositoryAssociation(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteDataRepositoryAssociation", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteDataRepositoryAssociation indicates an expected call of DeleteDataRepositoryAssociation.
+func (mr *MockCloudMockRecorder) DeleteDataRepositoryAssociation(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDataRepositoryAssociation", reflect.TypeOf((*MockCloud)(nil).DeleteDataRepositoryAssociation), arg0, arg1)
+}
+
 // DeleteFileSystem mocks base method.
 func (m *MockCloud) DeleteFileSystem(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
@@ -62,6 +91,21 @@ func (m *MockCloud) DeleteFileSystem(arg0 context.Context, arg1 string) error {
 func (mr *MockCloudMockRecorder) DeleteFileSystem(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFileSystem", reflect.TypeOf((*MockCloud)(nil).DeleteFileSystem), arg0, arg1)
+}
+
+// DescribeDataRepositoryAssociationsInFileSystem mocks base method.
+func (m *MockCloud) DescribeDataRepositoryAssociationsInFileSystem(arg0 context.Context, arg1 string) ([]*cloud.DataRepositoryAssociation, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeDataRepositoryAssociationsInFileSystem", arg0, arg1)
+	ret0, _ := ret[0].([]*cloud.DataRepositoryAssociation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeDataRepositoryAssociationsInFileSystem indicates an expected call of DescribeDataRepositoryAssociationsInFileSystem.
+func (mr *MockCloudMockRecorder) DescribeDataRepositoryAssociationsInFileSystem(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeDataRepositoryAssociationsInFileSystem", reflect.TypeOf((*MockCloud)(nil).DescribeDataRepositoryAssociationsInFileSystem), arg0, arg1)
 }
 
 // DescribeFileSystem mocks base method.
@@ -92,6 +136,20 @@ func (m *MockCloud) ResizeFileSystem(arg0 context.Context, arg1 string, arg2 int
 func (mr *MockCloudMockRecorder) ResizeFileSystem(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResizeFileSystem", reflect.TypeOf((*MockCloud)(nil).ResizeFileSystem), arg0, arg1, arg2)
+}
+
+// WaitForDataRepositoryAssociationAvailable mocks base method.
+func (m *MockCloud) WaitForDataRepositoryAssociationAvailable(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WaitForDataRepositoryAssociationAvailable", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WaitForDataRepositoryAssociationAvailable indicates an expected call of WaitForDataRepositoryAssociationAvailable.
+func (mr *MockCloudMockRecorder) WaitForDataRepositoryAssociationAvailable(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitForDataRepositoryAssociationAvailable", reflect.TypeOf((*MockCloud)(nil).WaitForDataRepositoryAssociationAvailable), arg0, arg1)
 }
 
 // WaitForFileSystemAvailable mocks base method.
