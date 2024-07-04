@@ -41,11 +41,14 @@ const (
 	// PollCheckInterval specifies the interval to check if filesystem is ready;
 	// needs to be shorter than the provisioner timeout
 	PollCheckInterval = 30 * time.Second
-	// PollCheckTimeout specifies the time limit for polling DescribeFileSystems
-	// for a completed create/update operation. FSx for Lustre filesystem
-	// creation time is around 5 minutes, and update time varies depending on
-	// target file system values
-	PollCheckTimeout = 10 * time.Minute
+	// PollCheckTimeoutConstant & PollCheckTimeoutLinearFactor define the time limit
+	// for polling DescribeFileSystems for a completed create/update operation.
+	// FSx for Lustre filesystem creation time is around 5 minutes, and update
+	// time varies depending on target file system values. To handle varying creation
+	// times, the driver will wait at least PollCheckTimeoutConstant, but will
+	// increase the timeout linearly with PollCheckTimeoutLinearFactor (unit is duration/GiB)
+	PollCheckTimeoutConstant     = 10 * time.Minute
+	PollCheckTimeoutLinearFactor = 5 * time.Millisecond
 )
 
 // Tags
@@ -117,7 +120,7 @@ type Cloud interface {
 	ResizeFileSystem(ctx context.Context, fileSystemId string, newSizeGiB int64) (int64, error)
 	DeleteFileSystem(ctx context.Context, fileSystemId string) (err error)
 	DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error)
-	WaitForFileSystemAvailable(ctx context.Context, fileSystemId string) error
+	WaitForFileSystemAvailable(ctx context.Context, fileSystemId string, sizeGiB int64) error
 	WaitForFileSystemResize(ctx context.Context, fileSystemId string, resizeGiB int64) error
 }
 
@@ -329,8 +332,12 @@ func (c *cloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (*F
 	}, nil
 }
 
-func (c *cloud) WaitForFileSystemAvailable(ctx context.Context, fileSystemId string) error {
-	err := wait.Poll(PollCheckInterval, PollCheckTimeout, func() (done bool, err error) {
+func CalcPollTimeout(sizeGiB int64) time.Duration {
+	return time.Duration(int64(PollCheckTimeoutConstant) + sizeGiB*int64(PollCheckTimeoutLinearFactor))
+}
+
+func (c *cloud) WaitForFileSystemAvailable(ctx context.Context, fileSystemId string, sizeGiB int64) error {
+	err := wait.Poll(PollCheckInterval, CalcPollTimeout(sizeGiB), func() (done bool, err error) {
 		fs, err := c.getFileSystem(ctx, fileSystemId)
 		if err != nil {
 			return true, err
@@ -352,7 +359,7 @@ func (c *cloud) WaitForFileSystemAvailable(ctx context.Context, fileSystemId str
 // WaitForFileSystemResize polls the FSx API for status of the update operation with the given target storage
 // capacity. The polling terminates when the update operation reaches a completed, failed, or unknown state.
 func (c *cloud) WaitForFileSystemResize(ctx context.Context, fileSystemId string, resizeGiB int64) error {
-	err := wait.PollImmediate(PollCheckInterval, PollCheckTimeout, func() (done bool, err error) {
+	err := wait.PollImmediate(PollCheckInterval, CalcPollTimeout(resizeGiB), func() (done bool, err error) {
 		updateAction, err := c.getUpdateResizeAdministrativeAction(ctx, fileSystemId, resizeGiB)
 		if err != nil {
 			return true, err

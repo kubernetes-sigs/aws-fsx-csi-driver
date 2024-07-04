@@ -236,7 +236,7 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		}
 	}
 
-	err = d.cloud.WaitForFileSystemAvailable(ctx, fs.FileSystemId)
+	err = d.cloud.WaitForFileSystemAvailable(ctx, fs.FileSystemId, fsOptions.CapacityGiB)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Filesystem is not ready: %v", err)
 	}
