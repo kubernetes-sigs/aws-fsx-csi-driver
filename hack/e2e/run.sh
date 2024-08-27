@@ -74,6 +74,13 @@ TEST_EXTRA_FLAGS=${TEST_EXTRA_FLAGS:-}
 
 CLEAN=${CLEAN:-"true"}
 
+
+FILE_SYSTEM_IDS=$(aws --region ${REGION} fsx describe-file-systems --query "FileSystems[?FileSystemType=='LUSTRE'].FileSystemId" --output text)
+for FILE_SYSTEM_ID in $FILE_SYSTEM_IDS
+do
+    aws --region ${REGION} fsx delete-file-system --file-system-id ${FILE_SYSTEM_ID}
+done
+
 loudecho "Testing in region ${REGION} and zones ${ZONES}"
 mkdir -p "${BIN_DIR}"
 export PATH=${PATH}:${BIN_DIR}
