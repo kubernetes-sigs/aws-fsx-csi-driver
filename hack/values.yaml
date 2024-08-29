@@ -1,2 +1,3 @@
 controller:
   replicaCount: 1
+  provisionerTimeout: 45m

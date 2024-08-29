@@ -76,12 +76,15 @@ spec:
           args:
             - --csi-address=$(ADDRESS)
             - --v=2
-            - --timeout=5m
+            - --timeout=$(CONTROLLER_PROVISIONER_TIMEOUT)
             - --extra-create-metadata
             - --leader-election=true
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          envFrom:
+            - configMapRef:
+                name: fsx-csi-controller
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/

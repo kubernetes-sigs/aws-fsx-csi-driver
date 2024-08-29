@@ -30,14 +30,18 @@ func init() {
 }
 
 type FakeCloudProvider struct {
-	m           *Metadata
-	fileSystems map[string]*FileSystem
+	m                 *Metadata
+	fileSystems       map[string]*FileSystem
+	filesystem2Assocs map[string]map[string]struct{}
+	associations      map[string]*DataRepositoryAssociation
 }
 
 func NewFakeCloudProvider() *FakeCloudProvider {
 	return &FakeCloudProvider{
-		m:           &Metadata{InstanceID: "InstanceID", InstanceType: "Region", Region: "az"},
-		fileSystems: make(map[string]*FileSystem),
+		m:                 &Metadata{InstanceID: "InstanceID", InstanceType: "Region", Region: "az"},
+		fileSystems:       make(map[string]*FileSystem),
+		filesystem2Assocs: make(map[string]map[string]struct{}),
+		associations:      make(map[string]*DataRepositoryAssociation),
 	}
 }
 
@@ -103,5 +107,48 @@ func (c *FakeCloudProvider) WaitForFileSystemAvailable(ctx context.Context, file
 }
 
 func (c *FakeCloudProvider) WaitForFileSystemResize(ctx context.Context, fileSystemId string, resizeGiB int64) error {
+	return nil
+}
+
+func (c *FakeCloudProvider) CreateDataRepositoryAssociation(ctx context.Context, filesystemId string, draOptions *DataRepositoryAssociationOptions) (*DataRepositoryAssociation, error) {
+	dra := &DataRepositoryAssociation{
+		AssociationId:               fmt.Sprintf("dra-%d", random.Uint64()),
+		FileSystemId:                filesystemId,
+		BatchImportMetaDataOnCreate: draOptions.BatchImportMetaDataOnCreate,
+		DataRepositoryPath:          draOptions.DataRepositoryPath,
+		FileSystemPath:              draOptions.FileSystemPath,
+		S3:                          draOptions.S3,
+	}
+	if _, ok := c.filesystem2Assocs[filesystemId]; !ok {
+		c.filesystem2Assocs[filesystemId] = make(map[string]struct{})
+	}
+	c.filesystem2Assocs[filesystemId][dra.AssociationId] = struct{}{}
+	c.associations[dra.AssociationId] = dra
+	return dra, nil
+}
+
+func (c *FakeCloudProvider) DescribeDataRepositoryAssociationsInFileSystem(ctx context.Context, fileSystemId string) ([]*DataRepositoryAssociation, error) {
+	assocIdsOnFilesystem, ok := c.filesystem2Assocs[fileSystemId]
+	if !ok {
+		return []*DataRepositoryAssociation{}, nil
+	}
+	dras := []*DataRepositoryAssociation{}
+	for assocId := range assocIdsOnFilesystem {
+		dras = append(dras, c.associations[assocId])
+	}
+	return dras, nil
+}
+
+func (c *FakeCloudProvider) WaitForDataRepositoryAssociationAvailable(ctx context.Context, associationId string) error {
+	return nil
+}
+
+func (c *FakeCloudProvider) DeleteDataRepositoryAssociation(ctx context.Context, associationId string) error {
+	if assoc, ok := c.associations[associationId]; ok {
+		if _, ok := c.filesystem2Assocs[assoc.FileSystemId]; ok {
+			delete(c.filesystem2Assocs[assoc.FileSystemId], associationId)
+		}
+		delete(c.associations, associationId)
+	}
 	return nil
 }
