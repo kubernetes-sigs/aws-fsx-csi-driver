@@ -3,6 +3,26 @@ entries:
   aws-fsx-csi-driver:
   - apiVersion: v2
     appVersion: 1.2.0
+    created: "2024-08-29T14:32:02.634613635Z"
+    description: A Helm chart for AWS FSx for Lustre CSI Driver
+    digest: cd64409f342f53c25a3d105ef410ae45d82d3fcddf7e3504f87848fdafcdf474
+    home: https://github.com/kubernetes-sigs/aws-fsx-csi-driver
+    keywords:
+    - aws
+    - fsx
+    - csi
+    kubeVersion: '>=1.17.0-0'
+    maintainers:
+    - name: Kubernetes Authors
+      url: https://github.com/kubernetes-sigs/aws-fsx-csi-driver/
+    name: aws-fsx-csi-driver
+    sources:
+    - https://github.com/kubernetes-sigs/aws-fsx-csi-driver
+    urls:
+    - https://github.com/kubernetes-sigs/aws-fsx-csi-driver/releases/download/helm-chart-aws-fsx-csi-driver-1.9.2/aws-fsx-csi-driver-1.9.2.tgz
+    version: 1.9.2
+  - apiVersion: v2
+    appVersion: 1.2.0
     created: "2024-02-23T15:12:16.777683837Z"
     description: A Helm chart for AWS FSx for Lustre CSI Driver
     digest: 5a7de31759cb4ac077decdd424e87d804e43fa6202d794757da3894ed5e867a3
@@ -367,4 +387,4 @@ entries:
     urls:
     - https://github.com/kubernetes-sigs/aws-fsx-csi-driver/releases/download/v0.3.0/helm-chart.tgz
     version: 0.1.0
-generated: "2024-02-23T15:12:16.777861625Z"
+generated: "2024-08-29T14:32:02.634767501Z"
