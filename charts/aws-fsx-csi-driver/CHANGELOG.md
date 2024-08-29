@@ -1,5 +1,8 @@
 # Helm chart
 
+# v1.9.2
+* Fix ci tooling
+
 # v1.9.1
 * Add affinity to Daemonset
 
