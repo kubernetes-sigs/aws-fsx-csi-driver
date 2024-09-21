@@ -60,7 +60,8 @@ eksctl create iamserviceaccount \
         "fsx:CreateFileSystem",
         "fsx:DeleteFileSystem",
         "fsx:DescribeFileSystems",
-        "fsx:TagResource"
+        "fsx:TagResource",
+        "fsx:UpdateFileSystem"
       ],
       "Resource": ["*"]
     }
