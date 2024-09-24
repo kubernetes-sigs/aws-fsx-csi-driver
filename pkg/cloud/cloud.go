@@ -117,7 +117,7 @@ type Cloud interface {
 	ResizeFileSystem(ctx context.Context, fileSystemId string, newSizeGiB int64) (int64, error)
 	DeleteFileSystem(ctx context.Context, fileSystemId string) (err error)
 	DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error)
-	WaitForFileSystemAvailable(ctx context.Context, fileSystemId string) error
+	WaitForFileSystemAvailable(ctx context.Context, fileSystemId string, timeout time.Duration) error
 	WaitForFileSystemResize(ctx context.Context, fileSystemId string, resizeGiB int64) error
 }
 
@@ -329,8 +329,8 @@ func (c *cloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (*F
 	}, nil
 }
 
-func (c *cloud) WaitForFileSystemAvailable(ctx context.Context, fileSystemId string) error {
-	err := wait.Poll(PollCheckInterval, PollCheckTimeout, func() (done bool, err error) {
+func (c *cloud) WaitForFileSystemAvailable(ctx context.Context, fileSystemId string, timeout time.Duration) error {
+	err := wait.Poll(PollCheckInterval, timeout, func() (done bool, err error) {
 		fs, err := c.getFileSystem(ctx, fileSystemId)
 		if err != nil {
 			return true, err

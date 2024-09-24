@@ -22,6 +22,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
@@ -69,6 +70,7 @@ const (
 	volumeParamsDataCompressionType           = "dataCompressionType"
 	volumeParamsWeeklyMaintenanceStartTime    = "weeklyMaintenanceStartTime"
 	volumeParamsFileSystemTypeVersion         = "fileSystemTypeVersion"
+	volumeParamsPollTimeout                   = "pollTimeout"
 	volumeParamsExtraTags                     = "extraTags"
 )
 
@@ -220,6 +222,15 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		tagArray = strings.Split(optionsTags, ",")
 	}
 
+	pollTimeout := cloud.PollCheckTimeout
+	if val, ok := volumeParams[volumeParamsPollTimeout]; ok {
+		n, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "pollTimeout must be a number")
+		}
+		pollTimeout = time.Duration(n) * time.Second
+	}
+
 	if val, ok := volumeParams[volumeParamsExtraTags]; ok {
 		extraTags := strings.Split(val, ",")
 		tagArray = append(tagArray, extraTags...)
@@ -236,7 +247,7 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		}
 	}
 
-	err = d.cloud.WaitForFileSystemAvailable(ctx, fs.FileSystemId)
+	err = d.cloud.WaitForFileSystemAvailable(ctx, fs.FileSystemId, pollTimeout)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Filesystem is not ready: %v", err)
 	}
