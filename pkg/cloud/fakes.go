@@ -98,7 +98,7 @@ func (c *FakeCloudProvider) DescribeFileSystem(ctx context.Context, volumeID str
 	return nil, ErrNotFound
 }
 
-func (c *FakeCloudProvider) WaitForFileSystemAvailable(ctx context.Context, fileSystemId string) error {
+func (c *FakeCloudProvider) WaitForFileSystemAvailable(ctx context.Context, fileSystemId string, sizeGiB int64) error {
 	return nil
 }
 
