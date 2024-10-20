@@ -20,12 +20,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/internal"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/internal"
 
-	"github.com/aws/aws-sdk-go/service/fsx"
+	"github.com/aws/aws-sdk-go-v2/aws"
+
+	"github.com/aws/aws-sdk-go-v2/service/fsx/types"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
@@ -41,7 +42,7 @@ func TestCreateVolume(t *testing.T) {
 	var (
 		volumeName             = "volumeName"
 		fileSystemId           = "fs-1234"
-		volumeSizeGiB    int64 = 1200
+		volumeSizeGiB    int32 = 1200
 		subnetId               = "subnet-056da83524edbe641"
 		securityGroupIds       = "sg-086f61ea73388fb6b,sg-0145e55e976000c9e"
 		dnsName                = "test.fsx.us-west-2.amazoawd.com"
@@ -151,8 +152,8 @@ func TestCreateVolume(t *testing.T) {
 					Parameters: map[string]string{
 						volumeParamsSubnetId:                   subnetId,
 						volumeParamsSecurityGroupIds:           securityGroupIds,
-						volumeParamsDeploymentType:             fsx.LustreDeploymentTypeScratch2,
-						volumeParamsStorageType:                fsx.StorageTypeSsd,
+						volumeParamsDeploymentType:             string(types.LustreDeploymentTypeScratch2),
+						volumeParamsStorageType:                string(types.StorageTypeSsd),
 						volumeParamsWeeklyMaintenanceStartTime: "7:08:00",
 						volumeParamsFileSystemTypeVersion:      "2.12",
 						volumeParamsExtraTags:                  extraTags,
@@ -227,10 +228,10 @@ func TestCreateVolume(t *testing.T) {
 					Parameters: map[string]string{
 						volumeParamsSubnetId:                      subnetId,
 						volumeParamsSecurityGroupIds:              securityGroupIds,
-						volumeParamsDeploymentType:                fsx.LustreDeploymentTypePersistent1,
+						volumeParamsDeploymentType:                string(types.LustreDeploymentTypePersistent1),
 						volumeParamsKmsKeyId:                      "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe",
 						volumeParamsPerUnitStorageThroughput:      "200",
-						volumeParamsStorageType:                   fsx.StorageTypeSsd,
+						volumeParamsStorageType:                   string(types.StorageTypeSsd),
 						volumeParamsAutomaticBackupRetentionDays:  "1",
 						volumeParamsDailyAutomaticBackupStartTime: "00:00",
 						volumeParamsCopyTagsToBackups:             "true",
@@ -541,8 +542,8 @@ func TestDeleteVolume(t *testing.T) {
 func TestExpandVolume(t *testing.T) {
 	var (
 		fileSystemId         = "fs-1234"
-		initialSizeGiB int64 = 1200
-		finalSizeGiB   int64 = 2400
+		initialSizeGiB int32 = 1200
+		finalSizeGiB   int32 = 2400
 	)
 	testCases := []struct {
 		name     string
@@ -821,7 +822,7 @@ func TestExpandVolume(t *testing.T) {
 						RequiredBytes: util.GiBToBytes(1440),
 					},
 				}
-				resizeError := fmt.Errorf("UpdateFileSystem failed: %v", awserr.New(fsx.ErrCodeBadRequest, "test", nil))
+				resizeError := fmt.Errorf("UpdateFileSystem failed: %v", &types.BadRequest{Message: aws.String("test")})
 				expandError := status.Errorf(codes.Internal, "resize failed: %v", resizeError)
 
 				initialFs := &cloud.FileSystem{

@@ -167,7 +167,7 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, "automaticBackupRetentionDays must be a number")
 		}
-		fsOptions.AutomaticBackupRetentionDays = n
+		fsOptions.AutomaticBackupRetentionDays = int32(n)
 	}
 
 	if val, ok := volumeParams[volumeParamsCopyTagsToBackups]; ok {
@@ -195,7 +195,7 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, "perUnitStorageThroughput must be a number")
 		}
-		fsOptions.PerUnitStorageThroughput = n
+		fsOptions.PerUnitStorageThroughput = int32(n)
 	}
 
 	if val, ok := volumeParams[volumeParamsWeeklyMaintenanceStartTime]; ok {
@@ -210,7 +210,12 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	if capRange == nil {
 		fsOptions.CapacityGiB = cloud.DefaultVolumeSize
 	} else {
-		fsOptions.CapacityGiB = util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fsOptions.DeploymentType, fsOptions.StorageType, fsOptions.PerUnitStorageThroughput)
+		newSizeInt64 := util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fsOptions.DeploymentType, fsOptions.StorageType, fsOptions.PerUnitStorageThroughput)
+		newSizeGiB, err := util.ConvertToInt32(newSizeInt64)
+		if err != nil {
+			return nil, status.Errorf(codes.OutOfRange, "Request storage capacity %d GiB is too large for integer type", newSizeInt64)
+		}
+		fsOptions.CapacityGiB = newSizeGiB
 	}
 
 	var tagArray []string
@@ -392,7 +397,11 @@ func (d *controllerService) ControllerExpandVolume(ctx context.Context, req *csi
 		return nil, status.Errorf(codes.Internal, "DescribeFileSystem failed: %v", err)
 	}
 
-	newSizeGiB := util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fs.DeploymentType, fs.StorageType, fs.PerUnitStorageThroughput)
+	newSizeInt64 := util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fs.DeploymentType, fs.StorageType, fs.PerUnitStorageThroughput)
+	newSizeGiB, err := util.ConvertToInt32(newSizeInt64)
+	if err != nil {
+		return nil, status.Errorf(codes.OutOfRange, "Requested storage capacity %d GiB is too large for integer type", newSizeInt64)
+	}
 	if util.GiBToBytes(newSizeGiB) != capRange.GetRequiredBytes() {
 		klog.V(4).Infof("ControllerExpandVolume: requested storage capacity of %d bytes has been rounded to a valid storage capacity of %d GiB", capRange.GetRequiredBytes(), newSizeGiB)
 	}
