@@ -18,12 +18,14 @@ package util
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/service/fsx"
+	"math"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/aws/aws-sdk-go-v2/service/fsx/types"
 )
 
 const (
@@ -37,34 +39,43 @@ const (
 // DeploymentType PERSISTENT_1, StorageType HDD, and PerUnitStorageThroughput 12,
 // and multiples of 1800 GiB for DeploymentType PERSISTENT_1, StorageType HDD, and
 // PerUnitStorageThroughput 40.
-func RoundUpVolumeSize(volumeSizeBytes int64, deploymentType string, storageType string, perUnitStorageThroughput int64) int64 {
-	if storageType == fsx.StorageTypeHdd {
+func RoundUpVolumeSize(volumeSizeBytes int64, deploymentType string, storageType string, perUnitStorageThroughput int32) int64 {
+	if storageType == string(types.StorageTypeHdd) {
 		if perUnitStorageThroughput == 12 {
-			return roundUpSize(volumeSizeBytes, 6000*GiB) * 6000
+			return calculateNumberOfAllocationUnits(volumeSizeBytes, 6000*GiB) * 6000
 		} else {
-			return roundUpSize(volumeSizeBytes, 1800*GiB) * 1800
+			return calculateNumberOfAllocationUnits(volumeSizeBytes, 1800*GiB) * 1800
 		}
 	} else {
-		if deploymentType == fsx.LustreDeploymentTypeScratch1 ||
+		if deploymentType == string(types.LustreDeploymentTypeScratch1) ||
 			deploymentType == "" {
 			if volumeSizeBytes < 3600*GiB {
-				return roundUpSize(volumeSizeBytes, 1200*GiB) * 1200
+				return calculateNumberOfAllocationUnits(volumeSizeBytes, 1200*GiB) * 1200
 			} else {
-				return roundUpSize(volumeSizeBytes, 3600*GiB) * 3600
+				return calculateNumberOfAllocationUnits(volumeSizeBytes, 3600*GiB) * 3600
 			}
 		} else {
 			if volumeSizeBytes < 2400*GiB {
-				return roundUpSize(volumeSizeBytes, 1200*GiB) * 1200
+				return calculateNumberOfAllocationUnits(volumeSizeBytes, 1200*GiB) * 1200
 			} else {
-				return roundUpSize(volumeSizeBytes, 2400*GiB) * 2400
+				return calculateNumberOfAllocationUnits(volumeSizeBytes, 2400*GiB) * 2400
 			}
 		}
 	}
 }
 
 // GiBToBytes converts GiB to Bytes
-func GiBToBytes(volumeSizeGiB int64) int64 {
-	return volumeSizeGiB * GiB
+func GiBToBytes(volumeSizeGiB int32) int64 {
+	return int64(volumeSizeGiB) * GiB
+}
+
+// ConvertToInt32 converts a volume size in int64 to int32
+// raising an error if the size would overflow
+func ConvertToInt32(volumeSize int64) (int32, error) {
+	if volumeSize > math.MaxInt32 {
+		return 0, fmt.Errorf("volume size %d would overflow int32", volumeSize)
+	}
+	return int32(volumeSize), nil
 }
 
 func ParseEndpoint(endpoint string) (string, string, error) {
@@ -90,7 +101,10 @@ func ParseEndpoint(endpoint string) (string, string, error) {
 	return scheme, addr, nil
 }
 
-func roundUpSize(volumeSizeBytes int64, allocationUnitBytes int64) int64 {
+// calculateNumberOfAllocationUnits calculates the number of allocation units required to accommodate
+// the specified volume size, rounding up as necessary.
+// Both the volume size and the allocation unit size are in bytes
+func calculateNumberOfAllocationUnits(volumeSizeBytes int64, allocationUnitBytes int64) int64 {
 	return (volumeSizeBytes + allocationUnitBytes - 1) / allocationUnitBytes
 }
 

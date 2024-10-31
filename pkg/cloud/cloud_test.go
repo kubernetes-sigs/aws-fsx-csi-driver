@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/fsx"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/fsx"
+	"github.com/aws/aws-sdk-go-v2/service/fsx/types"
 	"github.com/golang/mock/gomock"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud/mocks"
 )
@@ -33,22 +33,22 @@ func TestCreateFileSystem(t *testing.T) {
 	var (
 		volumeName                          = "volumeName"
 		fileSystemId                        = "fs-1234"
-		volumeSizeGiB                 int64 = 1200
+		volumeSizeGiB                 int32 = 1200
 		subnetId                            = "subnet-056da83524edbe641"
 		securityGroupIds                    = []string{"sg-086f61ea73388fb6b", "sg-0145e55e976000c9e"}
 		dnsname                             = "test.fsx.us-west-2.amazoawd.com"
-		autoImportPolicy                    = "NEW_CHANGED"
+		autoImportPolicy                    = types.AutoImportPolicyTypeNewChanged
 		s3ImportPath                        = "s3://fsx-s3-data-repository"
 		s3ExportPath                        = "s3://fsx-s3-data-repository/export"
-		deploymentType                      = fsx.LustreDeploymentTypeScratch2
+		deploymentType                      = types.LustreDeploymentTypeScratch2
 		mountName                           = "fsx"
 		kmsKeyId                            = "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe"
-		perUnitStorageThroughput      int64 = 200
+		perUnitStorageThroughput      int32 = 200
 		DailyAutomaticBackupStartTime       = "00:00:00"
-		AutomaticBackupRetentionDays  int64 = 1
+		AutomaticBackupRetentionDays  int32 = 1
 		CopyTagsToBackups                   = true
-		dataCompressionTypeNone             = "NONE"
-		dataCompressionTypeLZ4              = "LZ4"
+		dataCompressionTypeNone             = types.DataCompressionTypeNone
+		dataCompressionTypeLZ4              = types.DataCompressionTypeLz4
 		weeklyMaintenanceStartTime          = "7:09:00"
 		fileSystemTypeVersion               = "2.12"
 		extraTags                           = []string{"key1=value1", "key2=value2"}
@@ -76,21 +76,21 @@ func TestCreateFileSystem(t *testing.T) {
 				}
 
 				output := &fsx.CreateFileSystemOutput{
-					FileSystem: &fsx.FileSystem{
+					FileSystem: &types.FileSystem{
 						FileSystemId:          aws.String(fileSystemId),
 						FileSystemTypeVersion: aws.String(fileSystemTypeVersion),
-						StorageCapacity:       aws.Int64(volumeSizeGiB),
-						StorageType:           aws.String(fsx.StorageTypeSsd),
+						StorageCapacity:       aws.Int32(volumeSizeGiB),
+						StorageType:           types.StorageTypeSsd,
 						DNSName:               aws.String(dnsname),
-						LustreConfiguration: &fsx.LustreFileSystemConfiguration{
-							DeploymentType:             aws.String(fsx.LustreDeploymentTypeScratch1),
+						LustreConfiguration: &types.LustreFileSystemConfiguration{
+							DeploymentType:             types.LustreDeploymentTypeScratch1,
 							MountName:                  aws.String(mountName),
 							WeeklyMaintenanceStartTime: aws.String(weeklyMaintenanceStartTime),
 						},
 					},
 				}
 				ctx := context.Background()
-				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
 				resp, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err != nil {
 					t.Fatalf("CreateFileSystem is failed: %v", err)
@@ -132,23 +132,23 @@ func TestCreateFileSystem(t *testing.T) {
 					CapacityGiB:      volumeSizeGiB,
 					SubnetId:         subnetId,
 					SecurityGroupIds: securityGroupIds,
-					DeploymentType:   deploymentType,
+					DeploymentType:   string(deploymentType),
 				}
 
 				output := &fsx.CreateFileSystemOutput{
-					FileSystem: &fsx.FileSystem{
+					FileSystem: &types.FileSystem{
 						FileSystemId:    aws.String(fileSystemId),
-						StorageCapacity: aws.Int64(volumeSizeGiB),
-						StorageType:     aws.String(fsx.StorageTypeSsd),
+						StorageCapacity: aws.Int32(volumeSizeGiB),
+						StorageType:     types.StorageTypeSsd,
 						DNSName:         aws.String(dnsname),
-						LustreConfiguration: &fsx.LustreFileSystemConfiguration{
-							DeploymentType: aws.String(deploymentType),
+						LustreConfiguration: &types.LustreFileSystemConfiguration{
+							DeploymentType: deploymentType,
 							MountName:      aws.String(mountName),
 						},
 					},
 				}
 				ctx := context.Background()
-				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
 				resp, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err != nil {
 					t.Fatalf("CreateFileSystem is failed: %v", err)
@@ -190,24 +190,24 @@ func TestCreateFileSystem(t *testing.T) {
 					CapacityGiB:      volumeSizeGiB,
 					SubnetId:         subnetId,
 					SecurityGroupIds: securityGroupIds,
-					DeploymentType:   deploymentType,
-					StorageType:      fsx.StorageTypeSsd,
+					DeploymentType:   string(deploymentType),
+					StorageType:      string(types.StorageTypeSsd),
 				}
 
 				output := &fsx.CreateFileSystemOutput{
-					FileSystem: &fsx.FileSystem{
+					FileSystem: &types.FileSystem{
 						FileSystemId:    aws.String(fileSystemId),
-						StorageCapacity: aws.Int64(volumeSizeGiB),
-						StorageType:     aws.String(fsx.StorageTypeSsd),
+						StorageCapacity: aws.Int32(volumeSizeGiB),
+						StorageType:     types.StorageTypeSsd,
 						DNSName:         aws.String(dnsname),
-						LustreConfiguration: &fsx.LustreFileSystemConfiguration{
-							DeploymentType: aws.String(deploymentType),
+						LustreConfiguration: &types.LustreFileSystemConfiguration{
+							DeploymentType: deploymentType,
 							MountName:      aws.String(mountName),
 						},
 					},
 				}
 				ctx := context.Background()
-				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
 				resp, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err != nil {
 					t.Fatalf("CreateFileSystem is failed: %v", err)
@@ -249,26 +249,26 @@ func TestCreateFileSystem(t *testing.T) {
 					CapacityGiB:      volumeSizeGiB,
 					SubnetId:         subnetId,
 					SecurityGroupIds: securityGroupIds,
-					DeploymentType:   fsx.LustreDeploymentTypePersistent1,
-					StorageType:      fsx.StorageTypeHdd,
-					DriveCacheType:   fsx.DriveCacheTypeNone,
+					DeploymentType:   string(types.LustreDeploymentTypePersistent1),
+					StorageType:      string(types.StorageTypeHdd),
+					DriveCacheType:   string(types.DriveCacheTypeNone),
 				}
 
 				output := &fsx.CreateFileSystemOutput{
-					FileSystem: &fsx.FileSystem{
+					FileSystem: &types.FileSystem{
 						FileSystemId:    aws.String(fileSystemId),
-						StorageCapacity: aws.Int64(volumeSizeGiB),
-						StorageType:     aws.String(fsx.StorageTypeHdd),
+						StorageCapacity: aws.Int32(volumeSizeGiB),
+						StorageType:     types.StorageTypeHdd,
 						DNSName:         aws.String(dnsname),
-						LustreConfiguration: &fsx.LustreFileSystemConfiguration{
-							DeploymentType: aws.String(fsx.LustreDeploymentTypePersistent1),
+						LustreConfiguration: &types.LustreFileSystemConfiguration{
+							DeploymentType: types.LustreDeploymentTypePersistent1,
 							MountName:      aws.String(mountName),
-							DriveCacheType: aws.String(fsx.DriveCacheTypeNone),
+							DriveCacheType: types.DriveCacheTypeNone,
 						},
 					},
 				}
 				ctx := context.Background()
-				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
 				resp, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err != nil {
 					t.Fatalf("CreateFileSystem is failed: %v", err)
@@ -310,11 +310,11 @@ func TestCreateFileSystem(t *testing.T) {
 					CapacityGiB:      volumeSizeGiB,
 					SubnetId:         subnetId,
 					SecurityGroupIds: securityGroupIds,
-					DeploymentType:   deploymentType,
-					StorageType:      fsx.StorageTypeHdd,
+					DeploymentType:   string(deploymentType),
+					StorageType:      string(types.StorageTypeHdd),
 				}
 				ctx := context.Background()
-				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystemWithContext failed"))
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystem failed"))
 				_, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err == nil {
 					t.Fatalf("CreateFileSystem is not failed")
@@ -336,33 +336,33 @@ func TestCreateFileSystem(t *testing.T) {
 					CapacityGiB:      volumeSizeGiB,
 					SubnetId:         subnetId,
 					SecurityGroupIds: securityGroupIds,
-					AutoImportPolicy: autoImportPolicy,
+					AutoImportPolicy: string(autoImportPolicy),
 					S3ImportPath:     s3ImportPath,
 					S3ExportPath:     s3ExportPath,
 				}
 
-				dataRepositoryConfiguration := &fsx.DataRepositoryConfiguration{}
-				dataRepositoryConfiguration.SetAutoImportPolicy(autoImportPolicy)
-				dataRepositoryConfiguration.SetImportPath(s3ImportPath)
-				dataRepositoryConfiguration.SetExportPath(s3ExportPath)
+				dataRepositoryConfiguration := &types.DataRepositoryConfiguration{}
+				dataRepositoryConfiguration.AutoImportPolicy = types.AutoImportPolicyType(autoImportPolicy)
+				dataRepositoryConfiguration.ImportPath = aws.String(s3ImportPath)
+				dataRepositoryConfiguration.ExportPath = aws.String(s3ExportPath)
 
-				lustreFileSystemConfiguration := &fsx.LustreFileSystemConfiguration{
+				lustreFileSystemConfiguration := &types.LustreFileSystemConfiguration{
 					DataRepositoryConfiguration: dataRepositoryConfiguration,
-					DeploymentType:              aws.String(deploymentType),
+					DeploymentType:              deploymentType,
 					MountName:                   aws.String(mountName),
 				}
 
 				output := &fsx.CreateFileSystemOutput{
-					FileSystem: &fsx.FileSystem{
+					FileSystem: &types.FileSystem{
 						FileSystemId:        aws.String(fileSystemId),
-						StorageCapacity:     aws.Int64(volumeSizeGiB),
-						StorageType:         aws.String(fsx.StorageTypeSsd),
+						StorageCapacity:     aws.Int32(volumeSizeGiB),
+						StorageType:         types.StorageTypeSsd,
 						DNSName:             aws.String(dnsname),
 						LustreConfiguration: lustreFileSystemConfiguration,
 					},
 				}
 				ctx := context.Background()
-				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
 				resp, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err != nil {
 					t.Fatalf("CreateFileSystem is failed: %v", err)
@@ -408,7 +408,7 @@ func TestCreateFileSystem(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystemWithContext failed"))
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystem failed"))
 				_, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err == nil {
 					t.Fatalf("CreateFileSystem is not failed")
@@ -430,13 +430,13 @@ func TestCreateFileSystem(t *testing.T) {
 					CapacityGiB:      volumeSizeGiB,
 					SubnetId:         subnetId,
 					SecurityGroupIds: securityGroupIds,
-					AutoImportPolicy: autoImportPolicy,
+					AutoImportPolicy: string(autoImportPolicy),
 					S3ImportPath:     "s3://bucket1/import",
 					S3ExportPath:     "s3://bucket2/export",
 				}
 
 				ctx := context.Background()
-				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystemWithContext failed"))
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystem failed"))
 				_, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err == nil {
 					t.Fatalf("CreateFileSystem is not failed")
@@ -458,12 +458,12 @@ func TestCreateFileSystem(t *testing.T) {
 					CapacityGiB:      volumeSizeGiB,
 					SubnetId:         subnetId,
 					SecurityGroupIds: securityGroupIds,
-					DeploymentType:   deploymentType,
+					DeploymentType:   string(deploymentType),
 					KmsKeyId:         kmsKeyId,
 				}
 
 				ctx := context.Background()
-				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystemWithContext failed"))
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystem failed"))
 				_, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err == nil {
 					t.Fatal("CreateFileSystem is not failed")
@@ -485,12 +485,12 @@ func TestCreateFileSystem(t *testing.T) {
 					CapacityGiB:              volumeSizeGiB,
 					SubnetId:                 subnetId,
 					SecurityGroupIds:         securityGroupIds,
-					DeploymentType:           deploymentType,
+					DeploymentType:           string(deploymentType),
 					PerUnitStorageThroughput: perUnitStorageThroughput,
 				}
 
 				ctx := context.Background()
-				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystemWithContext failed"))
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystem failed"))
 				_, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err == nil {
 					t.Fatal("CreateFileSystem is not failed")
@@ -523,7 +523,7 @@ func TestCreateFileSystem(t *testing.T) {
 			},
 		},
 		{
-			name: "fail: CreateFileSystemWithContext return error",
+			name: "fail: CreateFileSystem return error",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockFSx := mocks.NewMockFSx(mockCtl)
@@ -538,7 +538,7 @@ func TestCreateFileSystem(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystemWithContext failed"))
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystem failed"))
 				_, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err == nil {
 					t.Fatal("CreateFileSystem is not failed")
@@ -563,28 +563,28 @@ func TestCreateFileSystem(t *testing.T) {
 					AutomaticBackupRetentionDays:  AutomaticBackupRetentionDays,
 					DailyAutomaticBackupStartTime: DailyAutomaticBackupStartTime,
 					CopyTagsToBackups:             CopyTagsToBackups,
-					DeploymentType:                fsx.LustreDeploymentTypePersistent1,
+					DeploymentType:                string(types.LustreDeploymentTypePersistent1),
 				}
 
-				lustreFileSystemConfiguration := &fsx.LustreFileSystemConfiguration{
-					DeploymentType:                aws.String(fsx.LustreDeploymentTypePersistent1),
+				lustreFileSystemConfiguration := &types.LustreFileSystemConfiguration{
+					DeploymentType:                types.LustreDeploymentTypePersistent1,
 					MountName:                     aws.String(mountName),
-					AutomaticBackupRetentionDays:  aws.Int64(AutomaticBackupRetentionDays),
+					AutomaticBackupRetentionDays:  aws.Int32(AutomaticBackupRetentionDays),
 					DailyAutomaticBackupStartTime: aws.String(DailyAutomaticBackupStartTime),
 					CopyTagsToBackups:             aws.Bool(CopyTagsToBackups),
 				}
 
 				output := &fsx.CreateFileSystemOutput{
-					FileSystem: &fsx.FileSystem{
+					FileSystem: &types.FileSystem{
 						FileSystemId:        aws.String(fileSystemId),
-						StorageCapacity:     aws.Int64(volumeSizeGiB),
-						StorageType:         aws.String(fsx.StorageTypeSsd),
+						StorageCapacity:     aws.Int32(volumeSizeGiB),
+						StorageType:         types.StorageTypeSsd,
 						DNSName:             aws.String(dnsname),
 						LustreConfiguration: lustreFileSystemConfiguration,
 					},
 				}
 				ctx := context.Background()
-				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
 				resp, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err != nil {
 					t.Fatalf("CreateFileSystem is failed: %v", err)
@@ -626,24 +626,24 @@ func TestCreateFileSystem(t *testing.T) {
 					CapacityGiB:         volumeSizeGiB,
 					SubnetId:            subnetId,
 					SecurityGroupIds:    securityGroupIds,
-					DataCompressionType: dataCompressionTypeNone,
+					DataCompressionType: string(dataCompressionTypeNone),
 				}
 
 				output := &fsx.CreateFileSystemOutput{
-					FileSystem: &fsx.FileSystem{
+					FileSystem: &types.FileSystem{
 						FileSystemId:    aws.String(fileSystemId),
-						StorageCapacity: aws.Int64(volumeSizeGiB),
-						StorageType:     aws.String(fsx.StorageTypeSsd),
+						StorageCapacity: aws.Int32(volumeSizeGiB),
+						StorageType:     types.StorageTypeSsd,
 						DNSName:         aws.String(dnsname),
-						LustreConfiguration: &fsx.LustreFileSystemConfiguration{
-							DeploymentType:      aws.String(fsx.LustreDeploymentTypeScratch1),
+						LustreConfiguration: &types.LustreFileSystemConfiguration{
+							DeploymentType:      types.LustreDeploymentTypeScratch1,
 							MountName:           aws.String(mountName),
-							DataCompressionType: aws.String(dataCompressionTypeNone),
+							DataCompressionType: types.DataCompressionTypeNone,
 						},
 					},
 				}
 				ctx := context.Background()
-				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
 				resp, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err != nil {
 					t.Fatalf("CreateFileSystem is failed: %v", err)
@@ -685,24 +685,24 @@ func TestCreateFileSystem(t *testing.T) {
 					CapacityGiB:         volumeSizeGiB,
 					SubnetId:            subnetId,
 					SecurityGroupIds:    securityGroupIds,
-					DataCompressionType: dataCompressionTypeLZ4,
+					DataCompressionType: string(dataCompressionTypeLZ4),
 				}
 
 				output := &fsx.CreateFileSystemOutput{
-					FileSystem: &fsx.FileSystem{
+					FileSystem: &types.FileSystem{
 						FileSystemId:    aws.String(fileSystemId),
-						StorageCapacity: aws.Int64(volumeSizeGiB),
-						StorageType:     aws.String(fsx.StorageTypeSsd),
+						StorageCapacity: aws.Int32(volumeSizeGiB),
+						StorageType:     types.StorageTypeSsd,
 						DNSName:         aws.String(dnsname),
-						LustreConfiguration: &fsx.LustreFileSystemConfiguration{
-							DeploymentType:      aws.String(fsx.LustreDeploymentTypeScratch1),
+						LustreConfiguration: &types.LustreFileSystemConfiguration{
+							DeploymentType:      types.LustreDeploymentTypeScratch1,
 							MountName:           aws.String(mountName),
-							DataCompressionType: aws.String(dataCompressionTypeLZ4),
+							DataCompressionType: types.DataCompressionTypeLz4,
 						},
 					},
 				}
 				ctx := context.Background()
-				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
 				resp, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err != nil {
 					t.Fatalf("CreateFileSystem is failed: %v", err)
@@ -748,7 +748,7 @@ func TestCreateFileSystem(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockFSx.EXPECT().CreateFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystemWithContext failed"))
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystem failed"))
 				_, err := c.CreateFileSystem(ctx, volumeName, req)
 				if err == nil {
 					t.Fatal("CreateFileSystem is not failed")
@@ -783,7 +783,7 @@ func TestDeleteFileSystem(t *testing.T) {
 
 				output := &fsx.DeleteFileSystemOutput{}
 				ctx := context.Background()
-				mockFSx.EXPECT().DeleteFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockFSx.EXPECT().DeleteFileSystem(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
 				err := c.DeleteFileSystem(ctx, fileSystemId)
 				if err != nil {
 					t.Fatalf("DeleteFileSystem is failed: %v", err)
@@ -802,7 +802,7 @@ func TestDeleteFileSystem(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockFSx.EXPECT().DeleteFileSystemWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("DeleteFileSystemWithContext failed"))
+				mockFSx.EXPECT().DeleteFileSystem(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("DeleteFileSystemWithContext failed"))
 				err := c.DeleteFileSystem(ctx, fileSystemId)
 				if err == nil {
 					t.Fatal("DeleteFileSystem is not failed")
@@ -821,9 +821,9 @@ func TestDeleteFileSystem(t *testing.T) {
 func TestDescribeFileSystem(t *testing.T) {
 	var (
 		fileSystemId           = "fs-1234"
-		volumeSizeGiB    int64 = 1200
+		volumeSizeGiB    int32 = 1200
 		dnsname                = "test.fsx.us-west-2.amazoawd.com"
-		autoImportPolicy       = "NEW_CHANGED"
+		autoImportPolicy       = types.AutoImportPolicyTypeNewChanged
 		s3ImportPath           = "s3://fsx-s3-data-repository"
 		s3ExportPath           = "s3://fsx-s3-data-repository/export"
 		mountName              = "fsx"
@@ -842,21 +842,21 @@ func TestDescribeFileSystem(t *testing.T) {
 				}
 
 				output := &fsx.DescribeFileSystemsOutput{
-					FileSystems: []*fsx.FileSystem{
+					FileSystems: []types.FileSystem{
 						{
 							FileSystemId:    aws.String(fileSystemId),
-							StorageCapacity: aws.Int64(volumeSizeGiB),
-							StorageType:     aws.String(fsx.StorageTypeSsd),
+							StorageCapacity: aws.Int32(volumeSizeGiB),
+							StorageType:     types.StorageTypeSsd,
 							DNSName:         aws.String(dnsname),
-							LustreConfiguration: &fsx.LustreFileSystemConfiguration{
-								DeploymentType: aws.String(fsx.LustreDeploymentTypeScratch1),
+							LustreConfiguration: &types.LustreFileSystemConfiguration{
+								DeploymentType: types.LustreDeploymentTypeScratch1,
 								MountName:      aws.String(mountName),
 							},
 						},
 					},
 				}
 				ctx := context.Background()
-				mockFSx.EXPECT().DescribeFileSystemsWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
 				_, err := c.DescribeFileSystem(ctx, fileSystemId)
 				if err != nil {
 					t.Fatalf("DeleteFileSystem is failed: %v", err)
@@ -874,23 +874,23 @@ func TestDescribeFileSystem(t *testing.T) {
 					fsx: mockFSx,
 				}
 
-				dataRepositoryConfiguration := &fsx.DataRepositoryConfiguration{}
-				dataRepositoryConfiguration.SetAutoImportPolicy(autoImportPolicy)
-				dataRepositoryConfiguration.SetImportPath(s3ImportPath)
-				dataRepositoryConfiguration.SetExportPath(s3ExportPath)
+				dataRepositoryConfiguration := &types.DataRepositoryConfiguration{}
+				dataRepositoryConfiguration.AutoImportPolicy = autoImportPolicy
+				dataRepositoryConfiguration.ImportPath = aws.String(s3ImportPath)
+				dataRepositoryConfiguration.ExportPath = aws.String(s3ExportPath)
 
-				lustreFileSystemConfiguration := &fsx.LustreFileSystemConfiguration{
+				lustreFileSystemConfiguration := &types.LustreFileSystemConfiguration{
 					DataRepositoryConfiguration: dataRepositoryConfiguration,
-					DeploymentType:              aws.String(fsx.LustreDeploymentTypeScratch1),
+					DeploymentType:              types.LustreDeploymentTypeScratch1,
 					MountName:                   aws.String(mountName),
 				}
 
 				output := &fsx.DescribeFileSystemsOutput{
-					FileSystems: []*fsx.FileSystem{
+					FileSystems: []types.FileSystem{
 						{
 							FileSystemId:        aws.String(fileSystemId),
-							StorageCapacity:     aws.Int64(volumeSizeGiB),
-							StorageType:         aws.String(fsx.StorageTypeSsd),
+							StorageCapacity:     aws.Int32(volumeSizeGiB),
+							StorageType:         types.StorageTypeSsd,
 							DNSName:             aws.String(dnsname),
 							LustreConfiguration: lustreFileSystemConfiguration,
 						},
@@ -898,7 +898,7 @@ func TestDescribeFileSystem(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockFSx.EXPECT().DescribeFileSystemsWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
 				_, err := c.DescribeFileSystem(ctx, fileSystemId)
 				if err != nil {
 					t.Fatalf("DeleteFileSystem is failed: %v", err)
@@ -917,7 +917,7 @@ func TestDescribeFileSystem(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockFSx.EXPECT().DescribeFileSystemsWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("DescribeFileSystemsWithContext failed"))
+				mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("DescribeFileSystems failed"))
 				_, err := c.DescribeFileSystem(ctx, fileSystemId)
 				if err == nil {
 					t.Fatal("DescribeFileSystem is not failed")
@@ -936,8 +936,8 @@ func TestDescribeFileSystem(t *testing.T) {
 func TestResizeFileSystem(t *testing.T) {
 	var (
 		fileSystemId         = "fs-1234"
-		initialSizeGiB int64 = 1200
-		finalSizeGiB   int64 = 2400
+		initialSizeGiB int32 = 1200
+		finalSizeGiB   int32 = 2400
 	)
 	testCases := []struct {
 		name     string
@@ -954,41 +954,41 @@ func TestResizeFileSystem(t *testing.T) {
 
 				ctx := context.Background()
 				describeInput := &fsx.DescribeFileSystemsInput{
-					FileSystemIds: []*string{aws.String(fileSystemId)},
+					FileSystemIds: []string{fileSystemId},
 				}
 				describeOutput := &fsx.DescribeFileSystemsOutput{
-					FileSystems: []*fsx.FileSystem{
+					FileSystems: []types.FileSystem{
 						{
 							FileSystemId:    aws.String(fileSystemId),
-							StorageCapacity: aws.Int64(initialSizeGiB),
+							StorageCapacity: aws.Int32(initialSizeGiB),
 						},
 					},
 				}
 				updateInput := &fsx.UpdateFileSystemInput{
 					FileSystemId:    aws.String(fileSystemId),
-					StorageCapacity: aws.Int64(finalSizeGiB),
+					StorageCapacity: aws.Int32(finalSizeGiB),
 				}
 				updateOutput := &fsx.UpdateFileSystemOutput{
-					FileSystem: &fsx.FileSystem{
+					FileSystem: &types.FileSystem{
 						FileSystemId: aws.String(fileSystemId),
-						AdministrativeActions: []*fsx.AdministrativeAction{
+						AdministrativeActions: []types.AdministrativeAction{
 							{
-								AdministrativeActionType: aws.String(fsx.AdministrativeActionTypeFileSystemUpdate),
-								Status:                   aws.String(fsx.StatusInProgress),
-								TargetFileSystemValues: &fsx.FileSystem{
-									StorageCapacity: aws.Int64(finalSizeGiB),
+								AdministrativeActionType: types.AdministrativeActionTypeFileSystemUpdate,
+								Status:                   types.StatusInProgress,
+								TargetFileSystemValues: &types.FileSystem{
+									StorageCapacity: aws.Int32(finalSizeGiB),
 								},
 							},
 							{
-								AdministrativeActionType: aws.String(fsx.AdministrativeActionTypeStorageOptimization),
-								Status:                   aws.String(fsx.StatusPending),
+								AdministrativeActionType: types.AdministrativeActionTypeStorageOptimization,
+								Status:                   types.StatusPending,
 							},
 						},
 					},
 				}
 
-				mockFSx.EXPECT().DescribeFileSystemsWithContext(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(describeOutput, nil)
-				mockFSx.EXPECT().UpdateFileSystemWithContext(gomock.Eq(ctx), gomock.Eq(updateInput)).Return(updateOutput, nil)
+				mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(describeOutput, nil)
+				mockFSx.EXPECT().UpdateFileSystem(gomock.Eq(ctx), gomock.Eq(updateInput)).Return(updateOutput, nil)
 				resp, err := c.ResizeFileSystem(ctx, fileSystemId, finalSizeGiB)
 				if err != nil {
 					t.Fatalf("ResizeFileSystem is failed: %v", err)
@@ -1011,24 +1011,24 @@ func TestResizeFileSystem(t *testing.T) {
 
 				ctx := context.Background()
 				describeInput := &fsx.DescribeFileSystemsInput{
-					FileSystemIds: []*string{aws.String(fileSystemId)},
+					FileSystemIds: []string{fileSystemId},
 				}
 				describeOutput := &fsx.DescribeFileSystemsOutput{
-					FileSystems: []*fsx.FileSystem{
+					FileSystems: []types.FileSystem{
 						{
 							FileSystemId:    aws.String(fileSystemId),
-							StorageCapacity: aws.Int64(initialSizeGiB),
-							AdministrativeActions: []*fsx.AdministrativeAction{
+							StorageCapacity: aws.Int32(initialSizeGiB),
+							AdministrativeActions: []types.AdministrativeAction{
 								{
-									AdministrativeActionType: aws.String(fsx.AdministrativeActionTypeFileSystemUpdate),
-									Status:                   aws.String(fsx.StatusInProgress),
-									TargetFileSystemValues: &fsx.FileSystem{
-										StorageCapacity: aws.Int64(finalSizeGiB),
+									AdministrativeActionType: types.AdministrativeActionTypeFileSystemUpdate,
+									Status:                   types.StatusInProgress,
+									TargetFileSystemValues: &types.FileSystem{
+										StorageCapacity: aws.Int32(finalSizeGiB),
 									},
 								},
 								{
-									AdministrativeActionType: aws.String(fsx.AdministrativeActionTypeStorageOptimization),
-									Status:                   aws.String(fsx.StatusPending),
+									AdministrativeActionType: types.AdministrativeActionTypeStorageOptimization,
+									Status:                   types.StatusPending,
 								},
 							},
 						},
@@ -1036,12 +1036,14 @@ func TestResizeFileSystem(t *testing.T) {
 				}
 				updateInput := &fsx.UpdateFileSystemInput{
 					FileSystemId:    aws.String(fileSystemId),
-					StorageCapacity: aws.Int64(finalSizeGiB),
+					StorageCapacity: aws.Int32(finalSizeGiB),
 				}
-				updateError := awserr.New(fsx.ErrCodeBadRequest, "Unable to perform the storage capacity update. There is an update already in progress.", nil)
+				updateError := &types.BadRequest{
+					Message: aws.String("Unable to perform the storage capacity update. There is an update already in progress."),
+				}
 
-				mockFSx.EXPECT().DescribeFileSystemsWithContext(gomock.Eq(ctx), gomock.Eq(describeInput)).Times(2).Return(describeOutput, nil)
-				mockFSx.EXPECT().UpdateFileSystemWithContext(gomock.Eq(ctx), gomock.Eq(updateInput)).Return(nil, updateError)
+				mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Eq(describeInput)).Times(2).Return(describeOutput, nil)
+				mockFSx.EXPECT().UpdateFileSystem(gomock.Eq(ctx), gomock.Eq(updateInput)).Return(nil, updateError)
 				resp, err := c.ResizeFileSystem(ctx, fileSystemId, finalSizeGiB)
 				if err != nil {
 					t.Fatalf("ResizeFileSystem is failed: %v", err)
@@ -1064,12 +1066,14 @@ func TestResizeFileSystem(t *testing.T) {
 
 				ctx := context.Background()
 				describeInput := &fsx.DescribeFileSystemsInput{
-					FileSystemIds: []*string{aws.String(fileSystemId)},
+					FileSystemIds: []string{fileSystemId},
 				}
-				describeError := awserr.New(fsx.ErrCodeFileSystemNotFound, "test", nil)
+				describeError := &types.FileSystemNotFound{
+					Message: aws.String("test"),
+				}
 				resizeError := fmt.Errorf("DescribeFileSystems failed: %v", describeError)
 
-				mockFSx.EXPECT().DescribeFileSystemsWithContext(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(nil, describeError)
+				mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(nil, describeError)
 				resp, err := c.ResizeFileSystem(ctx, fileSystemId, finalSizeGiB)
 				if err == nil {
 					t.Fatalf("ResizeFileSystem did not return error, expected [%v]", resizeError)
@@ -1095,25 +1099,27 @@ func TestResizeFileSystem(t *testing.T) {
 
 				ctx := context.Background()
 				describeInput := &fsx.DescribeFileSystemsInput{
-					FileSystemIds: []*string{aws.String(fileSystemId)},
+					FileSystemIds: []string{fileSystemId},
 				}
 				describeOutput := &fsx.DescribeFileSystemsOutput{
-					FileSystems: []*fsx.FileSystem{
+					FileSystems: []types.FileSystem{
 						{
 							FileSystemId:    aws.String(fileSystemId),
-							StorageCapacity: aws.Int64(initialSizeGiB),
+							StorageCapacity: aws.Int32(initialSizeGiB),
 						},
 					},
 				}
 				updateInput := &fsx.UpdateFileSystemInput{
 					FileSystemId:    aws.String(fileSystemId),
-					StorageCapacity: aws.Int64(finalSizeGiB),
+					StorageCapacity: aws.Int32(finalSizeGiB),
 				}
-				updateError := awserr.New(fsx.ErrCodeBadRequest, "test", nil)
+				updateError := &types.BadRequest{
+					Message: aws.String("test"),
+				}
 				resizeError := fmt.Errorf("UpdateFileSystem failed: %v", updateError)
 
-				mockFSx.EXPECT().DescribeFileSystemsWithContext(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(describeOutput, nil)
-				mockFSx.EXPECT().UpdateFileSystemWithContext(gomock.Eq(ctx), gomock.Eq(updateInput)).Return(nil, updateError)
+				mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(describeOutput, nil)
+				mockFSx.EXPECT().UpdateFileSystem(gomock.Eq(ctx), gomock.Eq(updateInput)).Return(nil, updateError)
 				resp, err := c.ResizeFileSystem(ctx, fileSystemId, finalSizeGiB)
 				if err == nil {
 					t.Fatalf("ResizeFileSystem did not return error, expected [%v]", resizeError)
@@ -1139,29 +1145,33 @@ func TestResizeFileSystem(t *testing.T) {
 
 				ctx := context.Background()
 				describeInput := &fsx.DescribeFileSystemsInput{
-					FileSystemIds: []*string{aws.String(fileSystemId)},
+					FileSystemIds: []string{fileSystemId},
 				}
 				describeOutput := &fsx.DescribeFileSystemsOutput{
-					FileSystems: []*fsx.FileSystem{
+					FileSystems: []types.FileSystem{
 						{
 							FileSystemId:    aws.String(fileSystemId),
-							StorageCapacity: aws.Int64(initialSizeGiB),
+							StorageCapacity: aws.Int32(initialSizeGiB),
 						},
 					},
 				}
-				describeError := awserr.New(fsx.ErrCodeBadRequest, "test", nil)
+				describeError := &types.BadRequest{
+					Message: aws.String("test"),
+				}
 				updateInput := &fsx.UpdateFileSystemInput{
 					FileSystemId:    aws.String(fileSystemId),
-					StorageCapacity: aws.Int64(finalSizeGiB),
+					StorageCapacity: aws.Int32(finalSizeGiB),
 				}
-				updateError := awserr.New(fsx.ErrCodeBadRequest, "Unable to perform the storage capacity update. There is an update already in progress.", nil)
+				updateError := &types.BadRequest{
+					Message: aws.String("Unable to perform the storage capacity update. There is an update already in progress."),
+				}
 				resizeError := fmt.Errorf("DescribeFileSystems failed: %v", describeError)
 
 				gomock.InOrder(
-					mockFSx.EXPECT().DescribeFileSystemsWithContext(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(describeOutput, nil),
-					mockFSx.EXPECT().DescribeFileSystemsWithContext(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(nil, describeError),
+					mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(describeOutput, nil),
+					mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(nil, describeError),
 				)
-				mockFSx.EXPECT().UpdateFileSystemWithContext(gomock.Eq(ctx), gomock.Eq(updateInput)).Return(nil, updateError)
+				mockFSx.EXPECT().UpdateFileSystem(gomock.Eq(ctx), gomock.Eq(updateInput)).Return(nil, updateError)
 				resp, err := c.ResizeFileSystem(ctx, fileSystemId, finalSizeGiB)
 				if err == nil {
 					t.Fatalf("ResizeFileSystem did not return error, expected [%v]", resizeError)
@@ -1187,25 +1197,27 @@ func TestResizeFileSystem(t *testing.T) {
 
 				ctx := context.Background()
 				describeInput := &fsx.DescribeFileSystemsInput{
-					FileSystemIds: []*string{aws.String(fileSystemId)},
+					FileSystemIds: []string{fileSystemId},
 				}
 				describeOutput := &fsx.DescribeFileSystemsOutput{
-					FileSystems: []*fsx.FileSystem{
+					FileSystems: []types.FileSystem{
 						{
 							FileSystemId:    aws.String(fileSystemId),
-							StorageCapacity: aws.Int64(initialSizeGiB),
+							StorageCapacity: aws.Int32(initialSizeGiB),
 						},
 					},
 				}
 				updateInput := &fsx.UpdateFileSystemInput{
 					FileSystemId:    aws.String(fileSystemId),
-					StorageCapacity: aws.Int64(finalSizeGiB),
+					StorageCapacity: aws.Int32(finalSizeGiB),
 				}
-				updateError := awserr.New(fsx.ErrCodeBadRequest, "Unable to perform the storage capacity update. There is an update already in progress.", nil)
+				updateError := &types.BadRequest{
+					Message: aws.String("Unable to perform the storage capacity update. There is an update already in progress."),
+				}
 				resizeError := fmt.Errorf("there is no update on filesystem %s", fileSystemId)
 
-				mockFSx.EXPECT().DescribeFileSystemsWithContext(gomock.Eq(ctx), gomock.Eq(describeInput)).Times(2).Return(describeOutput, nil)
-				mockFSx.EXPECT().UpdateFileSystemWithContext(gomock.Eq(ctx), gomock.Eq(updateInput)).Return(nil, updateError)
+				mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Eq(describeInput)).Times(2).Return(describeOutput, nil)
+				mockFSx.EXPECT().UpdateFileSystem(gomock.Eq(ctx), gomock.Eq(updateInput)).Return(nil, updateError)
 				resp, err := c.ResizeFileSystem(ctx, fileSystemId, finalSizeGiB)
 				if err == nil {
 					t.Fatalf("ResizeFileSystem did not return error, expected [%v]", resizeError)
@@ -1231,24 +1243,24 @@ func TestResizeFileSystem(t *testing.T) {
 
 				ctx := context.Background()
 				describeInput := &fsx.DescribeFileSystemsInput{
-					FileSystemIds: []*string{aws.String(fileSystemId)},
+					FileSystemIds: []string{fileSystemId},
 				}
 				describeOutput := &fsx.DescribeFileSystemsOutput{
-					FileSystems: []*fsx.FileSystem{
+					FileSystems: []types.FileSystem{
 						{
 							FileSystemId:    aws.String(fileSystemId),
-							StorageCapacity: aws.Int64(initialSizeGiB),
-							AdministrativeActions: []*fsx.AdministrativeAction{
+							StorageCapacity: aws.Int32(initialSizeGiB),
+							AdministrativeActions: []types.AdministrativeAction{
 								{
-									AdministrativeActionType: aws.String(fsx.AdministrativeActionTypeFileSystemUpdate),
-									Status:                   aws.String(fsx.StatusInProgress),
-									TargetFileSystemValues: &fsx.FileSystem{
-										StorageCapacity: aws.Int64(4800),
+									AdministrativeActionType: types.AdministrativeActionTypeFileSystemUpdate,
+									Status:                   types.StatusInProgress,
+									TargetFileSystemValues: &types.FileSystem{
+										StorageCapacity: aws.Int32(4800),
 									},
 								},
 								{
-									AdministrativeActionType: aws.String(fsx.AdministrativeActionTypeStorageOptimization),
-									Status:                   aws.String(fsx.StatusPending),
+									AdministrativeActionType: types.AdministrativeActionTypeStorageOptimization,
+									Status:                   types.StatusPending,
 								},
 							},
 						},
@@ -1256,13 +1268,15 @@ func TestResizeFileSystem(t *testing.T) {
 				}
 				updateInput := &fsx.UpdateFileSystemInput{
 					FileSystemId:    aws.String(fileSystemId),
-					StorageCapacity: aws.Int64(finalSizeGiB),
+					StorageCapacity: aws.Int32(finalSizeGiB),
 				}
-				updateError := awserr.New(fsx.ErrCodeBadRequest, "Unable to perform the storage capacity update. There is an update already in progress.", nil)
+				updateError := &types.BadRequest{
+					Message: aws.String("Unable to perform the storage capacity update. There is an update already in progress."),
+				}
 				resizeError := fmt.Errorf("there is no update with storage capacity of %d GiB on filesystem %s", finalSizeGiB, fileSystemId)
 
-				mockFSx.EXPECT().DescribeFileSystemsWithContext(gomock.Eq(ctx), gomock.Eq(describeInput)).Times(2).Return(describeOutput, nil)
-				mockFSx.EXPECT().UpdateFileSystemWithContext(gomock.Eq(ctx), gomock.Eq(updateInput)).Return(nil, updateError)
+				mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Eq(describeInput)).Times(2).Return(describeOutput, nil)
+				mockFSx.EXPECT().UpdateFileSystem(gomock.Eq(ctx), gomock.Eq(updateInput)).Return(nil, updateError)
 				resp, err := c.ResizeFileSystem(ctx, fileSystemId, finalSizeGiB)
 				if err == nil {
 					t.Fatalf("ResizeFileSystem did not return error, expected [%v]", resizeError)
@@ -1287,8 +1301,8 @@ func TestResizeFileSystem(t *testing.T) {
 func TestWaitForFileSystemResize(t *testing.T) {
 	var (
 		fileSystemId         = "fs-1234"
-		initialSizeGiB int64 = 1200
-		finalSizeGiB   int64 = 2400
+		initialSizeGiB int32 = 1200
+		finalSizeGiB   int32 = 2400
 	)
 	testCases := []struct {
 		name     string
@@ -1305,31 +1319,31 @@ func TestWaitForFileSystemResize(t *testing.T) {
 
 				ctx := context.Background()
 				describeInput := &fsx.DescribeFileSystemsInput{
-					FileSystemIds: []*string{aws.String(fileSystemId)},
+					FileSystemIds: []string{fileSystemId},
 				}
 				describeOutput := &fsx.DescribeFileSystemsOutput{
-					FileSystems: []*fsx.FileSystem{
+					FileSystems: []types.FileSystem{
 						{
 							FileSystemId:    aws.String(fileSystemId),
-							StorageCapacity: aws.Int64(finalSizeGiB),
-							AdministrativeActions: []*fsx.AdministrativeAction{
+							StorageCapacity: aws.Int32(finalSizeGiB),
+							AdministrativeActions: []types.AdministrativeAction{
 								{
-									AdministrativeActionType: aws.String(fsx.AdministrativeActionTypeFileSystemUpdate),
-									Status:                   aws.String(fsx.StatusUpdatedOptimizing),
-									TargetFileSystemValues: &fsx.FileSystem{
-										StorageCapacity: aws.Int64(finalSizeGiB),
+									AdministrativeActionType: types.AdministrativeActionTypeFileSystemUpdate,
+									Status:                   types.StatusUpdatedOptimizing,
+									TargetFileSystemValues: &types.FileSystem{
+										StorageCapacity: aws.Int32(finalSizeGiB),
 									},
 								},
 								{
-									AdministrativeActionType: aws.String(fsx.AdministrativeActionTypeStorageOptimization),
-									Status:                   aws.String(fsx.StatusInProgress),
+									AdministrativeActionType: types.AdministrativeActionTypeStorageOptimization,
+									Status:                   types.StatusInProgress,
 								},
 							},
 						},
 					},
 				}
 
-				mockFSx.EXPECT().DescribeFileSystemsWithContext(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(describeOutput, nil)
+				mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(describeOutput, nil)
 				err := c.WaitForFileSystemResize(ctx, fileSystemId, finalSizeGiB)
 				if err != nil {
 					t.Fatalf("WaitForFileSystemResize is failed: %v", err)
@@ -1349,27 +1363,27 @@ func TestWaitForFileSystemResize(t *testing.T) {
 
 				ctx := context.Background()
 				describeInput := &fsx.DescribeFileSystemsInput{
-					FileSystemIds: []*string{aws.String(fileSystemId)},
+					FileSystemIds: []string{fileSystemId},
 				}
 				describeOutput := &fsx.DescribeFileSystemsOutput{
-					FileSystems: []*fsx.FileSystem{
+					FileSystems: []types.FileSystem{
 						{
 							FileSystemId:    aws.String(fileSystemId),
-							StorageCapacity: aws.Int64(initialSizeGiB),
-							AdministrativeActions: []*fsx.AdministrativeAction{
+							StorageCapacity: aws.Int32(initialSizeGiB),
+							AdministrativeActions: []types.AdministrativeAction{
 								{
-									AdministrativeActionType: aws.String(fsx.AdministrativeActionTypeFileSystemUpdate),
-									Status:                   aws.String(fsx.StatusFailed),
-									FailureDetails: &fsx.AdministrativeActionFailureDetails{
+									AdministrativeActionType: types.AdministrativeActionTypeFileSystemUpdate,
+									Status:                   types.StatusFailed,
+									FailureDetails: &types.AdministrativeActionFailureDetails{
 										Message: aws.String("test"),
 									},
-									TargetFileSystemValues: &fsx.FileSystem{
-										StorageCapacity: aws.Int64(finalSizeGiB),
+									TargetFileSystemValues: &types.FileSystem{
+										StorageCapacity: aws.Int32(finalSizeGiB),
 									},
 								},
 								{
-									AdministrativeActionType: aws.String(fsx.AdministrativeActionTypeStorageOptimization),
-									Status:                   aws.String(fsx.StatusPending),
+									AdministrativeActionType: types.AdministrativeActionTypeStorageOptimization,
+									Status:                   types.StatusPending,
 								},
 							},
 						},
@@ -1377,7 +1391,7 @@ func TestWaitForFileSystemResize(t *testing.T) {
 				}
 				waitError := fmt.Errorf("update failed for filesystem %s: %q", fileSystemId, *describeOutput.FileSystems[0].AdministrativeActions[0].FailureDetails.Message)
 
-				mockFSx.EXPECT().DescribeFileSystemsWithContext(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(describeOutput, nil)
+				mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Eq(describeInput)).Return(describeOutput, nil)
 				err := c.WaitForFileSystemResize(ctx, fileSystemId, finalSizeGiB)
 				if err == nil {
 					t.Fatalf("WaitForFileSystemResize did not return error, expected [%v]", err)
@@ -1404,7 +1418,9 @@ func TestIsBadRequestUpdateInProgress(t *testing.T) {
 		{
 			name: "success: BadRequest update in progress",
 			testFunc: func(t *testing.T) {
-				errorInput := awserr.New(fsx.ErrCodeBadRequest, "Unable to perform the storage capacity update. There is an update already in progress.", nil)
+				errorInput := &types.BadRequest{
+					Message: aws.String("Unable to perform the storage capacity update. There is an update already in progress."),
+				}
 				if !isBadRequestUpdateInProgress(errorInput) {
 					t.Fatalf("isBadRequestUpdateInProgress returned false, expected true")
 				}
@@ -1413,7 +1429,9 @@ func TestIsBadRequestUpdateInProgress(t *testing.T) {
 		{
 			name: "failure: AWS error, different type",
 			testFunc: func(t *testing.T) {
-				errorInput := awserr.New(fsx.ErrCodeFileSystemNotFound, "test", nil)
+				errorInput := &types.FileSystemNotFound{
+					Message: aws.String("test"),
+				}
 				if isBadRequestUpdateInProgress(errorInput) {
 					t.Fatalf("isBadRequestUpdateInProgress returned true, expected false")
 				}
