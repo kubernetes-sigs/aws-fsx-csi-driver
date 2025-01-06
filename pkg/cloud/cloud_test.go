@@ -34,6 +34,7 @@ func TestCreateFileSystem(t *testing.T) {
 		volumeName                          = "volumeName"
 		fileSystemId                        = "fs-1234"
 		volumeSizeGiB                 int32 = 1200
+		p2VolumeSizeGiB               int32 = 4800
 		subnetId                            = "subnet-056da83524edbe641"
 		securityGroupIds                    = []string{"sg-086f61ea73388fb6b", "sg-0145e55e976000c9e"}
 		dnsname                             = "test.fsx.us-west-2.amazoawd.com"
@@ -44,13 +45,19 @@ func TestCreateFileSystem(t *testing.T) {
 		mountName                           = "fsx"
 		kmsKeyId                            = "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe"
 		perUnitStorageThroughput      int32 = 200
+		p2PerUnitStorageThroughput    int32 = 1000
 		DailyAutomaticBackupStartTime       = "00:00:00"
 		AutomaticBackupRetentionDays  int32 = 1
 		CopyTagsToBackups                   = true
+		efaEnabled                          = true
+		metadataModeAutomatic               = "AUTOMATIC"
+		metadataModeUserProvisioned         = "USER_PROVISIONED"
+		metadataIops                  int32 = 6000
 		dataCompressionTypeNone             = types.DataCompressionTypeNone
 		dataCompressionTypeLZ4              = types.DataCompressionTypeLz4
 		weeklyMaintenanceStartTime          = "7:09:00"
 		fileSystemTypeVersion               = "2.12"
+		fileSystemTypeVersion2_15           = "2.15"
 		extraTags                           = []string{"key1=value1", "key2=value2"}
 	)
 	testCases := []struct {
@@ -745,6 +752,240 @@ func TestCreateFileSystem(t *testing.T) {
 					SubnetId:            subnetId,
 					SecurityGroupIds:    securityGroupIds,
 					DataCompressionType: "ZFS",
+				}
+
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateFileSystem failed"))
+				_, err := c.CreateFileSystem(ctx, volumeName, req)
+				if err == nil {
+					t.Fatal("CreateFileSystem is not failed")
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "success: metadataConfigurationMode AUTOMATIC",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &FileSystemOptions{
+					CapacityGiB:               p2VolumeSizeGiB,
+					SubnetId:                  subnetId,
+					SecurityGroupIds:          securityGroupIds,
+					DeploymentType:            string(types.LustreDeploymentTypePersistent2),
+					FileSystemTypeVersion:     fileSystemTypeVersion2_15,
+					PerUnitStorageThroughput:  p2PerUnitStorageThroughput,
+					MetadataConfigurationMode: metadataModeAutomatic,
+				}
+
+				output := &fsx.CreateFileSystemOutput{
+					FileSystem: &types.FileSystem{
+						FileSystemId:          aws.String(fileSystemId),
+						StorageCapacity:       aws.Int32(p2VolumeSizeGiB),
+						StorageType:           types.StorageTypeSsd,
+						DNSName:               aws.String(dnsname),
+						FileSystemTypeVersion: aws.String(fileSystemTypeVersion2_15),
+						LustreConfiguration: &types.LustreFileSystemConfiguration{
+							DeploymentType:           types.LustreDeploymentTypePersistent2,
+							PerUnitStorageThroughput: aws.Int32(p2PerUnitStorageThroughput),
+							MountName:                aws.String(mountName),
+							MetadataConfiguration: &types.FileSystemLustreMetadataConfiguration{
+								Mode: types.MetadataConfigurationModeAutomatic,
+							},
+						},
+					},
+				}
+
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				resp, err := c.CreateFileSystem(ctx, volumeName, req)
+				if err != nil {
+					t.Fatalf("CreateFileSystem is failed: %v", err)
+				}
+
+				if resp == nil {
+					t.Fatal("resp is nil")
+				}
+
+				if resp.FileSystemId != fileSystemId {
+					t.Fatalf("FileSystemId mismatches. actual: %v expected: %v", resp.FileSystemId, fileSystemId)
+				}
+
+				if resp.CapacityGiB != p2VolumeSizeGiB {
+					t.Fatalf("CapacityGiB mismatches. actual: %v expected: %v", resp.CapacityGiB, p2VolumeSizeGiB)
+				}
+
+				if resp.DnsName != dnsname {
+					t.Fatalf("DnsName mismatches. actual: %v expected: %v", resp.DnsName, dnsname)
+				}
+
+				if resp.MountName != mountName {
+					t.Fatalf("MountName mismatches. actual: %v expected: %v", resp.MountName, mountName)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "success: metadataConfigurationMode USER_PROVISIONED",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &FileSystemOptions{
+					CapacityGiB:               p2VolumeSizeGiB,
+					SubnetId:                  subnetId,
+					SecurityGroupIds:          securityGroupIds,
+					DeploymentType:            string(types.LustreDeploymentTypePersistent2),
+					FileSystemTypeVersion:     fileSystemTypeVersion2_15,
+					PerUnitStorageThroughput:  p2PerUnitStorageThroughput,
+					MetadataConfigurationMode: metadataModeUserProvisioned,
+					MetadataIops:              metadataIops,
+				}
+
+				output := &fsx.CreateFileSystemOutput{
+					FileSystem: &types.FileSystem{
+						FileSystemId:          aws.String(fileSystemId),
+						StorageCapacity:       aws.Int32(p2VolumeSizeGiB),
+						StorageType:           types.StorageTypeSsd,
+						DNSName:               aws.String(dnsname),
+						FileSystemTypeVersion: aws.String(fileSystemTypeVersion2_15),
+						LustreConfiguration: &types.LustreFileSystemConfiguration{
+							DeploymentType:           types.LustreDeploymentTypePersistent2,
+							MountName:                aws.String(mountName),
+							PerUnitStorageThroughput: aws.Int32(p2PerUnitStorageThroughput),
+							MetadataConfiguration: &types.FileSystemLustreMetadataConfiguration{
+								Mode: types.MetadataConfigurationModeUserProvisioned,
+								Iops: aws.Int32(metadataIops),
+							},
+						},
+					},
+				}
+
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				resp, err := c.CreateFileSystem(ctx, volumeName, req)
+				if err != nil {
+					t.Fatalf("CreateFileSystem is failed: %v", err)
+				}
+
+				if resp == nil {
+					t.Fatal("resp is nil")
+				}
+
+				if resp.FileSystemId != fileSystemId {
+					t.Fatalf("FileSystemId mismatches. actual: %v expected: %v", resp.FileSystemId, fileSystemId)
+				}
+
+				if resp.CapacityGiB != p2VolumeSizeGiB {
+					t.Fatalf("CapacityGiB mismatches. actual: %v expected: %v", resp.CapacityGiB, p2VolumeSizeGiB)
+				}
+
+				if resp.DnsName != dnsname {
+					t.Fatalf("DnsName mismatches. actual: %v expected: %v", resp.DnsName, dnsname)
+				}
+
+				if resp.MountName != mountName {
+					t.Fatalf("MountName mismatches. actual: %v expected: %v", resp.MountName, mountName)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "success: efaEnabled true",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &FileSystemOptions{
+					CapacityGiB:               p2VolumeSizeGiB,
+					SubnetId:                  subnetId,
+					SecurityGroupIds:          securityGroupIds,
+					DeploymentType:            string(types.LustreDeploymentTypePersistent2),
+					FileSystemTypeVersion:     fileSystemTypeVersion2_15,
+					PerUnitStorageThroughput:  p2PerUnitStorageThroughput,
+					EfaEnabled:                efaEnabled,
+					MetadataConfigurationMode: metadataModeAutomatic,
+				}
+
+				output := &fsx.CreateFileSystemOutput{
+					FileSystem: &types.FileSystem{
+						FileSystemId:          aws.String(fileSystemId),
+						StorageCapacity:       aws.Int32(p2VolumeSizeGiB),
+						StorageType:           types.StorageTypeSsd,
+						DNSName:               aws.String(dnsname),
+						FileSystemTypeVersion: aws.String(fileSystemTypeVersion2_15),
+						LustreConfiguration: &types.LustreFileSystemConfiguration{
+							DeploymentType:           types.LustreDeploymentTypePersistent2,
+							MountName:                aws.String(mountName),
+							PerUnitStorageThroughput: aws.Int32(p2PerUnitStorageThroughput),
+							EfaEnabled:               aws.Bool(efaEnabled),
+							MetadataConfiguration: &types.FileSystemLustreMetadataConfiguration{
+								Mode: types.MetadataConfigurationModeAutomatic,
+							},
+						},
+					},
+				}
+
+				ctx := context.Background()
+				mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				resp, err := c.CreateFileSystem(ctx, volumeName, req)
+				if err != nil {
+					t.Fatalf("CreateFileSystem is failed: %v", err)
+				}
+
+				if resp == nil {
+					t.Fatal("resp is nil")
+				}
+
+				if resp.FileSystemId != fileSystemId {
+					t.Fatalf("FileSystemId mismatches. actual: %v expected: %v", resp.FileSystemId, fileSystemId)
+				}
+
+				if resp.CapacityGiB != p2VolumeSizeGiB {
+					t.Fatalf("CapacityGiB mismatches. actual: %v expected: %v", resp.CapacityGiB, p2VolumeSizeGiB)
+				}
+
+				if resp.DnsName != dnsname {
+					t.Fatalf("DnsName mismatches. actual: %v expected: %v", resp.DnsName, dnsname)
+				}
+
+				if resp.MountName != mountName {
+					t.Fatalf("MountName mismatches. actual: %v expected: %v", resp.MountName, mountName)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "fail: invalid metadataConfiguration no iops provided",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx: mockFSx,
+				}
+
+				req := &FileSystemOptions{
+					CapacityGiB:               p2VolumeSizeGiB,
+					SubnetId:                  subnetId,
+					SecurityGroupIds:          securityGroupIds,
+					DeploymentType:            string(types.LustreDeploymentTypePersistent2),
+					FileSystemTypeVersion:     fileSystemTypeVersion2_15,
+					PerUnitStorageThroughput:  p2PerUnitStorageThroughput,
+					MetadataConfigurationMode: metadataModeUserProvisioned,
 				}
 
 				ctx := context.Background()

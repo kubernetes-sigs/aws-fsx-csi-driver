@@ -70,6 +70,9 @@ const (
 	volumeParamsWeeklyMaintenanceStartTime    = "weeklyMaintenanceStartTime"
 	volumeParamsFileSystemTypeVersion         = "fileSystemTypeVersion"
 	volumeParamsExtraTags                     = "extraTags"
+	volumeParamsEfaEnabled                    = "efaEnabled"
+	volumeParamsMetadataConfigurationMode     = "metadataConfigurationMode"
+	volumeParamsMetadataIops                  = "metadataIops"
 )
 
 // controllerService represents the controller service of CSI driver
@@ -204,6 +207,26 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 
 	if val, ok := volumeParams[volumeParamsFileSystemTypeVersion]; ok {
 		fsOptions.FileSystemTypeVersion = val
+	}
+
+	if val, ok := volumeParams[volumeParamsEfaEnabled]; ok {
+		b, err := strconv.ParseBool(val)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "efaEnabled must be a bool")
+		}
+		fsOptions.EfaEnabled = b
+	}
+
+	if val, ok := volumeParams[volumeParamsMetadataConfigurationMode]; ok {
+		fsOptions.MetadataConfigurationMode = val
+	}
+
+	if val, ok := volumeParams[volumeParamsMetadataIops]; ok {
+		n, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "metadataIops must be a number")
+		}
+		fsOptions.MetadataIops = int32(n)
 	}
 
 	capRange := req.GetCapacityRange()

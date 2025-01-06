@@ -43,6 +43,7 @@ func TestCreateVolume(t *testing.T) {
 		volumeName             = "volumeName"
 		fileSystemId           = "fs-1234"
 		volumeSizeGiB    int32 = 1200
+		p2VolumeSizeGiB  int32 = 4800
 		subnetId               = "subnet-056da83524edbe641"
 		securityGroupIds       = "sg-086f61ea73388fb6b,sg-0145e55e976000c9e"
 		dnsName                = "test.fsx.us-west-2.amazoawd.com"
@@ -245,6 +246,90 @@ func TestCreateVolume(t *testing.T) {
 				fs := &cloud.FileSystem{
 					FileSystemId: fileSystemId,
 					CapacityGiB:  volumeSizeGiB,
+					DnsName:      dnsName,
+					MountName:    mountName,
+				}
+				mockCloud.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(fs, nil)
+				mockCloud.EXPECT().WaitForFileSystemAvailable(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(nil)
+
+				resp, err := driver.CreateVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("CreateVolume is failed: %v", err)
+				}
+
+				if resp.Volume == nil {
+					t.Fatal("resp.Volume is nil")
+				}
+
+				if resp.Volume.VolumeId != fileSystemId {
+					t.Fatalf("VolumeId mismatches. actual: %v expected: %v", resp.Volume.VolumeId, fileSystemId)
+				}
+
+				if resp.Volume.CapacityBytes == 0 {
+					t.Fatalf("resp.Volume.CapacityGiB is zero")
+				}
+
+				dnsname, exists := resp.Volume.VolumeContext[volumeContextDnsName]
+				if !exists {
+					t.Fatal("dnsname is missing")
+				}
+
+				if dnsname != dnsName {
+					t.Fatalf("dnsname mismatches. actual: %v expected: %v", dnsname, dnsName)
+				}
+
+				mountname, exists := resp.Volume.VolumeContext[volumeContextMountName]
+				if !exists {
+					t.Fatal("mountname is missing")
+				}
+
+				if mountname != mountName {
+					t.Fatalf("mountname mismatches. actual: %v expected: %v", mountname, mountName)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "success: normal with deploymentType PERSISTENT_2 and metadataConfiguration",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					Parameters: map[string]string{
+						volumeParamsSubnetId:                      subnetId,
+						volumeParamsSecurityGroupIds:              securityGroupIds,
+						volumeParamsDeploymentType:                string(types.LustreDeploymentTypePersistent2),
+						volumeParamsKmsKeyId:                      "arn:aws:kms:us-east-1:215474938041:key/48313a27-7d88-4b51-98a4-fdf5bc80dbbe",
+						volumeParamsPerUnitStorageThroughput:      "1000",
+						volumeParamsStorageType:                   string(types.StorageTypeSsd),
+						volumeParamsAutomaticBackupRetentionDays:  "1",
+						volumeParamsDailyAutomaticBackupStartTime: "00:00",
+						volumeParamsCopyTagsToBackups:             "true",
+						volumeParamsDataCompressionType:           "LZ4",
+						volumeParamsWeeklyMaintenanceStartTime:    "7:08:00",
+						volumeParamsFileSystemTypeVersion:         "2.15",
+						volumeParamsEfaEnabled:                    "true",
+						volumeParamsMetadataConfigurationMode:     "USER_PROVISIONED",
+						volumeParamsMetadataIops:                  "6000",
+					},
+				}
+
+				ctx := context.Background()
+				fs := &cloud.FileSystem{
+					FileSystemId: fileSystemId,
+					CapacityGiB:  p2VolumeSizeGiB,
 					DnsName:      dnsName,
 					MountName:    mountName,
 				}
