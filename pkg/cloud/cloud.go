@@ -100,6 +100,9 @@ type FileSystemOptions struct {
 	WeeklyMaintenanceStartTime    string
 	FileSystemTypeVersion         string
 	ExtraTags                     []string
+	EfaEnabled                    bool
+	MetadataConfigurationMode     string
+	MetadataIops                  int32
 }
 
 // FSx abstracts FSx client to facilitate its mocking.
@@ -193,6 +196,18 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		lustreConfiguration.WeeklyMaintenanceStartTime = aws.String(fileSystemOptions.WeeklyMaintenanceStartTime)
 	}
 
+	if fileSystemOptions.EfaEnabled {
+		lustreConfiguration.EfaEnabled = aws.Bool(true)
+	}
+
+	if fileSystemOptions.MetadataConfigurationMode != "" {
+		metadataConfiguration := &types.CreateFileSystemLustreMetadataConfiguration{}
+		metadataConfiguration.Mode = types.MetadataConfigurationMode(fileSystemOptions.MetadataConfigurationMode)
+		if fileSystemOptions.MetadataIops != 0 {
+			metadataConfiguration.Iops = aws.Int32(fileSystemOptions.MetadataIops)
+		}
+		lustreConfiguration.MetadataConfiguration = metadataConfiguration
+	}
 	var tags = []types.Tag{
 		{
 			Key:   aws.String(VolumeNameTagKey),
