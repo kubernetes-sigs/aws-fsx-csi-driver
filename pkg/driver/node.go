@@ -20,11 +20,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"os"
+	"time"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/internal"
-	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
@@ -54,6 +55,7 @@ type nodeService struct {
 	mounter       Mounter
 	inFlight      *internal.InFlight
 	driverOptions *DriverOptions
+	csi.UnimplementedNodeServer
 }
 
 func newNodeService(driverOptions *DriverOptions) nodeService {
@@ -91,7 +93,7 @@ func (d *nodeService) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 }
 
 func (d *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
-	klog.V(4).InfoS("NodePublishVolume: called with", "args", *req)
+	klog.V(4).InfoS("NodePublishVolume: called with", "args", req)
 
 	volumeID := req.GetVolumeId()
 	if len(volumeID) == 0 {
@@ -179,7 +181,7 @@ func (d *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 }
 
 func (d *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
-	klog.V(4).InfoS("NodeUnpublishVolume: called", "args", *req)
+	klog.V(4).InfoS("NodeUnpublishVolume: called", "args", req)
 
 	volumeID := req.GetVolumeId()
 	if len(volumeID) == 0 {
@@ -224,7 +226,7 @@ func (d *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 }
 
 func (d *nodeService) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
-	klog.V(4).InfoS("NodeGetCapabilities: called", "args", *req)
+	klog.V(4).InfoS("NodeGetCapabilities: called", "args", req)
 	var caps []*csi.NodeServiceCapability
 	for _, cap := range nodeCaps {
 		c := &csi.NodeServiceCapability{
@@ -240,7 +242,7 @@ func (d *nodeService) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetC
 }
 
 func (d *nodeService) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
-	klog.V(4).InfoS("NodeGetInfo: called", "args", *req)
+	klog.V(4).InfoS("NodeGetInfo: called", "args", req)
 
 	return &csi.NodeGetInfoResponse{
 		NodeId: d.metadata.GetInstanceID(),
@@ -249,7 +251,7 @@ func (d *nodeService) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoReque
 
 // isMounted checks if target is mounted. It does NOT return an error if target
 // doesn't exist.
-func (d *nodeService) isMounted(source string, target string) (bool, error) {
+func (d *nodeService) isMounted(_ string, target string) (bool, error) {
 	/*
 		Checking if it's a mount point using IsLikelyNotMountPoint. There are three different return values,
 		1. true, err when the directory does not exist or corrupted.

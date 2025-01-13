@@ -19,6 +19,9 @@ package driver
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"testing"
+
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -26,12 +29,10 @@ import (
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
-	"reflect"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 	cloudMock "sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud/mocks"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/internal"
 	driverMocks "sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/mocks"
-	"testing"
 )
 
 var (
