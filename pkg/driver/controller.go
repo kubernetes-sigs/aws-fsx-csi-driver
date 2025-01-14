@@ -80,6 +80,7 @@ type controllerService struct {
 	cloud         cloud.Cloud
 	inFlight      *internal.InFlight
 	driverOptions *DriverOptions
+	csi.UnimplementedControllerServer
 }
 
 // newControllerService creates a new controller service
@@ -109,7 +110,7 @@ func newControllerService(driverOptions *DriverOptions) controllerService {
 	}
 }
 func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
-	klog.V(4).InfoS("CreateVolume: called", "args", *req)
+	klog.V(4).InfoS("CreateVolume: called", "args", req)
 	volName := req.GetName()
 	if len(volName) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume name not provided")
@@ -273,7 +274,7 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 }
 
 func (d *controllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
-	klog.V(4).InfoS("DeleteVolume: called", "args", *req)
+	klog.V(4).InfoS("DeleteVolume: called", "args", req)
 	volumeID := req.GetVolumeId()
 	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
@@ -309,7 +310,7 @@ func (d *controllerService) ControllerModifyVolume(ctx context.Context, req *csi
 }
 
 func (d *controllerService) ControllerGetCapabilities(ctx context.Context, req *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
-	klog.V(4).InfoS("ControllerGetCapabilities: called", "args", *req)
+	klog.V(4).InfoS("ControllerGetCapabilities: called", "args", req)
 	var caps []*csi.ControllerServiceCapability
 	for _, cap := range controllerCaps {
 		c := &csi.ControllerServiceCapability{
@@ -325,17 +326,17 @@ func (d *controllerService) ControllerGetCapabilities(ctx context.Context, req *
 }
 
 func (d *controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
-	klog.V(4).InfoS("GetCapacity: called", "args", *req)
+	klog.V(4).InfoS("GetCapacity: called", "args", req)
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
 func (d *controllerService) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
-	klog.V(4).InfoS("ListVolumes: called", "args", *req)
+	klog.V(4).InfoS("ListVolumes: called", "args", req)
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
 func (d *controllerService) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
-	klog.V(4).InfoS("ValidateVolumeCapabilities: called", "args", *req)
+	klog.V(4).InfoS("ValidateVolumeCapabilities: called", "args", req)
 	volumeID := req.GetVolumeId()
 	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
@@ -371,7 +372,8 @@ func (d *controllerService) ValidateVolumeCapabilities(ctx context.Context, req 
 
 func isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) bool {
 	hasSupport := func(cap *csi.VolumeCapability) bool {
-		for _, c := range volumeCaps {
+		for i := range volumeCaps {
+			c := &volumeCaps[i]
 			if c.GetMode() == cap.AccessMode.GetMode() {
 				return true
 			}
@@ -401,7 +403,7 @@ func (d *controllerService) ListSnapshots(ctx context.Context, req *csi.ListSnap
 }
 
 func (d *controllerService) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
-	klog.V(4).InfoS("ControllerExpandVolume: called", "args", *req)
+	klog.V(4).InfoS("ControllerExpandVolume: called", "args", req)
 	volumeID := req.GetVolumeId()
 	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
