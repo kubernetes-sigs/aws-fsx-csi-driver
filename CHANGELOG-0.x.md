@@ -1,3 +1,19 @@
+# v1.3.0
+
+### Notable Changes
+* Add dynamic provisioning support for metadata configuration and efa ([#402](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/402), [@jpayvazian](https://github.com/jpayvazian))
+
+### Bug fixes
+* Pin to latest AL2 5.10 kernel AMI for e2e ([#381](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/381), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Add permissions to release job and update Chart Releaser ([#391](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/391), [@toneill818](https://github.com/toneill818))
+* Docs: Update Recommended Instance Profile to include fsx:UpdateFileSystem ([#394](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/394), [@kamirendawkins](https://github.com/kamirendawkins))
+
+### Improvements
+* Add Affinity to DaemonSet ([#377](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/377), [@karaktaka](https://github.com/karaktaka))
+* Migrate to aws sdk v2 ([#397](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/397), [@michael-diggin](https://github.com/michael-diggin))
+* Sanitize CSI request logs ([#404](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/404), [@jpayvazian](https://github.com/jpayvazian))
+* Bump dependencies and sidecar images for v1.3.0 ([#403](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/403), [#405](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/405), [@jpayvazian](https://github.com/jpayvazian))
+
 # v1.2.0
 
 ### Bug fixes
