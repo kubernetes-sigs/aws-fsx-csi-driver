@@ -37,7 +37,7 @@ spec:
         - name: fsx-plugin
           securityContext:
             privileged: true
-          image: public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v1.2.0
+          image: public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v1.3.0
           imagePullPolicy: IfNotPresent
           args:
             - --mode=node
