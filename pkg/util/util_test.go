@@ -19,6 +19,7 @@ package util
 import (
 	"fmt"
 	"math"
+	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/fsx/types"
@@ -316,6 +317,43 @@ func TestConvertToInt32(t *testing.T) {
 				if tc.expectedErr.Error() != err.Error() {
 					t.Fatalf("GetURLHost got wrong result. actual: %d, expected: %d", err, tc.expectedErr)
 				}
+			}
+		})
+	}
+}
+
+type TestRequest struct {
+	Name    string
+	Secrets map[string]string
+}
+
+func TestSanitizeRequest(t *testing.T) {
+	tests := []struct {
+		name     string
+		req      interface{}
+		expected interface{}
+	}{
+		{
+			name: "Request with Secrets",
+			req: &TestRequest{
+				Name: "Test",
+				Secrets: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				},
+			},
+			expected: &TestRequest{
+				Name:    "Test",
+				Secrets: map[string]string{},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := SanitizeRequest(tt.req)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("SanitizeRequest() = %v, expected %v", result, tt.expected)
 			}
 		})
 	}
