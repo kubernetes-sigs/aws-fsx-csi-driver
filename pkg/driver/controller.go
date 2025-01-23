@@ -249,8 +249,12 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		tagArray = strings.Split(optionsTags, ",")
 	}
 
-	if val, ok := volumeParams[volumeParamsExtraTags]; ok {
+	if val, ok := volumeParams[volumeParamsExtraTags]; ok && len(val) > 0 {
 		extraTags := strings.Split(val, ",")
+		err := validateExtraTags(extraTags)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
 		tagArray = append(tagArray, extraTags...)
 	}
 	fsOptions.ExtraTags = tagArray
@@ -473,4 +477,14 @@ func newCreateVolumeResponse(fs *cloud.FileSystem) *csi.CreateVolumeResponse {
 			},
 		},
 	}
+}
+
+func validateExtraTags(tags []string) error {
+	for _, tag := range tags {
+		tagSplit := strings.Split(tag, "=")
+		if len(tagSplit) != 2 {
+			return fmt.Errorf("invalid extraTag %s was provided", tag)
+		}
+	}
+	return nil
 }
