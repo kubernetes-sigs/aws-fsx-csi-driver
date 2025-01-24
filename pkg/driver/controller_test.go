@@ -56,7 +56,9 @@ func TestCreateVolume(t *testing.T) {
 				Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
 			},
 		}
-		extraTags = "key1=value1,key2=value2"
+		extraTags        = "key1=value1,key2=value2"
+		emptyExtraTags   = ""
+		invalidExtraTags = "key1=value1,value2"
 	)
 	testCases := []struct {
 		name     string
@@ -369,6 +371,111 @@ func TestCreateVolume(t *testing.T) {
 
 				if mountname != mountName {
 					t.Fatalf("mountname mismatches. actual: %v expected: %v", mountname, mountName)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "success: empty extraTags",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					Parameters: map[string]string{
+						volumeParamsSubnetId:         subnetId,
+						volumeParamsSecurityGroupIds: securityGroupIds,
+						volumeParamsExtraTags:        emptyExtraTags,
+					},
+				}
+
+				ctx := context.Background()
+				fs := &cloud.FileSystem{
+					FileSystemId: fileSystemId,
+					CapacityGiB:  volumeSizeGiB,
+					DnsName:      dnsName,
+					MountName:    mountName,
+				}
+				mockCloud.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(fs, nil)
+				mockCloud.EXPECT().WaitForFileSystemAvailable(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(nil)
+
+				resp, err := driver.CreateVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("CreateVolume is failed: %v", err)
+				}
+
+				if resp.Volume == nil {
+					t.Fatal("resp.Volume is nil")
+				}
+
+				if resp.Volume.VolumeId != fileSystemId {
+					t.Fatalf("VolumeId mismatches. actual: %v expected: %v", resp.Volume.VolumeId, fileSystemId)
+				}
+
+				if resp.Volume.CapacityBytes == 0 {
+					t.Fatalf("resp.Volume.CapacityGiB is zero")
+				}
+
+				dnsname, exists := resp.Volume.VolumeContext[volumeContextDnsName]
+				if !exists {
+					t.Fatal("dnsname is missing")
+				}
+
+				if dnsname != dnsName {
+					t.Fatalf("dnsname mismatches. actual: %v expected: %v", dnsname, dnsName)
+				}
+
+				mountname, exists := resp.Volume.VolumeContext[volumeContextMountName]
+				if !exists {
+					t.Fatal("mountname is missing")
+				}
+
+				if mountname != mountName {
+					t.Fatalf("mountname mismatches. actual: %v expected: %v", mountname, mountName)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "fail: invalid extraTags",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := controllerService{
+					cloud:         mockCloud,
+					inFlight:      internal.NewInFlight(),
+					driverOptions: &DriverOptions{},
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					Parameters: map[string]string{
+						volumeParamsSubnetId:         subnetId,
+						volumeParamsSecurityGroupIds: securityGroupIds,
+						volumeParamsExtraTags:        invalidExtraTags,
+					},
+				}
+
+				ctx := context.Background()
+				_, err := driver.CreateVolume(ctx, req)
+				if err == nil {
+					t.Fatal("CreateVolume is not failed")
 				}
 
 				mockCtl.Finish()
