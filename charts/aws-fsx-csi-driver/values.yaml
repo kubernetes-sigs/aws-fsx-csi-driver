@@ -88,6 +88,7 @@ node:
     name: fsx-csi-node-sa
     annotations: {}
   podAnnotations: {}
+  updateStrategy: {}
   tolerateAllTaints: true
   tolerations:
     - operator: Exists
