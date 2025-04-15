@@ -71,6 +71,7 @@ node:
   loggingFormat: text
   logLevel: 2
   nodeSelector: {}
+  updateStrategy: {}
   resources: {}
   dnsPolicy: ClusterFirst
   dnsConfig:

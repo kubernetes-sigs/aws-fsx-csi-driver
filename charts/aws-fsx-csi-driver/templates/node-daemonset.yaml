@@ -9,6 +9,10 @@ spec:
     matchLabels:
       app: fsx-csi-node
       {{- include "aws-fsx-csi-driver.selectorLabels" . | nindent 6 }}
+  {{- with .Values.node.updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   template:
     metadata:
       {{- with .Values.node.podAnnotations }}
