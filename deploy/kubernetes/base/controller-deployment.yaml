@@ -30,7 +30,7 @@ spec:
           tolerationSeconds: 300
       containers:
         - name: fsx-plugin
-          image: public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v1.3.0
+          image: public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v1.4.0
           imagePullPolicy: IfNotPresent
           args:
             - --mode=controller
@@ -72,7 +72,7 @@ spec:
             periodSeconds: 2
             failureThreshold: 5
         - name: csi-provisioner
-          image: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner:v5.1.0-eks-1-32-4
+          image: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner:v5.2.0-eks-1-33-3
           args:
             - --csi-address=$(ADDRESS)
             - --v=2
@@ -86,7 +86,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-resizer
-          image: public.ecr.aws/eks-distro/kubernetes-csi/external-resizer:v1.12.0-eks-1-32-4
+          image: public.ecr.aws/eks-distro/kubernetes-csi/external-resizer:v1.13.2-eks-1-33-3
           args:
             - --csi-address=$(ADDRESS)
             - --v=2
@@ -99,7 +99,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: liveness-probe
-          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.14.0-eks-1-32-4
+          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.15.0-eks-1-33-3
           args:
             - --csi-address=/csi/csi.sock
             - --health-port=9910

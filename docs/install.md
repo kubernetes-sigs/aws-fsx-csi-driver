@@ -86,7 +86,7 @@ You may deploy the FSx for Lustre CSI driver via Kustomize or Helm
 
 #### Kustomize
 ```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.3"
+kubectl apply -k "github.com/kubernetes-sigs/aws-fsx-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.4"
 ```
 
 *Note: Using the master branch to deploy the driver is not supported as the master branch may contain upcoming features incompatible with the currently released stable version of the driver.*
@@ -110,4 +110,34 @@ Review the [configuration values](https://github.com/kubernetes-sigs/aws-fsx-ope
 #### Once the driver has been deployed, verify the pods are running:
 ```sh
 kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-fsx-csi-driver
+```
+
+#### EKS Auto Mode
+
+[EKS Auto Mode](https://docs.aws.amazon.com/eks/latest/userguide/automode.html)  extends AWS management of Kubernetes clusters beyond the cluster itself, to allow AWS to also set up and manage the infrastructure that enables the smooth operation of your workloads. Deploying support for Amazon FSx for Lustre CSI Driver onto an Auto Mode cluster requires a few specific changes from a general install.
+
+- Specify the AWS region in the controller configuration
+- Use a newer Lustre filesystem version than the default which is compatible with Auto Mode's newer kernel
+
+As a [best practice](https://docs.aws.amazon.com/eks/latest/best-practices/identity-and-access-management.html#_identities_and_credentials_for_eks_pods_recommendations), Auto Mode blocks access to IMDS for Pods that don't use host networking. To eliminate the need for the FSX controller to use IMDS, you need to configure the region for the controller.
+
+```sh
+helm upgrade --install aws-fsx-csi-driver \
+    --namespace kube-system \
+    aws-fsx-csi-driver/aws-fsx-csi-driver \
+    --set controller.region=us-west-2
+```
+
+The supported Lustre filesystem versions [varies](https://docs.aws.amazon.com/fsx/latest/LustreGuide/lustre-client-matrix.html) based on the Linux Kernel version of the Node. The current latest filesystem version which is compatible with Auto Mode is 2.15. This is configured in the FSX storage class:
+
+```yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: fsx-sc
+provisioner: fsx.csi.aws.com
+parameters:
+  fileSystemTypeVersion: "2.15"
+  subnetId: subnet-1234567890abcdef0
+  securityGroupIds: sg-1234567890abcdef0
 ```

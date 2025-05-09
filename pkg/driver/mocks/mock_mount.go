@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	mount_utils "k8s.io/mount-utils"
+	mount "k8s.io/mount-utils"
 )
 
 // MockMounter is a mock of Mounter interface.
@@ -108,10 +108,10 @@ func (mr *MockMounterMockRecorder) IsMountPoint(arg0 interface{}) *gomock.Call {
 }
 
 // List mocks base method.
-func (m *MockMounter) List() ([]mount_utils.MountPoint, error) {
+func (m *MockMounter) List() ([]mount.MountPoint, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List")
-	ret0, _ := ret[0].([]mount_utils.MountPoint)
+	ret0, _ := ret[0].([]mount.MountPoint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

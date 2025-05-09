@@ -1,3 +1,12 @@
+# v1.4.0
+
+### Bug fixes
+* Handle empty and misconfigured extraTags in controller ([#409](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/409), [@kuba-wolf](https://github.com/kuba-wolf))
+
+### Improvements
+* Bump dependencies for v1.4.0 ([#417](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/417), [@kuba-wolf](https://github.com/kuba-wolf))
+* Bump sidecar images for v1.4.0([#418](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/418), [@kuba-wolf](https://github.com/kuba-wolf))
+
 # v1.3.0
 
 ### Notable Changes
