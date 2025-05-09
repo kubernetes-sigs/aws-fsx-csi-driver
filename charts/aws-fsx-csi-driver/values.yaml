@@ -54,6 +54,7 @@ controller:
     annotations: {}
   logLevel: 2
   podAnnotations: {}
+  podLabels: {}
   # AWS region to use. If not specified then the region will be looked up via the AWS EC2 metadata
   # service.
   # ---
@@ -88,6 +89,7 @@ node:
     name: fsx-csi-node-sa
     annotations: {}
   podAnnotations: {}
+  podLabels: {}
   tolerateAllTaints: true
   tolerations:
     - operator: Exists
