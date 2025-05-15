@@ -88,6 +88,11 @@ node:
     name: fsx-csi-node-sa
     annotations: {}
   podAnnotations: {}
+  # AWS region to use. If not specified then the region will be looked up via the AWS EC2 metadata
+  # service.
+  # ---
+  # region: us-east-1
+  region:
   tolerateAllTaints: true
   tolerations:
     - operator: Exists
