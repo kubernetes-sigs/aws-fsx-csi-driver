@@ -67,6 +67,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            {{- with .Values.node.region }}
+            - name: AWS_REGION
+              value: {{ . }}
+            {{- end }}
           volumeMounts:
             - name: kubelet-dir
               mountPath: /var/lib/kubelet

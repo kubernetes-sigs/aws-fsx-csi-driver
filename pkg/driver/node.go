@@ -59,14 +59,30 @@ type nodeService struct {
 	csi.UnimplementedNodeServer
 }
 
+// driver/node_service.go   – trimmed to the relevant bits
 func newNodeService(driverOptions *DriverOptions) nodeService {
-	klog.V(5).InfoS("[Debug] Retrieving node info from metadata service")
 	region := os.Getenv("AWS_REGION")
-	metadata, err := cloud.NewMetadataService(cloud.DefaultEC2MetadataClient, cloud.DefaultKubernetesAPIClient, region)
-	if err != nil {
-		panic(err)
+
+	var (
+		metadata cloud.MetadataService
+		err      error
+	)
+
+	if region == "" {
+		klog.V(5).InfoS("[Debug] Retrieving region from metadata service")
+		metadata, err := cloud.NewMetadataService(cloud.DefaultEC2MetadataClient, cloud.DefaultKubernetesAPIClient, region)
+		if err != nil {
+			klog.ErrorS(err, "Could not determine region from any metadata service. The region can be manually supplied via the AWS_REGION environment variable.")
+			panic(err)
+		}
+		region = metadata.GetRegion()
+	} else {
+		klog.InfoS("regionFromEnv Node service", "region", region)
+		metadata, err = cloud.NewMetadataService(cloud.DefaultEC2MetadataClient, cloud.DefaultKubernetesAPIClient, region)
+		if err != nil {
+			panic(err)
+		}
 	}
-	klog.InfoS("regionFromSession Node service", "region", metadata.GetRegion())
 
 	nodeMounter, err := newNodeMounter()
 	if err != nil {
@@ -74,7 +90,6 @@ func newNodeService(driverOptions *DriverOptions) nodeService {
 	}
 
 	// Remove taint from node to indicate driver startup success
-	// This is done in the background as a goroutine to allow for driver startup
 	go removeTaintInBackground(cloud.DefaultKubernetesAPIClient, removeNotReadyTaint)
 
 	return nodeService{
@@ -242,12 +257,12 @@ func (d *nodeService) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetC
 	return &csi.NodeGetCapabilitiesResponse{Capabilities: caps}, nil
 }
 
-func (d *nodeService) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
-	klog.V(4).InfoS("NodeGetInfo: called", "args", util.SanitizeRequest(req))
-
-	return &csi.NodeGetInfoResponse{
-		NodeId: d.metadata.GetInstanceID(),
-	}, nil
+func (d *nodeService) NodeGetInfo(ctx context.Context, _ *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
+	if id := os.Getenv("CSI_NODE_NAME"); id != "" {
+		return &csi.NodeGetInfoResponse{NodeId: id}, nil
+	}
+	// Fallback – still works anywhere IAM roles are present
+	return &csi.NodeGetInfoResponse{NodeId: d.metadata.GetInstanceID()}, nil
 }
 
 // isMounted checks if target is mounted. It does NOT return an error if target
