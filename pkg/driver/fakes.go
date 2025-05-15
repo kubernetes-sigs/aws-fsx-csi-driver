@@ -45,11 +45,6 @@ func NewFakeDriver(endpoint string) *Driver {
 			driverOptions: &driverOptions,
 		},
 		nodeService: nodeService{
-			metadata: &cloud.Metadata{
-				InstanceID:       "instanceID",
-				Region:           "region",
-				AvailabilityZone: "az",
-			},
 			mounter:       NewFakeMounter(),
 			inFlight:      internal.NewInFlight(),
 			driverOptions: &DriverOptions{},
