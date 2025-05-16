@@ -23,8 +23,11 @@ import (
 	logsapi "k8s.io/component-base/logs/api/v1"
 	"k8s.io/klog/v2"
 	"os"
+	"sigs.k8s.io/aws-fsx-csi-driver/cmd/hooks"
 	"sigs.k8s.io/aws-fsx-csi-driver/cmd/options"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver"
+	"strings"
 )
 
 // Options is the combined set of options for all operating modes.
@@ -62,6 +65,30 @@ func GetOptions(fs *flag.FlagSet) *Options {
 
 	logsapi.AddFlags(c, fs)
 
+	if len(os.Args) > 1 && !strings.HasPrefix(os.Args[1], "-") {
+		cmd := os.Args[1]
+		args = os.Args[2:]
+
+		switch cmd {
+		case "pre-stop-hook":
+			clientset, clientErr := cloud.DefaultKubernetesAPIClient()
+			if clientErr != nil {
+				klog.ErrorS(err, "unable to communicate with k8s API")
+			} else {
+				err = hooks.PreStop(clientset)
+				if err != nil {
+					klog.ErrorS(err, "failed to execute PreStop lifecycle hook")
+					klog.FlushAndExit(klog.ExitFlushTimeout, 1)
+				}
+			}
+			klog.FlushAndExit(klog.ExitFlushTimeout, 0)
+
+		default:
+			klog.Errorf("Unknown driver command %s: Expected pre-stop-hook", cmd)
+			klog.FlushAndExit(klog.ExitFlushTimeout, 0)
+		}
+	}
+
 	switch {
 	case mode == driver.ControllerMode:
 		controllerOptions.AddFlags(fs)
@@ -73,7 +100,7 @@ func GetOptions(fs *flag.FlagSet) *Options {
 		controllerOptions.AddFlags(fs)
 		nodeOptions.AddFlags(fs)
 	default:
-		fmt.Printf("unknown command: %s: expected %q, %q or %q", mode, driver.ControllerMode, driver.NodeMode, driver.AllMode)
+		fmt.Printf("Unknown mode: %s: expected %q, %q or %q", mode, driver.ControllerMode, driver.NodeMode, driver.AllMode)
 		os.Exit(1)
 	}
 
