@@ -21,6 +21,7 @@ spec:
         kubernetes.io/os: linux
       dnsPolicy: ClusterFirst
       serviceAccountName: fsx-csi-node-sa
+      terminationGracePeriodSeconds: 30
       priorityClassName: system-node-critical
       tolerations:
         - operator: Exists
@@ -69,6 +70,10 @@ spec:
             timeoutSeconds: 3
             periodSeconds: 2
             failureThreshold: 5
+          lifecycle:
+            preStop:
+              exec:
+                command: [ "/bin/aws-fsx-csi-driver", "pre-stop-hook" ]
         - name: node-driver-registrar
           image: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar:v2.13.0-eks-1-33-3
           imagePullPolicy: IfNotPresent

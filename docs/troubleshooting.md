@@ -65,7 +65,28 @@ FSx for Lustre rejects packets where the source port is neither 988 nor in the r
 ##### Mitigation:
 Run netstat -tlpna to confirm whether there are TCP connections established with a source port outside of the range 1018–1023.  If there are such connections, enable SNAT to avoid redirecting packets to a different port. For more information, see https://docs.aws.amazon.com/eks/latest/userguide/external-snat.html
 
-  
+
+#### Issue: Pods are stuck in terminating when draining a node
+
+##### Likely Cause:
+If the node-csi pod is deleted prior to the application pods being deleted, the unmount operation will be blocked, in turn stranding the application pods.
+
+##### Mitigation
+
+1. **Graceful Termination:** Ensure instances are gracefully terminated, which is a best practice in Kubernetes. This allows the CSI driver to clean up volumes before the node is terminated utilizing the preStop lifecycle hook.
+
+2. **Configure Kubelet for Graceful Node Shutdown:** For unexpected shutdowns, it is highly recommended to configure the Kubelet for graceful node shutdown. Using the standard EKS-optimized AMI, you can configure the kubelet for graceful node shutdown with the following user data script:
+
+```bash
+  #!/bin/bash
+  echo -e "InhibitDelayMaxSec=45\n" >> /etc/systemd/logind.conf
+  systemctl restart systemd-logind
+  echo "$(jq ".shutdownGracePeriod=\"45s\"" /etc/kubernetes/kubelet/kubelet-config.json)" > /etc/kubernetes/kubelet/kubelet-config.json
+  echo "$(jq ".shutdownGracePeriodCriticalPods=\"15s\"" /etc/kubernetes/kubelet/kubelet-config.json)" > /etc/kubernetes/kubelet/kubelet-config.json
+  systemctl restart kubelet
+```
+We recommend adjusting the grace period to the observed needs of your workload.
+
 
 #### Issue: Pods are stuck in terminating when the [cluster autoscaler](https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler) is scaling down resources.
 

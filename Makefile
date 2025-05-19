@@ -138,4 +138,9 @@ generate-kustomize: bin/helm
 	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/clusterrole-csi-node.yaml > ../../deploy/kubernetes/base/clusterrole-csi-node.yaml
 	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/clusterrolebinding-csi-node.yaml > ../../deploy/kubernetes/base/clusterrolebinding-csi-node.yaml
 
+	$(MAKE) remove-namespace-kustomize-files
+
+.PHONY: remove-namespace-kustomize-files
+remove-namespace-kustomize-files:
+	ls deploy/kubernetes/base/* | grep -v 'kustomization\.yaml' | xargs sed -i '/namespace:/d'
 
