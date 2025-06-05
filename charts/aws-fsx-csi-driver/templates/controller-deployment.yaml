@@ -93,7 +93,7 @@ spec:
           args:
             - --csi-address=$(ADDRESS)
             - --v={{ .Values.sidecars.provisioner.logLevel }}
-            - --timeout=5m
+            - --timeout={{ .Values.controller.timeout| default "5m" }}
             - --extra-create-metadata
             - --leader-election=true
           env:
