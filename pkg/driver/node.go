@@ -52,7 +52,6 @@ var (
 const VolumeOperationAlreadyExists = "An operation with the given volume=%q and target=%q is already in progress"
 
 type nodeService struct {
-	metadata      cloud.MetadataService
 	mounter       Mounter
 	inFlight      *internal.InFlight
 	driverOptions *DriverOptions
@@ -62,11 +61,16 @@ type nodeService struct {
 func newNodeService(driverOptions *DriverOptions) nodeService {
 	klog.V(5).InfoS("[Debug] Retrieving node info from metadata service")
 	region := os.Getenv("AWS_REGION")
-	metadata, err := cloud.NewMetadataService(cloud.DefaultEC2MetadataClient, cloud.DefaultKubernetesAPIClient, region)
-	if err != nil {
-		panic(err)
+	if region == "" {
+		klog.InfoS("newNodeService: getting region from metadata")
+		metadata, err := cloud.NewMetadataService(cloud.DefaultEC2MetadataClient, cloud.DefaultKubernetesAPIClient, region)
+		if err != nil {
+			panic(err)
+		}
+		region = metadata.GetRegion()
 	}
-	klog.InfoS("regionFromSession Node service", "region", metadata.GetRegion())
+
+	klog.InfoS("regionFromSession Node service", "region", region)
 
 	nodeMounter, err := newNodeMounter()
 	if err != nil {
@@ -78,7 +82,6 @@ func newNodeService(driverOptions *DriverOptions) nodeService {
 	go removeTaintInBackground(cloud.DefaultKubernetesAPIClient, removeNotReadyTaint)
 
 	return nodeService{
-		metadata:      metadata,
 		mounter:       nodeMounter,
 		inFlight:      internal.NewInFlight(),
 		driverOptions: driverOptions,
@@ -242,11 +245,21 @@ func (d *nodeService) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetC
 	return &csi.NodeGetCapabilitiesResponse{Capabilities: caps}, nil
 }
 
-func (d *nodeService) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
-	klog.V(4).InfoS("NodeGetInfo: called", "args", util.SanitizeRequest(req))
+func (d *nodeService) NodeGetInfo(ctx context.Context, _ *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
+	if id := os.Getenv("CSI_NODE_NAME"); id != "" {
+		klog.InfoS("NodeGetInfo: Got CSI_NODE_NAME from env", "CSI_NODE_NAME", id)
+		return &csi.NodeGetInfoResponse{NodeId: id}, nil
+	}
+
+	klog.InfoS("NodeGetInfo: get node name from metadata")
+	region := os.Getenv("AWS_REGION")
+	metadata, err := cloud.NewMetadataService(cloud.DefaultEC2MetadataClient, cloud.DefaultKubernetesAPIClient, region)
+	if err != nil {
+		panic(err)
+	}
 
 	return &csi.NodeGetInfoResponse{
-		NodeId: d.metadata.GetInstanceID(),
+		NodeId: metadata.GetInstanceID(),
 	}, nil
 }
 

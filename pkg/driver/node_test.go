@@ -30,7 +30,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
-	cloudMock "sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud/mocks"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/internal"
 	driverMocks "sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/mocks"
 )
@@ -66,11 +65,9 @@ func TestNodePublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				driver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -104,11 +101,9 @@ func TestNodePublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				driver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -141,11 +136,9 @@ func TestNodePublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				driver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -181,11 +174,9 @@ func TestNodePublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				driver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -229,11 +220,9 @@ func TestNodePublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				driver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -262,11 +251,9 @@ func TestNodePublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				driver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -295,11 +282,9 @@ func TestNodePublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				driver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -328,11 +313,9 @@ func TestNodePublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				driver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -369,11 +352,9 @@ func TestNodePublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				driver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -406,11 +387,9 @@ func TestNodePublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				driver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -446,11 +425,9 @@ func TestNodePublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				awsDriver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -478,11 +455,9 @@ func TestNodePublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				awsDriver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -539,11 +514,9 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				driver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -569,11 +542,9 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				driver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -598,11 +569,9 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				driver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -624,11 +593,9 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				driver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -655,11 +622,9 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				awsDriver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
@@ -682,11 +647,9 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				defer mockCtl.Finish()
 
-				mockMetadata := cloudMock.NewMockMetadataService(mockCtl)
 				mockMounter := driverMocks.NewMockMounter(mockCtl)
 
 				awsDriver := &nodeService{
-					metadata: mockMetadata,
 					mounter:  mockMounter,
 					inFlight: internal.NewInFlight(),
 				}
