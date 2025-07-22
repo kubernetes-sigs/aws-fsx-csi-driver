@@ -57,6 +57,9 @@ KOPS_STATE_FILE=${KOPS_STATE_FILE:-s3://k8s-kops-csi-shared-e2e}
 KOPS_PATCH_FILE=${KOPS_PATCH_FILE:-./hack/kops-patch.yaml}
 KOPS_PATCH_NODE_FILE=${KOPS_PATCH_NODE_FILE:-./hack/kops-patch-node.yaml}
 
+AMI_PARAMETER=${AMI_PARAMETER:-/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}
+AMI_ID=$(aws ssm get-parameters --names ${AMI_PARAMETER} --region ${AWS_REGION} --query 'Parameters[0].Value' --output text)
+
 EKSCTL_VERSION=${EKSCTL_VERSION:-0.208.0}
 EKSCTL_PATCH_FILE=${EKSCTL_PATCH_FILE:-./hack/eksctl-patch.yaml}
 EKSCTL_ADMIN_ROLE=${EKSCTL_ADMIN_ROLE:-}
@@ -121,7 +124,8 @@ if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
     "$KUBECONFIG" \
     "$KOPS_PATCH_FILE" \
     "$KOPS_PATCH_NODE_FILE" \
-    "$KOPS_STATE_FILE"
+    "$KOPS_STATE_FILE" \
+    "$AMI_ID"
   if [[ $? -ne 0 ]]; then
     exit 1
   fi
