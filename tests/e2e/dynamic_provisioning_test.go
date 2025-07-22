@@ -60,8 +60,9 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning", func() {
 				Volumes: []testsuites.VolumeDetails{
 					{
 						Parameters: map[string]string{
-							"subnetId":         subnetId,
-							"securityGroupIds": strings.Join(securityGroupIds, ","),
+							"subnetId":                 subnetId,
+							"securityGroupIds":         strings.Join(securityGroupIds, ","),
+							"fileSystemTypeVersion":    "2.15",
 						},
 						ClaimSize: "3600Gi",
 						VolumeMount: testsuites.VolumeMountDetails{
@@ -87,8 +88,9 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning", func() {
 				Volumes: []testsuites.VolumeDetails{
 					{
 						Parameters: map[string]string{
-							"subnetId":         subnetId,
-							"securityGroupIds": strings.Join(securityGroupIds, ","),
+							"subnetId":                 subnetId,
+							"securityGroupIds":         strings.Join(securityGroupIds, ","),
+							"fileSystemTypeVersion":    "2.15",
 						},
 						MountOptions: []string{"flock"},
 						ClaimSize:    "1200Gi",
@@ -156,11 +158,12 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning with s3 data repository", f
 				Volumes: []testsuites.VolumeDetails{
 					{
 						Parameters: map[string]string{
-							"subnetId":         subnetId,
-							"securityGroupIds": strings.Join(securityGroupIds, ","),
-							"autoImportPolicy": "NONE",
-							"s3ImportPath":     fmt.Sprintf("s3://%s", bucketName),
-							"s3ExportPath":     fmt.Sprintf("s3://%s/export", bucketName),
+							"subnetId":                 subnetId,
+							"securityGroupIds":         strings.Join(securityGroupIds, ","),
+							"autoImportPolicy":         "NONE",
+							"s3ImportPath":             fmt.Sprintf("s3://%s", bucketName),
+							"s3ExportPath":             fmt.Sprintf("s3://%s/export", bucketName),
+							"fileSystemTypeVersion":    "2.15",
 						},
 						ClaimSize: "3600Gi",
 						VolumeMount: testsuites.VolumeMountDetails{

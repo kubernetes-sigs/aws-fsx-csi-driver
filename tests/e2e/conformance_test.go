@@ -97,9 +97,10 @@ func (e *fsxDriver) CreateVolume(config *storageframework.PerTestConfig, volType
 
 	ctx := context.Background()
 	options := &fsx.FileSystemOptions{
-		CapacityGiB:      3600,
-		SubnetId:         subnetId,
-		SecurityGroupIds: securityGroupIds,
+		CapacityGiB:            3600,
+		SubnetId:               subnetId,
+		SecurityGroupIds:       securityGroupIds,
+		FileSystemTypeVersion:  "2.15",
 	}
 	ns := config.Framework.Namespace.Name
 	volumeName := fmt.Sprintf("fsx-e2e-test-volume-%s", ns)
