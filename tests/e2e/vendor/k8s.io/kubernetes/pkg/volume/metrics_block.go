@@ -21,9 +21,11 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	servermetrics "k8s.io/kubernetes/pkg/kubelet/server/metrics"
 )
 
 var _ MetricsProvider = &metricsBlock{}
@@ -35,7 +37,7 @@ type metricsBlock struct {
 	device string
 }
 
-// NewMetricsStatfs creates a new metricsBlock with the device node of the
+// NewMetricsBlock creates a new metricsBlock with the device node of the
 // Volume.
 func NewMetricsBlock(device string) MetricsProvider {
 	return &metricsBlock{device}
@@ -49,6 +51,9 @@ func NewMetricsBlock(device string) MetricsProvider {
 // tools. Storage systems may have more information that they can provide by
 // going through specialized APIs.
 func (mb *metricsBlock) GetMetrics() (*Metrics, error) {
+	startTime := time.Now()
+	defer servermetrics.CollectVolumeStatCalDuration("block", startTime)
+
 	// TODO: Windows does not yet support VolumeMode=Block
 	if runtime.GOOS == "windows" {
 		return nil, NewNotImplementedError("Windows does not support Block volumes")

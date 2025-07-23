@@ -22,14 +22,14 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/cri-client/pkg/logs"
 )
 
 // TODO: Reconcile custom types in kubelet/types and this subpackage
 
-// HTTPGetter is an interface representing the ability to perform HTTP GET requests.
-type HTTPGetter interface {
-	// Get issues a GET to the specified URL.
-	Get(url string) (*http.Response, error)
+// HTTPDoer encapsulates http.Do functionality
+type HTTPDoer interface {
+	Do(req *http.Request) (*http.Response, error)
 }
 
 // Timestamp wraps around time.Time and offers utilities to format and parse
@@ -46,7 +46,7 @@ func NewTimestamp() *Timestamp {
 // ConvertToTimestamp takes a string, parses it using the RFC3339NanoLenient layout,
 // and converts it to a Timestamp object.
 func ConvertToTimestamp(timeString string) *Timestamp {
-	parsed, _ := time.Parse(RFC3339NanoLenient, timeString)
+	parsed, _ := time.Parse(logs.RFC3339NanoLenient, timeString)
 	return &Timestamp{parsed}
 }
 
@@ -58,7 +58,7 @@ func (t *Timestamp) Get() time.Time {
 // GetString returns the time in the string format using the RFC3339NanoFixed
 // layout.
 func (t *Timestamp) GetString() string {
-	return t.time.Format(RFC3339NanoFixed)
+	return t.time.Format(logs.RFC3339NanoFixed)
 }
 
 // SortedContainerStatuses is a type to help sort container statuses based on container names.
@@ -72,7 +72,8 @@ func (s SortedContainerStatuses) Less(i, j int) bool {
 }
 
 // SortInitContainerStatuses ensures that statuses are in the order that their
-// init container appears in the pod spec
+// init container appears in the pod spec. The function assumes there are no
+// duplicate names in the statuses.
 func SortInitContainerStatuses(p *v1.Pod, statuses []v1.ContainerStatus) {
 	containers := p.Spec.InitContainers
 	current := 0

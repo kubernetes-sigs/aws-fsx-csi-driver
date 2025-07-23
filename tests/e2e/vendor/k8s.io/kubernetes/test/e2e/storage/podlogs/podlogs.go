@@ -258,7 +258,9 @@ func CopyPodLogs(ctx context.Context, cs clientset.Interface, ns, podName string
 // logsForPod starts reading the logs for a certain pod. If the pod has more than one
 // container, opts.Container must be set. Reading stops when the context is done.
 // The stream includes formatted error messages and ends with
-//    rpc error: code = Unknown desc = Error: No such container: 41a...
+//
+//	rpc error: code = Unknown desc = Error: No such container: 41a...
+//
 // when the pod gets deleted while streaming.
 func logsForPod(ctx context.Context, cs clientset.Interface, ns, pod string, opts *v1.PodLogOptions) (io.ReadCloser, error) {
 	return cs.CoreV1().Pods(ns).GetLogs(pod, opts).Stream(ctx)
@@ -311,7 +313,7 @@ func WatchPods(ctx context.Context, cs clientset.Interface, ns string, to io.Wri
 				}
 				buffer := new(bytes.Buffer)
 				fmt.Fprintf(buffer,
-					"%s pod: %s: %s/%s %s: %s %s\n",
+					"%s pod: %s: %s/%s %s: %s %v\n",
 					time.Now().Format(timeFormat),
 					e.Type,
 					pod.Namespace,

@@ -17,10 +17,12 @@ limitations under the License.
 package framework
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -47,23 +49,23 @@ type TestDriver interface {
 	SkipUnsupportedTest(TestPattern)
 
 	// PrepareTest is called at test execution time each time a new test case is about to start.
-	// It sets up all necessary resources and returns the per-test configuration
-	// plus a cleanup function that frees all allocated resources.
-	PrepareTest(f *framework.Framework) (*PerTestConfig, func())
+	// It sets up all necessary resources and returns the per-test configuration.
+	// Cleanup is handled via ginkgo.DeferCleanup inside PrepareTest.
+	PrepareTest(ctx context.Context, f *framework.Framework) *PerTestConfig
 }
 
 // TestVolume is the result of PreprovisionedVolumeTestDriver.CreateVolume.
 // The only common functionality is to delete it. Individual driver interfaces
 // have additional methods that work with volumes created by them.
 type TestVolume interface {
-	DeleteVolume()
+	DeleteVolume(ctx context.Context)
 }
 
 // PreprovisionedVolumeTestDriver represents an interface for a TestDriver that has pre-provisioned volume
 type PreprovisionedVolumeTestDriver interface {
 	TestDriver
 	// CreateVolume creates a pre-provisioned volume of the desired volume type.
-	CreateVolume(config *PerTestConfig, volumeType TestVolType) TestVolume
+	CreateVolume(ctx context.Context, config *PerTestConfig, volumeType TestVolType) TestVolume
 }
 
 // InlineVolumeTestDriver represents an interface for a TestDriver that supports InlineVolume
@@ -89,12 +91,12 @@ type PreprovisionedPVTestDriver interface {
 type DynamicPVTestDriver interface {
 	TestDriver
 	// GetDynamicProvisionStorageClass returns a StorageClass dynamic provision Persistent Volume.
-	// The StorageClass must be created in the current test's namespace and have
-	// a unique name inside that namespace because GetDynamicProvisionStorageClass might
+	// The StorageClass must have
+	// a unique name because GetDynamicProvisionStorageClass might
 	// be called more than once per test.
 	// It will set fsType to the StorageClass, if TestDriver supports it.
 	// It will return nil, if the TestDriver doesn't support it.
-	GetDynamicProvisionStorageClass(config *PerTestConfig, fsType string) *storagev1.StorageClass
+	GetDynamicProvisionStorageClass(ctx context.Context, config *PerTestConfig, fsType string) *storagev1.StorageClass
 }
 
 // EphemeralTestDriver represents an interface for a TestDriver that supports ephemeral inline volumes.
@@ -126,7 +128,22 @@ type SnapshottableTestDriver interface {
 	TestDriver
 	// GetSnapshotClass returns a SnapshotClass to create snapshot.
 	// It will return nil, if the TestDriver doesn't support it.
-	GetSnapshotClass(config *PerTestConfig, parameters map[string]string) *unstructured.Unstructured
+	GetSnapshotClass(ctx context.Context, config *PerTestConfig, parameters map[string]string) *unstructured.Unstructured
+}
+
+type VoulmeGroupSnapshottableTestDriver interface {
+	TestDriver
+	// GetVolumeGroupSnapshotClass returns a VolumeGroupSnapshotClass to create group snapshot.
+	GetVolumeGroupSnapshotClass(ctx context.Context, config *PerTestConfig, parameters map[string]string) *unstructured.Unstructured
+}
+
+// VolumeAttributesClassTestDriver represents an interface for a TestDriver that supports
+// creating and modifying volumes via VolumeAttributesClass objects
+type VolumeAttributesClassTestDriver interface {
+	TestDriver
+	// GetVolumeAttributesClass returns a VolumeAttributesClass to create/modify PVCs
+	// It will return nil if the TestDriver does not support VACs
+	GetVolumeAttributesClass(ctx context.Context, config *PerTestConfig) *storagev1beta1.VolumeAttributesClass
 }
 
 // CustomTimeoutsTestDriver represents an interface fo a TestDriver that supports custom timeouts.
@@ -140,7 +157,7 @@ func GetDriverTimeouts(driver TestDriver) *framework.TimeoutContext {
 	if d, ok := driver.(CustomTimeoutsTestDriver); ok {
 		return d.GetTimeouts()
 	}
-	return framework.NewTimeoutContextWithDefaults()
+	return framework.NewTimeoutContext()
 }
 
 // Capability represents a feature that a volume plugin supports
@@ -148,12 +165,14 @@ type Capability string
 
 // Constants related to capabilities and behavior of the driver.
 const (
-	CapPersistence        Capability = "persistence"        // data is persisted across pod restarts
-	CapBlock              Capability = "block"              // raw block mode
-	CapFsGroup            Capability = "fsGroup"            // volume ownership via fsGroup
-	CapExec               Capability = "exec"               // exec a file in the volume
-	CapSnapshotDataSource Capability = "snapshotDataSource" // support populate data from snapshot
-	CapPVCDataSource      Capability = "pvcDataSource"      // support populate data from pvc
+	CapPersistence         Capability = "persistence"        // data is persisted across pod restarts
+	CapBlock               Capability = "block"              // raw block mode
+	CapFsGroup             Capability = "fsGroup"            // volume ownership via fsGroup
+	CapVolumeMountGroup    Capability = "volumeMountGroup"   // Driver has the VolumeMountGroup CSI node capability. Because this is a FSGroup feature, the fsGroup capability must also be set to true.
+	CapExec                Capability = "exec"               // exec a file in the volume
+	CapSnapshotDataSource  Capability = "snapshotDataSource" // support populate data from snapshot
+	CapVolumeGroupSnapshot Capability = "groupSnapshot"      // support group snapshot
+	CapPVCDataSource       Capability = "pvcDataSource"      // support populate data from pvc
 
 	// multiple pods on a node can use the same volume concurrently;
 	// for CSI, see:
@@ -165,15 +184,47 @@ const (
 	CapRWX                 Capability = "RWX"                 // support ReadWriteMany access modes
 	CapControllerExpansion Capability = "controllerExpansion" // support volume expansion for controller
 	CapNodeExpansion       Capability = "nodeExpansion"       // support volume expansion for node
-	CapOnlineExpansion     Capability = "onlineExpansion"     // supports online volume expansion
-	CapVolumeLimits        Capability = "volumeLimits"        // support volume limits (can be *very* slow)
-	CapSingleNodeVolume    Capability = "singleNodeVolume"    // support volume that can run on single node (like hostpath)
-	CapTopology            Capability = "topology"            // support topology
+
+	// offlineExpansion and onlineExpansion both default to true when
+	// controllerExpansion is true. The only reason to set offlineExpansion
+	// to false is when a CSI driver can only expand a volume while it's
+	// attached to a pod. Conversely, onlineExpansion can be set to false
+	// if the driver can only expand a volume while it is detached.
+	CapOfflineExpansion Capability = "offlineExpansion" // supports offline volume expansion (default: true)
+	CapOnlineExpansion  Capability = "onlineExpansion"  // supports online volume expansion (default: true)
+
+	CapVolumeLimits     Capability = "volumeLimits"     // support volume limits (can be *very* slow)
+	CapSingleNodeVolume Capability = "singleNodeVolume" // support volume that can run on single node (like hostpath)
+	CapTopology         Capability = "topology"         // support topology
 
 	// The driver publishes storage capacity information: when the storage class
 	// for dynamic provisioning exists, the driver is expected to provide
 	// capacity information for it.
 	CapCapacity Capability = "capacity"
+
+	// Anti-capability for drivers that do not support filesystem resizing of PVCs
+	// that are cloned or restored from a snapshot.
+	CapFSResizeFromSourceNotSupported Capability = "FSResizeFromSourceNotSupported"
+
+	// To support ReadWriteOncePod, the following CSI sidecars must be
+	// updated to these versions or greater:
+	// - csi-provisioner:v3.0.0+
+	// - csi-attacher:v3.3.0+
+	// - csi-resizer:v1.3.0+
+	CapReadWriteOncePod Capability = "readWriteOncePod"
+
+	// The driver can handle two PersistentVolumes with the same VolumeHandle (= volume_id in CSI spec).
+	// This capability is highly recommended for volumes that support ReadWriteMany access mode,
+	// because creating multiple PVs for the same VolumeHandle is frequently used to share a single
+	// volume among multiple namespaces.
+	// Note that this capability needs to be disabled only for CSI drivers that break CSI boundary and
+	// inspect Kubernetes PersistentVolume objects. A CSI driver that implements only CSI and does not
+	// talk to Kubernetes API server in any way should keep this capability enabled, because
+	// they will see the same NodeStage / NodePublish requests as if only one PV existed.
+	CapMultiplePVsSameID Capability = "multiplePVsSameID"
+
+	// The driver supports ReadOnlyMany (ROX) access mode
+	CapReadOnlyMany Capability = "capReadOnlyMany"
 )
 
 // DriverInfo represents static information about a TestDriver.
@@ -185,7 +236,7 @@ type DriverInfo struct {
 	// plugin if it exists and is empty if this DriverInfo represents a CSI
 	// Driver
 	InTreePluginName string
-	FeatureTag       string // FeatureTag for the driver
+	TestTags         []interface{} // tags for the driver (e.g. framework.WithSlow())
 
 	// Maximum single file size supported by this driver
 	MaxFileSize int64

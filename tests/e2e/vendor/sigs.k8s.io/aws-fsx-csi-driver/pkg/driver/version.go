@@ -22,6 +22,7 @@ import (
 	"runtime"
 )
 
+// These are set during build time via -ldflags
 var (
 	driverVersion string
 	gitCommit     string
@@ -47,6 +48,7 @@ func GetVersion() VersionInfo {
 		Platform:      fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	}
 }
+
 func GetVersionJSON() (string, error) {
 	info := GetVersion()
 	marshalled, err := json.MarshalIndent(&info, "", "  ")

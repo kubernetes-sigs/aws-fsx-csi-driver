@@ -22,12 +22,13 @@ import (
 	"context"
 	"sync"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	errors "k8s.io/apimachinery/pkg/util/errors"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/kubernetes/test/e2e/feature"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
@@ -35,6 +36,7 @@ import (
 	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
 	storageutils "k8s.io/kubernetes/test/e2e/storage/utils"
+	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 type snapshottableStressTestSuite struct {
@@ -53,9 +55,7 @@ type snapshottableStressTest struct {
 	snapshotsMutex sync.Mutex
 
 	// Stop and wait for any async routines.
-	ctx    context.Context
-	wg     sync.WaitGroup
-	cancel context.CancelFunc
+	wg sync.WaitGroup
 }
 
 // InitCustomSnapshottableStressTestSuite returns snapshottableStressTestSuite that implements TestSuite interface
@@ -68,7 +68,7 @@ func InitCustomSnapshottableStressTestSuite(patterns []storageframework.TestPatt
 			SupportedSizeRange: e2evolume.SizeRange{
 				Min: "1Mi",
 			},
-			FeatureTag: "[Feature:VolumeSnapshotDataSource]",
+			TestTags: []interface{}{feature.VolumeSnapshotDataSource},
 		},
 	}
 }
@@ -121,31 +121,28 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 	// Beware that it also registers an AfterEach which renders f unusable. Any code using
 	// f must run inside an It or Context callback.
 	f := framework.NewDefaultFramework("snapshottable-stress")
+	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 
-	init := func() {
+	init := func(ctx context.Context) {
 		driverInfo = driver.GetDriverInfo()
 		snapshottableDriver, _ = driver.(storageframework.SnapshottableTestDriver)
 		cs = f.ClientSet
-		config, driverCleanup := driver.PrepareTest(f)
-		ctx, cancel := context.WithCancel(context.Background())
+		config := driver.PrepareTest(ctx, f)
 
 		stressTest = &snapshottableStressTest{
-			config:        config,
-			driverCleanup: driverCleanup,
-			volumes:       []*storageframework.VolumeResource{},
-			snapshots:     []*storageframework.SnapshotResource{},
-			pods:          []*v1.Pod{},
-			testOptions:   *driverInfo.VolumeSnapshotStressTestOptions,
-			ctx:           ctx,
-			cancel:        cancel,
+			config:      config,
+			volumes:     []*storageframework.VolumeResource{},
+			snapshots:   []*storageframework.SnapshotResource{},
+			pods:        []*v1.Pod{},
+			testOptions: *driverInfo.VolumeSnapshotStressTestOptions,
 		}
 	}
 
-	createPodsAndVolumes := func() {
+	createPodsAndVolumes := func(ctx context.Context) {
 		for i := 0; i < stressTest.testOptions.NumPods; i++ {
 			framework.Logf("Creating resources for pod %d/%d", i, stressTest.testOptions.NumPods-1)
 
-			volume := storageframework.CreateVolumeResource(driver, stressTest.config, pattern, t.GetTestSuiteInfo().SupportedSizeRange)
+			volume := storageframework.CreateVolumeResource(ctx, driver, stressTest.config, pattern, t.GetTestSuiteInfo().SupportedSizeRange)
 			stressTest.volumes = append(stressTest.volumes, volume)
 
 			podConfig := e2epod.Config{
@@ -167,8 +164,7 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 				defer ginkgo.GinkgoRecover()
 				defer wg.Done()
 
-				if _, err := cs.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{}); err != nil {
-					stressTest.cancel()
+				if _, err := cs.CoreV1().Pods(pod.Namespace).Create(ctx, pod, metav1.CreateOptions{}); err != nil {
 					framework.Failf("Failed to create pod-%d [%+v]. Error: %v", i, pod, err)
 				}
 			}(i, pod)
@@ -176,16 +172,14 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 		wg.Wait()
 
 		for i, pod := range stressTest.pods {
-			if err := e2epod.WaitForPodRunningInNamespace(cs, pod); err != nil {
-				stressTest.cancel()
+			if err := e2epod.WaitForPodRunningInNamespace(ctx, cs, pod); err != nil {
 				framework.Failf("Failed to wait for pod-%d [%+v] turn into running status. Error: %v", i, pod, err)
 			}
 		}
 	}
 
-	cleanup := func() {
+	cleanup := func(ctx context.Context) {
 		framework.Logf("Stopping and waiting for all test routines to finish")
-		stressTest.cancel()
 		stressTest.wg.Wait()
 
 		var (
@@ -201,7 +195,7 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 				defer wg.Done()
 
 				framework.Logf("Deleting snapshot %s/%s", snapshot.Vs.GetNamespace(), snapshot.Vs.GetName())
-				err := snapshot.CleanupResource(f.Timeouts)
+				err := snapshot.CleanupResource(ctx, f.Timeouts)
 				mu.Lock()
 				defer mu.Unlock()
 				errs = append(errs, err)
@@ -216,7 +210,7 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 				defer wg.Done()
 
 				framework.Logf("Deleting pod %s", pod.Name)
-				err := e2epod.DeletePodWithWait(cs, pod)
+				err := e2epod.DeletePodWithWait(ctx, cs, pod)
 				mu.Lock()
 				defer mu.Unlock()
 				errs = append(errs, err)
@@ -231,7 +225,7 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 				defer wg.Done()
 
 				framework.Logf("Deleting volume %s", volume.Pvc.GetName())
-				err := volume.CleanupResource()
+				err := volume.CleanupResource(ctx)
 				mu.Lock()
 				defer mu.Unlock()
 				errs = append(errs, err)
@@ -244,17 +238,10 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 		framework.ExpectNoError(errors.NewAggregate(errs), "while cleaning up resources")
 	}
 
-	ginkgo.BeforeEach(func() {
-		init()
-		createPodsAndVolumes()
-	})
-
-	// See #96177, this is necessary for cleaning up resources when tests are interrupted.
-	f.AddAfterEach("cleanup", func(f *framework.Framework, failed bool) {
-		cleanup()
-	})
-
-	ginkgo.It("should support snapshotting of many volumes repeatedly [Slow] [Serial]", func() {
+	f.It("should support snapshotting of many volumes repeatedly", f.WithSlow(), f.WithSerial(), func(ctx context.Context) {
+		init(ctx)
+		ginkgo.DeferCleanup(cleanup)
+		createPodsAndVolumes(ctx)
 		// Repeatedly create and delete snapshots of each volume.
 		for i := 0; i < stressTest.testOptions.NumPods; i++ {
 			for j := 0; j < stressTest.testOptions.NumSnapshots; j++ {
@@ -268,12 +255,20 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 					volume := stressTest.volumes[podIndex]
 
 					select {
-					case <-stressTest.ctx.Done():
+					case <-ctx.Done():
+						// This looks like a in the
+						// original test
+						// (https://github.com/kubernetes/kubernetes/blob/21049c2a1234ae3eea57357ed4329ed567a2dab3/test/e2e/storage/testsuites/snapshottable_stress.go#L269):
+						// This early return will never
+						// get reached even if some
+						// other goroutine fails
+						// because the context doesn't
+						// get cancelled.
 						return
 					default:
 						framework.Logf("Pod-%d [%s], Iteration %d/%d", podIndex, pod.Name, snapshotIndex, stressTest.testOptions.NumSnapshots-1)
 						parameters := map[string]string{}
-						snapshot := storageframework.CreateSnapshotResource(snapshottableDriver, stressTest.config, pattern, volume.Pvc.GetName(), volume.Pvc.GetNamespace(), f.Timeouts, parameters)
+						snapshot := storageframework.CreateSnapshotResource(ctx, snapshottableDriver, stressTest.config, pattern, volume.Pvc.GetName(), volume.Pvc.GetNamespace(), f.Timeouts, parameters)
 						stressTest.snapshotsMutex.Lock()
 						defer stressTest.snapshotsMutex.Unlock()
 						stressTest.snapshots = append(stressTest.snapshots, snapshot)

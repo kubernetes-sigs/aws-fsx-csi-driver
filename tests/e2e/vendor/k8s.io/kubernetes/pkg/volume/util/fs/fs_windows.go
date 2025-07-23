@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 /*
@@ -19,7 +20,6 @@ limitations under the License.
 package fs
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -85,6 +85,11 @@ func diskUsage(currPath string, info os.FileInfo) (int64, error) {
 		return size, nil
 	}
 
+	// go1.23 behavior change: https://github.com/golang/go/issues/63703#issuecomment-2535941458
+	if info.Mode()&os.ModeIrregular != 0 {
+		return size, nil
+	}
+
 	size += info.Size()
 
 	if !info.IsDir() {
@@ -104,7 +109,7 @@ func diskUsage(currPath string, info os.FileInfo) (int64, error) {
 
 	for _, file := range files {
 		if file.IsDir() {
-			s, err := diskUsage(fmt.Sprintf("%s/%s", currPath, file.Name()), file)
+			s, err := diskUsage(filepath.Join(currPath, file.Name()), file)
 			if err != nil {
 				return size, err
 			}

@@ -29,11 +29,8 @@ enum PacketType {
   CLOSE_REQ = 2;
   CLOSE_RSP = 3;
   DATA = 4;
-}
-
-enum Error {
-  EOF = 0;
-  // ...
+  DIAL_CLS = 5;
+  DRAIN = 6;
 }
 
 message Packet {
@@ -45,6 +42,8 @@ message Packet {
     Data data = 4;
     CloseRequest closeRequest = 5;
     CloseResponse closeResponse = 6;
+    CloseDial closeDial = 7;
+    Drain drain = 8;
   }
 }
 
@@ -81,6 +80,16 @@ message CloseResponse {
 
     // connectID indicates the identifier of the connection
     int64 connectID = 2;
+}
+
+message CloseDial {
+    // random id of the DialRequest
+    int64 random = 1;
+}
+
+message Drain {
+  // A hint from an Agent to Server that it is pending termination.
+  // A Server should prefer non-draining agents for new dials.
 }
 
 message Data {

@@ -53,11 +53,11 @@ func (f *FlakeReport) RecordFlakeIfError(err error, optionalDescription ...inter
 		return
 	}
 	msg := fmt.Sprintf("Unexpected error occurred: %v", err)
-	desc := buildDescription(optionalDescription)
+	desc := buildDescription(optionalDescription...)
 	if desc != "" {
 		msg = fmt.Sprintf("%v (Description: %v)", msg, desc)
 	}
-	Logf(msg)
+	Logf("%s", msg)
 	f.lock.Lock()
 	defer f.lock.Unlock()
 	f.Flakes = append(f.Flakes, msg)
