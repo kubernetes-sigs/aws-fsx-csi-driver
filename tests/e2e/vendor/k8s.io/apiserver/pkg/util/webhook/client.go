@@ -24,6 +24,7 @@ import (
 	"net"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,6 +33,7 @@ import (
 	"k8s.io/apiserver/pkg/util/x509metrics"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/lru"
+	netutils "k8s.io/utils/net"
 )
 
 const (
@@ -128,7 +130,20 @@ func (cm *ClientManager) HookClient(cc ClientConfig) (*rest.RESTClient, error) {
 		return client.(*rest.RESTClient), nil
 	}
 
-	complete := func(cfg *rest.Config) (*rest.RESTClient, error) {
+	cfg, err := cm.hookClientConfig(cc)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := rest.UnversionedRESTClientFor(cfg)
+	if err == nil {
+		cm.cache.Add(string(cacheKey), client)
+	}
+	return client, err
+}
+
+func (cm *ClientManager) hookClientConfig(cc ClientConfig) (*rest.Config, error) {
+	complete := func(cfg *rest.Config) (*rest.Config, error) {
 		// Avoid client-side rate limiting talking to the webhook backend.
 		// Rate limiting should happen when deciding how many requests to serve.
 		cfg.QPS = -1
@@ -139,23 +154,16 @@ func (cm *ClientManager) HookClient(cc ClientConfig) (*rest.RESTClient, error) {
 		}
 		cfg.TLSClientConfig.CAData = append(cfg.TLSClientConfig.CAData, cc.CABundle...)
 
-		// Use http/1.1 instead of http/2.
-		// This is a workaround for http/2-enabled clients not load-balancing concurrent requests to multiple backends.
-		// See http://issue.k8s.io/75791 for details.
-		cfg.NextProtos = []string{"http/1.1"}
-
 		cfg.ContentConfig.NegotiatedSerializer = cm.negotiatedSerializer
 		cfg.ContentConfig.ContentType = runtime.ContentTypeJSON
 
 		// Add a transport wrapper that allows detection of TLS connections to
-		// servers without SAN extension in their serving certificates
-		cfg.Wrap(x509metrics.NewMissingSANRoundTripperWrapperConstructor(x509MissingSANCounter))
-
-		client, err := rest.UnversionedRESTClientFor(cfg)
-		if err == nil {
-			cm.cache.Add(string(cacheKey), client)
-		}
-		return client, err
+		// servers with serving certificates with deprecated characteristics
+		cfg.Wrap(x509metrics.NewDeprecatedCertificateRoundTripperWrapperConstructor(
+			x509MissingSANCounter,
+			x509InsecureSHA1Counter,
+		))
+		return cfg, nil
 	}
 
 	if cc.Service != nil {
@@ -170,6 +178,12 @@ func (cm *ClientManager) HookClient(cc ClientConfig) (*rest.RESTClient, error) {
 			return nil, err
 		}
 		cfg := rest.CopyConfig(restConfig)
+
+		// Use http/1.1 instead of http/2.
+		// This is a workaround for http/2-enabled clients not load-balancing concurrent requests to multiple backends.
+		// See https://issue.k8s.io/75791 for details.
+		cfg.NextProtos = []string{"http/1.1"}
+
 		serverName := cc.Service.Name + "." + cc.Service.Namespace + ".svc"
 
 		host := net.JoinHostPort(serverName, strconv.Itoa(int(port)))
@@ -222,6 +236,22 @@ func (cm *ClientManager) HookClient(cc ClientConfig) (*rest.RESTClient, error) {
 	cfg := rest.CopyConfig(restConfig)
 	cfg.Host = u.Scheme + "://" + u.Host
 	cfg.APIPath = u.Path
+	if !isLocalHost(u) {
+		cfg.NextProtos = []string{"http/1.1"}
+	}
 
 	return complete(cfg)
+}
+
+func isLocalHost(u *url.URL) bool {
+	host := u.Hostname()
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+
+	netIP := netutils.ParseIPSloppy(host)
+	if netIP != nil {
+		return netIP.IsLoopback()
+	}
+	return false
 }

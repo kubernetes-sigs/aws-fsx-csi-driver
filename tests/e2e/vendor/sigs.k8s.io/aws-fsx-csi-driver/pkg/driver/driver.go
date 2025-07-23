@@ -18,59 +18,78 @@ package driver
 
 import (
 	"context"
+	"fmt"
 	"net"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/util"
+)
+
+// Mode is the operating mode of the CSI driver.
+type Mode string
+
+const (
+	// ControllerMode is the mode that only starts the controller service.
+	ControllerMode = "controller"
+	// NodeMode is the mode that only starts the node service.
+	NodeMode = "node"
+	// AllMode is the mode that only starts both the controller and the node service.
+	AllMode = "all"
 )
 
 const (
 	DriverName = "fsx.csi.aws.com"
 )
 
-var (
-	volumeCaps = []csi.VolumeCapability_AccessMode{
-		{
-			Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
-		},
-		{
-			Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
-		},
-	}
-)
-
 type Driver struct {
-	endpoint string
-	srv      *grpc.Server
+	controllerService
+	nodeService
 
-	cloud cloud.Cloud
-
-	nodeID  string
-	mounter Mounter
+	srv     *grpc.Server
+	options *DriverOptions
+	csi.UnimplementedIdentityServer
 }
 
-func NewDriver(endpoint string) *Driver {
-	metadata, err := cloud.NewMetadata()
-	if err != nil {
-		klog.Fatalln(err)
+type DriverOptions struct {
+	endpoint  string
+	mode      string
+	extraTags string
+}
+
+func NewDriver(options ...func(*DriverOptions)) (*Driver, error) {
+	klog.InfoS("Driver Information", "Driver", DriverName, "Version", driverVersion)
+
+	driverOptions := DriverOptions{
+		endpoint: DefaultCSIEndpoint,
+		mode:     AllMode,
+	}
+	for _, option := range options {
+		option(&driverOptions)
 	}
 
-	region := metadata.GetRegion()
-	cloud := cloud.NewCloud(region)
-
-	return &Driver{
-		endpoint: endpoint,
-		nodeID:   metadata.GetInstanceID(),
-		cloud:    cloud,
-		mounter:  newNodeMounter(),
+	driver := Driver{
+		options: &driverOptions,
 	}
+
+	switch driverOptions.mode {
+	case ControllerMode:
+		driver.controllerService = newControllerService(&driverOptions)
+	case NodeMode:
+		driver.nodeService = newNodeService(&driverOptions)
+	case AllMode:
+		driver.controllerService = newControllerService(&driverOptions)
+		driver.nodeService = newNodeService(&driverOptions)
+	default:
+		return nil, fmt.Errorf("unknown mode: %s", driverOptions.mode)
+	}
+
+	return &driver, nil
 }
 
 func (d *Driver) Run() error {
-	scheme, addr, err := util.ParseEndpoint(d.endpoint)
+	scheme, addr, err := util.ParseEndpoint(d.options.endpoint)
 	if err != nil {
 		return err
 	}
@@ -83,7 +102,7 @@ func (d *Driver) Run() error {
 	logErr := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		resp, err := handler(ctx, req)
 		if err != nil {
-			klog.Errorf("GRPC error: %v", err)
+			klog.ErrorS(err, "GRPC error")
 		}
 		return resp, err
 	}
@@ -93,14 +112,42 @@ func (d *Driver) Run() error {
 	d.srv = grpc.NewServer(opts...)
 
 	csi.RegisterIdentityServer(d.srv, d)
-	csi.RegisterControllerServer(d.srv, d)
-	csi.RegisterNodeServer(d.srv, d)
 
-	klog.Infof("Listening for connections on address: %#v", listener.Addr())
+	switch d.options.mode {
+	case ControllerMode:
+		csi.RegisterControllerServer(d.srv, d)
+	case NodeMode:
+		csi.RegisterNodeServer(d.srv, d)
+	case AllMode:
+		csi.RegisterControllerServer(d.srv, d)
+		csi.RegisterNodeServer(d.srv, d)
+	default:
+		return fmt.Errorf("unknown mode: %s", d.options.mode)
+	}
+
+	klog.V(4).InfoS("Listening for connections", "address", listener.Addr())
 	return d.srv.Serve(listener)
 }
 
 func (d *Driver) Stop() {
-	klog.Infof("Stopping server")
+	klog.InfoS("Stopping server")
 	d.srv.Stop()
+}
+
+func WithEndpoint(endpoint string) func(*DriverOptions) {
+	return func(o *DriverOptions) {
+		o.endpoint = endpoint
+	}
+}
+
+func WithMode(mode string) func(*DriverOptions) {
+	return func(o *DriverOptions) {
+		o.mode = mode
+	}
+}
+
+func WithExtraTags(extraTags string) func(*DriverOptions) {
+	return func(o *DriverOptions) {
+		o.extraTags = extraTags
+	}
 }

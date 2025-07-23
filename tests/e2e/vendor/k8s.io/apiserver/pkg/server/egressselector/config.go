@@ -18,24 +18,22 @@ package egressselector
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/apis/apiserver"
 	"k8s.io/apiserver/pkg/apis/apiserver/install"
-	"k8s.io/apiserver/pkg/apis/apiserver/v1beta1"
 	"k8s.io/utils/path"
-	"sigs.k8s.io/yaml"
 )
 
 var cfgScheme = runtime.NewScheme()
 
 // validEgressSelectorNames contains the set of valid egress selctor names.
-// 'master' is deprecated in favor of 'controlplane' and will be removed in v1.22.
-var validEgressSelectorNames = sets.NewString("master", "controlplane", "cluster", "etcd")
+var validEgressSelectorNames = sets.NewString("controlplane", "cluster", "etcd")
 
 func init() {
 	install.Install(cfgScheme)
@@ -52,23 +50,17 @@ func ReadEgressSelectorConfiguration(configFilePath string) (*apiserver.EgressSe
 		return nil, nil
 	}
 	// a file was provided, so we just read it.
-	data, err := ioutil.ReadFile(configFilePath)
+	data, err := os.ReadFile(configFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read egress selector configuration from %q [%v]", configFilePath, err)
 	}
-	var decodedConfig v1beta1.EgressSelectorConfiguration
-	err = yaml.Unmarshal(data, &decodedConfig)
+	config, gvk, err := serializer.NewCodecFactory(cfgScheme, serializer.EnableStrict).UniversalDecoder().Decode(data, nil, nil)
 	if err != nil {
-		// we got an error where the decode wasn't related to a missing type
 		return nil, err
 	}
-	if decodedConfig.Kind != "EgressSelectorConfiguration" {
-		return nil, fmt.Errorf("invalid service configuration object %q", decodedConfig.Kind)
-	}
-	internalConfig := &apiserver.EgressSelectorConfiguration{}
-	if err := cfgScheme.Convert(&decodedConfig, internalConfig, nil); err != nil {
-		// we got an error where the decode wasn't related to a missing type
-		return nil, err
+	internalConfig, ok := config.(*apiserver.EgressSelectorConfiguration)
+	if !ok {
+		return nil, fmt.Errorf("unexpected config type: %v", gvk)
 	}
 	return internalConfig, nil
 }
@@ -103,27 +95,21 @@ func ValidateEgressSelectorConfiguration(config *apiserver.EgressSelectorConfigu
 		}
 	}
 
-	var foundControlPlane, foundMaster bool
-	for _, service := range config.EgressSelections {
+	seen := sets.String{}
+	for i, service := range config.EgressSelections {
 		canonicalName := strings.ToLower(service.Name)
-
-		if !validEgressSelectorNames.Has(canonicalName) {
-			allErrs = append(allErrs, field.NotSupported(field.NewPath("egressSelection", "name"), canonicalName, validEgressSelectorNames.List()))
+		fldPath := field.NewPath("service", "connection")
+		// no duplicate check
+		if seen.Has(canonicalName) {
+			allErrs = append(allErrs, field.Duplicate(fldPath.Index(i), canonicalName))
 			continue
 		}
+		seen.Insert(canonicalName)
 
-		if canonicalName == "master" {
-			foundMaster = true
+		if !validEgressSelectorNames.Has(canonicalName) {
+			allErrs = append(allErrs, field.NotSupported(fldPath, canonicalName, validEgressSelectorNames.List()))
+			continue
 		}
-
-		if canonicalName == "controlplane" {
-			foundControlPlane = true
-		}
-	}
-
-	// error if both master and controlplane egress selectors are set
-	if foundMaster && foundControlPlane {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("egressSelection", "name"), "both egressSelection names 'master' and 'controlplane' are specified, only one is allowed"))
 	}
 
 	return allErrs

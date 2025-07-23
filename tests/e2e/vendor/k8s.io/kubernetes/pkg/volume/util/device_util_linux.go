@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 /*
@@ -21,6 +22,7 @@ package util
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -29,8 +31,13 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// FindMultipathDeviceForDevice given a device name like /dev/sdx, find the devicemapper parent
+// FindMultipathDeviceForDevice given a device name like /dev/sdx, find the devicemapper parent. If called with a device
+// already resolved to devicemapper, do nothing.
 func (handler *deviceHandler) FindMultipathDeviceForDevice(device string) string {
+	if strings.HasPrefix(device, "/dev/dm-") {
+		return device
+	}
+
 	io := handler.getIo
 	disk, err := findDeviceForPath(device, io)
 	if err != nil {
@@ -50,7 +57,7 @@ func (handler *deviceHandler) FindMultipathDeviceForDevice(device string) string
 	return ""
 }
 
-// findDeviceForPath Find the underlaying disk for a linked path such as /dev/disk/by-path/XXXX or /dev/mapper/XXXX
+// findDeviceForPath Find the underlying disk for a linked path such as /dev/disk/by-path/XXXX or /dev/mapper/XXXX
 // will return sdX or hdX etc, if /dev/sdX is passed in then sdX will be returned
 func findDeviceForPath(path string, io IoUtil) (string, error) {
 	devicePath, err := io.EvalSymlinks(path)
@@ -88,10 +95,11 @@ func (handler *deviceHandler) FindSlaveDevicesOnMultipath(dm string) []string {
 
 // GetISCSIPortalHostMapForTarget given a target iqn, find all the scsi hosts logged into
 // that target. Returns a map of iSCSI portals (string) to SCSI host numbers (integers).
-// For example: {
-//    "192.168.30.7:3260": 2,
-//    "192.168.30.8:3260": 3,
-// }
+//
+//	For example: {
+//	   "192.168.30.7:3260": 2,
+//	   "192.168.30.8:3260": 3,
+//	}
 func (handler *deviceHandler) GetISCSIPortalHostMapForTarget(targetIqn string) (map[string]int, error) {
 	portalHostMap := make(map[string]int)
 	io := handler.getIo
@@ -198,12 +206,11 @@ func (handler *deviceHandler) GetISCSIPortalHostMapForTarget(targetIqn string) (
 
 				// Add entries to the map for both the current and persistent portals
 				// pointing to the SCSI host for those connections
-				portal := strings.TrimSpace(string(addr)) + ":" +
-					strings.TrimSpace(string(port))
+				// JoinHostPort will add `[]` around IPv6 addresses.
+				portal := net.JoinHostPort(strings.TrimSpace(string(addr)), strings.TrimSpace(string(port)))
 				portalHostMap[portal] = hostNumber
 
-				persistentPortal := strings.TrimSpace(string(persistentAddr)) + ":" +
-					strings.TrimSpace(string(persistentPort))
+				persistentPortal := net.JoinHostPort(strings.TrimSpace(string(persistentAddr)), strings.TrimSpace(string(persistentPort)))
 				portalHostMap[persistentPortal] = hostNumber
 			}
 		}

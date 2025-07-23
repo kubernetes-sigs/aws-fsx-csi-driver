@@ -35,7 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/clock"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
@@ -52,7 +51,7 @@ import (
 	"k8s.io/kubernetes/pkg/features"
 	hashutil "k8s.io/kubernetes/pkg/util/hash"
 	taintutils "k8s.io/kubernetes/pkg/util/taints"
-	"k8s.io/utils/integer"
+	"k8s.io/utils/clock"
 
 	"k8s.io/klog/v2"
 )
@@ -84,6 +83,16 @@ const (
 	// The number of batches is given by:
 	//      1+floor(log_2(ceil(N/SlowStartInitialBatchSize)))
 	SlowStartInitialBatchSize = 1
+
+	// PodNodeNameKeyIndex is the name of the index used by PodInformer to index pods by their node name.
+	PodNodeNameKeyIndex = "spec.nodeName"
+
+	// OrphanPodIndexKey is used to index all Orphan pods to this key
+	OrphanPodIndexKey = "_ORPHAN_POD"
+
+	// podControllerUIDIndex is the name for the Pod store's index function,
+	// which is to index by pods's controllerUID.
+	PodControllerUIDIndex = "podControllerUID"
 )
 
 var UpdateTaintBackoff = wait.Backoff{
@@ -146,15 +155,15 @@ var ExpKeyFunc = func(obj interface{}) (string, error) {
 // types of controllers, because the keys might conflict across types.
 type ControllerExpectationsInterface interface {
 	GetExpectations(controllerKey string) (*ControlleeExpectations, bool, error)
-	SatisfiedExpectations(controllerKey string) bool
-	DeleteExpectations(controllerKey string)
-	SetExpectations(controllerKey string, add, del int) error
-	ExpectCreations(controllerKey string, adds int) error
-	ExpectDeletions(controllerKey string, dels int) error
-	CreationObserved(controllerKey string)
-	DeletionObserved(controllerKey string)
-	RaiseExpectations(controllerKey string, add, del int)
-	LowerExpectations(controllerKey string, add, del int)
+	SatisfiedExpectations(logger klog.Logger, controllerKey string) bool
+	DeleteExpectations(logger klog.Logger, controllerKey string)
+	SetExpectations(logger klog.Logger, controllerKey string, add, del int) error
+	ExpectCreations(logger klog.Logger, controllerKey string, adds int) error
+	ExpectDeletions(logger klog.Logger, controllerKey string, dels int) error
+	CreationObserved(logger klog.Logger, controllerKey string)
+	DeletionObserved(logger klog.Logger, controllerKey string)
+	RaiseExpectations(logger klog.Logger, controllerKey string, add, del int)
+	LowerExpectations(logger klog.Logger, controllerKey string, add, del int)
 }
 
 // ControllerExpectations is a cache mapping controllers to what they expect to see before being woken up for a sync.
@@ -172,10 +181,11 @@ func (r *ControllerExpectations) GetExpectations(controllerKey string) (*Control
 }
 
 // DeleteExpectations deletes the expectations of the given controller from the TTLStore.
-func (r *ControllerExpectations) DeleteExpectations(controllerKey string) {
+func (r *ControllerExpectations) DeleteExpectations(logger klog.Logger, controllerKey string) {
 	if exp, exists, err := r.GetByKey(controllerKey); err == nil && exists {
 		if err := r.Delete(exp); err != nil {
-			klog.V(2).Infof("Error deleting expectations for controller %v: %v", controllerKey, err)
+
+			logger.V(2).Info("Error deleting expectations", "controller", controllerKey, "err", err)
 		}
 	}
 }
@@ -183,27 +193,27 @@ func (r *ControllerExpectations) DeleteExpectations(controllerKey string) {
 // SatisfiedExpectations returns true if the required adds/dels for the given controller have been observed.
 // Add/del counts are established by the controller at sync time, and updated as controllees are observed by the controller
 // manager.
-func (r *ControllerExpectations) SatisfiedExpectations(controllerKey string) bool {
+func (r *ControllerExpectations) SatisfiedExpectations(logger klog.Logger, controllerKey string) bool {
 	if exp, exists, err := r.GetExpectations(controllerKey); exists {
 		if exp.Fulfilled() {
-			klog.V(4).Infof("Controller expectations fulfilled %#v", exp)
+			logger.V(4).Info("Controller expectations fulfilled", "expectations", exp)
 			return true
 		} else if exp.isExpired() {
-			klog.V(4).Infof("Controller expectations expired %#v", exp)
+			logger.V(4).Info("Controller expectations expired", "expectations", exp)
 			return true
 		} else {
-			klog.V(4).Infof("Controller still waiting on expectations %#v", exp)
+			logger.V(4).Info("Controller still waiting on expectations", "expectations", exp)
 			return false
 		}
 	} else if err != nil {
-		klog.V(2).Infof("Error encountered while checking expectations %#v, forcing sync", err)
+		logger.V(2).Info("Error encountered while checking expectations, forcing sync", "err", err)
 	} else {
 		// When a new controller is created, it doesn't have expectations.
 		// When it doesn't see expected watch events for > TTL, the expectations expire.
 		//	- In this case it wakes up, creates/deletes controllees, and sets expectations again.
 		// When it has satisfied expectations and no controllees need to be created/destroyed > TTL, the expectations expire.
 		//	- In this case it continues without setting expectations till it needs to create/delete controllees.
-		klog.V(4).Infof("Controller %v either never recorded expectations, or the ttl expired.", controllerKey)
+		logger.V(4).Info("Controller either never recorded expectations, or the ttl expired", "controller", controllerKey)
 	}
 	// Trigger a sync if we either encountered and error (which shouldn't happen since we're
 	// getting from local store) or this controller hasn't established expectations.
@@ -218,46 +228,46 @@ func (exp *ControlleeExpectations) isExpired() bool {
 }
 
 // SetExpectations registers new expectations for the given controller. Forgets existing expectations.
-func (r *ControllerExpectations) SetExpectations(controllerKey string, add, del int) error {
+func (r *ControllerExpectations) SetExpectations(logger klog.Logger, controllerKey string, add, del int) error {
 	exp := &ControlleeExpectations{add: int64(add), del: int64(del), key: controllerKey, timestamp: clock.RealClock{}.Now()}
-	klog.V(4).Infof("Setting expectations %#v", exp)
+	logger.V(4).Info("Setting expectations", "expectations", exp)
 	return r.Add(exp)
 }
 
-func (r *ControllerExpectations) ExpectCreations(controllerKey string, adds int) error {
-	return r.SetExpectations(controllerKey, adds, 0)
+func (r *ControllerExpectations) ExpectCreations(logger klog.Logger, controllerKey string, adds int) error {
+	return r.SetExpectations(logger, controllerKey, adds, 0)
 }
 
-func (r *ControllerExpectations) ExpectDeletions(controllerKey string, dels int) error {
-	return r.SetExpectations(controllerKey, 0, dels)
+func (r *ControllerExpectations) ExpectDeletions(logger klog.Logger, controllerKey string, dels int) error {
+	return r.SetExpectations(logger, controllerKey, 0, dels)
 }
 
 // Decrements the expectation counts of the given controller.
-func (r *ControllerExpectations) LowerExpectations(controllerKey string, add, del int) {
+func (r *ControllerExpectations) LowerExpectations(logger klog.Logger, controllerKey string, add, del int) {
 	if exp, exists, err := r.GetExpectations(controllerKey); err == nil && exists {
 		exp.Add(int64(-add), int64(-del))
 		// The expectations might've been modified since the update on the previous line.
-		klog.V(4).Infof("Lowered expectations %#v", exp)
+		logger.V(4).Info("Lowered expectations", "expectations", exp)
 	}
 }
 
 // Increments the expectation counts of the given controller.
-func (r *ControllerExpectations) RaiseExpectations(controllerKey string, add, del int) {
+func (r *ControllerExpectations) RaiseExpectations(logger klog.Logger, controllerKey string, add, del int) {
 	if exp, exists, err := r.GetExpectations(controllerKey); err == nil && exists {
 		exp.Add(int64(add), int64(del))
 		// The expectations might've been modified since the update on the previous line.
-		klog.V(4).Infof("Raised expectations %#v", exp)
+		logger.V(4).Info("Raised expectations", "expectations", exp)
 	}
 }
 
 // CreationObserved atomically decrements the `add` expectation count of the given controller.
-func (r *ControllerExpectations) CreationObserved(controllerKey string) {
-	r.LowerExpectations(controllerKey, 1, 0)
+func (r *ControllerExpectations) CreationObserved(logger klog.Logger, controllerKey string) {
+	r.LowerExpectations(logger, controllerKey, 1, 0)
 }
 
 // DeletionObserved atomically decrements the `del` expectation count of the given controller.
-func (r *ControllerExpectations) DeletionObserved(controllerKey string) {
-	r.LowerExpectations(controllerKey, 0, 1)
+func (r *ControllerExpectations) DeletionObserved(logger klog.Logger, controllerKey string) {
+	r.LowerExpectations(logger, controllerKey, 0, 1)
 }
 
 // ControlleeExpectations track controllee creates/deletes.
@@ -285,6 +295,20 @@ func (e *ControlleeExpectations) Fulfilled() bool {
 // GetExpectations returns the add and del expectations of the controllee.
 func (e *ControlleeExpectations) GetExpectations() (int64, int64) {
 	return atomic.LoadInt64(&e.add), atomic.LoadInt64(&e.del)
+}
+
+// MarshalLog makes a thread-safe copy of the values of the expectations that
+// can be used for logging.
+func (e *ControlleeExpectations) MarshalLog() interface{} {
+	return struct {
+		add int64
+		del int64
+		key string
+	}{
+		add: atomic.LoadInt64(&e.add),
+		del: atomic.LoadInt64(&e.del),
+		key: e.key,
+	}
 }
 
 // NewControllerExpectations returns a store for ControllerExpectations.
@@ -335,47 +359,47 @@ func (u *UIDTrackingControllerExpectations) GetUIDs(controllerKey string) sets.S
 }
 
 // ExpectDeletions records expectations for the given deleteKeys, against the given controller.
-func (u *UIDTrackingControllerExpectations) ExpectDeletions(rcKey string, deletedKeys []string) error {
+func (u *UIDTrackingControllerExpectations) ExpectDeletions(logger klog.Logger, rcKey string, deletedKeys []string) error {
 	expectedUIDs := sets.NewString()
 	for _, k := range deletedKeys {
 		expectedUIDs.Insert(k)
 	}
-	klog.V(4).Infof("Controller %v waiting on deletions for: %+v", rcKey, deletedKeys)
+	logger.V(4).Info("Controller waiting on deletions", "controller", rcKey, "keys", deletedKeys)
 	u.uidStoreLock.Lock()
 	defer u.uidStoreLock.Unlock()
 
 	if existing := u.GetUIDs(rcKey); existing != nil && existing.Len() != 0 {
-		klog.Errorf("Clobbering existing delete keys: %+v", existing)
+		logger.Error(nil, "Clobbering existing delete keys", "keys", existing)
 	}
 	if err := u.uidStore.Add(&UIDSet{expectedUIDs, rcKey}); err != nil {
 		return err
 	}
-	return u.ControllerExpectationsInterface.ExpectDeletions(rcKey, expectedUIDs.Len())
+	return u.ControllerExpectationsInterface.ExpectDeletions(logger, rcKey, expectedUIDs.Len())
 }
 
 // DeletionObserved records the given deleteKey as a deletion, for the given rc.
-func (u *UIDTrackingControllerExpectations) DeletionObserved(rcKey, deleteKey string) {
+func (u *UIDTrackingControllerExpectations) DeletionObserved(logger klog.Logger, rcKey, deleteKey string) {
 	u.uidStoreLock.Lock()
 	defer u.uidStoreLock.Unlock()
 
 	uids := u.GetUIDs(rcKey)
 	if uids != nil && uids.Has(deleteKey) {
-		klog.V(4).Infof("Controller %v received delete for pod %v", rcKey, deleteKey)
-		u.ControllerExpectationsInterface.DeletionObserved(rcKey)
+		logger.V(4).Info("Controller received delete for pod", "controller", rcKey, "key", deleteKey)
+		u.ControllerExpectationsInterface.DeletionObserved(logger, rcKey)
 		uids.Delete(deleteKey)
 	}
 }
 
 // DeleteExpectations deletes the UID set and invokes DeleteExpectations on the
 // underlying ControllerExpectationsInterface.
-func (u *UIDTrackingControllerExpectations) DeleteExpectations(rcKey string) {
+func (u *UIDTrackingControllerExpectations) DeleteExpectations(logger klog.Logger, rcKey string) {
 	u.uidStoreLock.Lock()
 	defer u.uidStoreLock.Unlock()
 
-	u.ControllerExpectationsInterface.DeleteExpectations(rcKey)
+	u.ControllerExpectationsInterface.DeleteExpectations(logger, rcKey)
 	if uidExp, exists, err := u.uidStore.GetByKey(rcKey); err == nil && exists {
 		if err := u.uidStore.Delete(uidExp); err != nil {
-			klog.V(2).Infof("Error deleting uid expectations for controller %v: %v", rcKey, err)
+			logger.V(2).Info("Error deleting uid expectations", "controller", rcKey, "err", err)
 		}
 	}
 }
@@ -406,7 +430,7 @@ const (
 // ReplicaSets, as well as increment or decrement them. It is used
 // by the deployment controller to ease testing of actions that it takes.
 type RSControlInterface interface {
-	PatchReplicaSet(namespace, name string, data []byte) error
+	PatchReplicaSet(ctx context.Context, namespace, name string, data []byte) error
 }
 
 // RealRSControl is the default implementation of RSControllerInterface.
@@ -417,8 +441,8 @@ type RealRSControl struct {
 
 var _ RSControlInterface = &RealRSControl{}
 
-func (r RealRSControl) PatchReplicaSet(namespace, name string, data []byte) error {
-	_, err := r.KubeClient.AppsV1().ReplicaSets(namespace).Patch(context.TODO(), name, types.StrategicMergePatchType, data, metav1.PatchOptions{})
+func (r RealRSControl) PatchReplicaSet(ctx context.Context, namespace, name string, data []byte) error {
+	_, err := r.KubeClient.AppsV1().ReplicaSets(namespace).Patch(ctx, name, types.StrategicMergePatchType, data, metav1.PatchOptions{})
 	return err
 }
 
@@ -427,7 +451,7 @@ func (r RealRSControl) PatchReplicaSet(namespace, name string, data []byte) erro
 // ControllerRevisions, as well as increment or decrement them. It is used
 // by the daemonset controller to ease testing of actions that it takes.
 type ControllerRevisionControlInterface interface {
-	PatchControllerRevision(namespace, name string, data []byte) error
+	PatchControllerRevision(ctx context.Context, namespace, name string, data []byte) error
 }
 
 // RealControllerRevisionControl is the default implementation of ControllerRevisionControlInterface.
@@ -437,8 +461,8 @@ type RealControllerRevisionControl struct {
 
 var _ ControllerRevisionControlInterface = &RealControllerRevisionControl{}
 
-func (r RealControllerRevisionControl) PatchControllerRevision(namespace, name string, data []byte) error {
-	_, err := r.KubeClient.AppsV1().ControllerRevisions(namespace).Patch(context.TODO(), name, types.StrategicMergePatchType, data, metav1.PatchOptions{})
+func (r RealControllerRevisionControl) PatchControllerRevision(ctx context.Context, namespace, name string, data []byte) error {
+	_, err := r.KubeClient.AppsV1().ControllerRevisions(namespace).Patch(ctx, name, types.StrategicMergePatchType, data, metav1.PatchOptions{})
 	return err
 }
 
@@ -446,13 +470,13 @@ func (r RealControllerRevisionControl) PatchControllerRevision(namespace, name s
 // created as an interface to allow testing.
 type PodControlInterface interface {
 	// CreatePods creates new pods according to the spec, and sets object as the pod's controller.
-	CreatePods(namespace string, template *v1.PodTemplateSpec, object runtime.Object, controllerRef *metav1.OwnerReference) error
+	CreatePods(ctx context.Context, namespace string, template *v1.PodTemplateSpec, object runtime.Object, controllerRef *metav1.OwnerReference) error
 	// CreatePodsWithGenerateName creates new pods according to the spec, sets object as the pod's controller and sets pod's generateName.
-	CreatePodsWithGenerateName(namespace string, template *v1.PodTemplateSpec, object runtime.Object, controllerRef *metav1.OwnerReference, generateName string) error
+	CreatePodsWithGenerateName(ctx context.Context, namespace string, template *v1.PodTemplateSpec, object runtime.Object, controllerRef *metav1.OwnerReference, generateName string) error
 	// DeletePod deletes the pod identified by podID.
-	DeletePod(namespace string, podID string, object runtime.Object) error
+	DeletePod(ctx context.Context, namespace string, podID string, object runtime.Object) error
 	// PatchPod patches the pod.
-	PatchPod(namespace, name string, data []byte) error
+	PatchPod(ctx context.Context, namespace, name string, data []byte) error
 }
 
 // RealPodControl is the default implementation of PodControlInterface.
@@ -504,20 +528,20 @@ func validateControllerRef(controllerRef *metav1.OwnerReference) error {
 	if len(controllerRef.Kind) == 0 {
 		return fmt.Errorf("controllerRef has empty Kind")
 	}
-	if controllerRef.Controller == nil || *controllerRef.Controller != true {
+	if controllerRef.Controller == nil || !*controllerRef.Controller {
 		return fmt.Errorf("controllerRef.Controller is not set to true")
 	}
-	if controllerRef.BlockOwnerDeletion == nil || *controllerRef.BlockOwnerDeletion != true {
+	if controllerRef.BlockOwnerDeletion == nil || !*controllerRef.BlockOwnerDeletion {
 		return fmt.Errorf("controllerRef.BlockOwnerDeletion is not set")
 	}
 	return nil
 }
 
-func (r RealPodControl) CreatePods(namespace string, template *v1.PodTemplateSpec, controllerObject runtime.Object, controllerRef *metav1.OwnerReference) error {
-	return r.CreatePodsWithGenerateName(namespace, template, controllerObject, controllerRef, "")
+func (r RealPodControl) CreatePods(ctx context.Context, namespace string, template *v1.PodTemplateSpec, controllerObject runtime.Object, controllerRef *metav1.OwnerReference) error {
+	return r.CreatePodsWithGenerateName(ctx, namespace, template, controllerObject, controllerRef, "")
 }
 
-func (r RealPodControl) CreatePodsWithGenerateName(namespace string, template *v1.PodTemplateSpec, controllerObject runtime.Object, controllerRef *metav1.OwnerReference, generateName string) error {
+func (r RealPodControl) CreatePodsWithGenerateName(ctx context.Context, namespace string, template *v1.PodTemplateSpec, controllerObject runtime.Object, controllerRef *metav1.OwnerReference, generateName string) error {
 	if err := validateControllerRef(controllerRef); err != nil {
 		return err
 	}
@@ -528,11 +552,11 @@ func (r RealPodControl) CreatePodsWithGenerateName(namespace string, template *v
 	if len(generateName) > 0 {
 		pod.ObjectMeta.GenerateName = generateName
 	}
-	return r.createPods(namespace, pod, controllerObject)
+	return r.createPods(ctx, namespace, pod, controllerObject)
 }
 
-func (r RealPodControl) PatchPod(namespace, name string, data []byte) error {
-	_, err := r.KubeClient.CoreV1().Pods(namespace).Patch(context.TODO(), name, types.StrategicMergePatchType, data, metav1.PatchOptions{})
+func (r RealPodControl) PatchPod(ctx context.Context, namespace, name string, data []byte) error {
+	_, err := r.KubeClient.CoreV1().Pods(namespace).Patch(ctx, name, types.StrategicMergePatchType, data, metav1.PatchOptions{})
 	return err
 }
 
@@ -561,11 +585,11 @@ func GetPodFromTemplate(template *v1.PodTemplateSpec, parentObject runtime.Objec
 	return pod, nil
 }
 
-func (r RealPodControl) createPods(namespace string, pod *v1.Pod, object runtime.Object) error {
+func (r RealPodControl) createPods(ctx context.Context, namespace string, pod *v1.Pod, object runtime.Object) error {
 	if len(labels.Set(pod.Labels)) == 0 {
 		return fmt.Errorf("unable to create pods, no labels")
 	}
-	newPod, err := r.KubeClient.CoreV1().Pods(namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
+	newPod, err := r.KubeClient.CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
 	if err != nil {
 		// only send an event if the namespace isn't terminating
 		if !apierrors.HasStatusCause(err, v1.NamespaceTerminatingCause) {
@@ -573,26 +597,28 @@ func (r RealPodControl) createPods(namespace string, pod *v1.Pod, object runtime
 		}
 		return err
 	}
+	logger := klog.FromContext(ctx)
 	accessor, err := meta.Accessor(object)
 	if err != nil {
-		klog.Errorf("parentObject does not have ObjectMeta, %v", err)
+		logger.Error(err, "parentObject does not have ObjectMeta")
 		return nil
 	}
-	klog.V(4).Infof("Controller %v created pod %v", accessor.GetName(), newPod.Name)
+	logger.V(4).Info("Controller created pod", "controller", accessor.GetName(), "pod", klog.KObj(newPod))
 	r.Recorder.Eventf(object, v1.EventTypeNormal, SuccessfulCreatePodReason, "Created pod: %v", newPod.Name)
 
 	return nil
 }
 
-func (r RealPodControl) DeletePod(namespace string, podID string, object runtime.Object) error {
+func (r RealPodControl) DeletePod(ctx context.Context, namespace string, podID string, object runtime.Object) error {
 	accessor, err := meta.Accessor(object)
 	if err != nil {
 		return fmt.Errorf("object does not have ObjectMeta, %v", err)
 	}
-	klog.V(2).InfoS("Deleting pod", "controller", accessor.GetName(), "pod", klog.KRef(namespace, podID))
-	if err := r.KubeClient.CoreV1().Pods(namespace).Delete(context.TODO(), podID, metav1.DeleteOptions{}); err != nil {
+	logger := klog.FromContext(ctx)
+	logger.V(2).Info("Deleting pod", "controller", accessor.GetName(), "pod", klog.KRef(namespace, podID))
+	if err := r.KubeClient.CoreV1().Pods(namespace).Delete(ctx, podID, metav1.DeleteOptions{}); err != nil {
 		if apierrors.IsNotFound(err) {
-			klog.V(4).Infof("pod %v/%v has already been deleted.", namespace, podID)
+			logger.V(4).Info("Pod has already been deleted.", "pod", klog.KRef(namespace, podID))
 			return err
 		}
 		r.Recorder.Eventf(object, v1.EventTypeWarning, FailedDeletePodReason, "Error deleting: %v", err)
@@ -616,7 +642,7 @@ type FakePodControl struct {
 
 var _ PodControlInterface = &FakePodControl{}
 
-func (f *FakePodControl) PatchPod(namespace, name string, data []byte) error {
+func (f *FakePodControl) PatchPod(ctx context.Context, namespace, name string, data []byte) error {
 	f.Lock()
 	defer f.Unlock()
 	f.Patches = append(f.Patches, data)
@@ -626,13 +652,18 @@ func (f *FakePodControl) PatchPod(namespace, name string, data []byte) error {
 	return nil
 }
 
-func (f *FakePodControl) CreatePods(namespace string, spec *v1.PodTemplateSpec, object runtime.Object, controllerRef *metav1.OwnerReference) error {
+func (f *FakePodControl) CreatePods(ctx context.Context, namespace string, spec *v1.PodTemplateSpec, object runtime.Object, controllerRef *metav1.OwnerReference) error {
+	return f.CreatePodsWithGenerateName(ctx, namespace, spec, object, controllerRef, "")
+}
+
+func (f *FakePodControl) CreatePodsWithGenerateName(ctx context.Context, namespace string, spec *v1.PodTemplateSpec, object runtime.Object, controllerRef *metav1.OwnerReference, generateNamePrefix string) error {
 	f.Lock()
 	defer f.Unlock()
 	f.CreateCallCount++
 	if f.CreateLimit != 0 && f.CreateCallCount > f.CreateLimit {
 		return fmt.Errorf("not creating pod, limit %d already reached (create call %d)", f.CreateLimit, f.CreateCallCount)
 	}
+	spec.GenerateName = generateNamePrefix
 	f.Templates = append(f.Templates, *spec)
 	f.ControllerRefs = append(f.ControllerRefs, *controllerRef)
 	if f.Err != nil {
@@ -641,22 +672,7 @@ func (f *FakePodControl) CreatePods(namespace string, spec *v1.PodTemplateSpec, 
 	return nil
 }
 
-func (f *FakePodControl) CreatePodsWithGenerateName(namespace string, spec *v1.PodTemplateSpec, object runtime.Object, controllerRef *metav1.OwnerReference, generateNamePrefix string) error {
-	f.Lock()
-	defer f.Unlock()
-	f.CreateCallCount++
-	if f.CreateLimit != 0 && f.CreateCallCount > f.CreateLimit {
-		return fmt.Errorf("not creating pod, limit %d already reached (create call %d)", f.CreateLimit, f.CreateCallCount)
-	}
-	f.Templates = append(f.Templates, *spec)
-	f.ControllerRefs = append(f.ControllerRefs, *controllerRef)
-	if f.Err != nil {
-		return f.Err
-	}
-	return nil
-}
-
-func (f *FakePodControl) DeletePod(namespace string, podID string, object runtime.Object) error {
+func (f *FakePodControl) DeletePod(ctx context.Context, namespace string, podID string, object runtime.Object) error {
 	f.Lock()
 	defer f.Unlock()
 	f.DeletePodName = append(f.DeletePodName, podID)
@@ -707,8 +723,8 @@ func (s ByLogging) Less(i, j int) bool {
 		}
 	}
 	// 5. Pods with containers with higher restart counts < lower restart counts
-	if maxContainerRestarts(s[i]) != maxContainerRestarts(s[j]) {
-		return maxContainerRestarts(s[i]) > maxContainerRestarts(s[j])
+	if res := compareMaxContainerRestarts(s[i], s[j]); res != nil {
+		return *res
 	}
 	// 6. older pods < newer pods < empty timestamp pods
 	if !s[i].CreationTimestamp.Equal(&s[j].CreationTimestamp) {
@@ -750,8 +766,8 @@ func (s ActivePods) Less(i, j int) bool {
 		}
 	}
 	// 5. Pods with containers with higher restart counts < lower restart counts
-	if maxContainerRestarts(s[i]) != maxContainerRestarts(s[j]) {
-		return maxContainerRestarts(s[i]) > maxContainerRestarts(s[j])
+	if res := compareMaxContainerRestarts(s[i], s[j]); res != nil {
+		return *res
 	}
 	// 6. Empty creation time pods < newer pods < older pods
 	if !s[i].CreationTimestamp.Equal(&s[j].CreationTimestamp) {
@@ -765,24 +781,24 @@ func (s ActivePods) Less(i, j int) bool {
 // length.  After sorting, the pods will be ordered as follows, applying each
 // rule in turn until one matches:
 //
-// 1. If only one of the pods is assigned to a node, the pod that is not
-//    assigned comes before the pod that is.
-// 2. If the pods' phases differ, a pending pod comes before a pod whose phase
-//    is unknown, and a pod whose phase is unknown comes before a running pod.
-// 3. If exactly one of the pods is ready, the pod that is not ready comes
-//    before the ready pod.
-// 4. If controller.kubernetes.io/pod-deletion-cost annotation is set, then
-//    the pod with the lower value will come first.
-// 5. If the pods' ranks differ, the pod with greater rank comes before the pod
-//    with lower rank.
-// 6. If both pods are ready but have not been ready for the same amount of
-//    time, the pod that has been ready for a shorter amount of time comes
-//    before the pod that has been ready for longer.
-// 7. If one pod has a container that has restarted more than any container in
-//    the other pod, the pod with the container with more restarts comes
-//    before the other pod.
-// 8. If the pods' creation times differ, the pod that was created more recently
-//    comes before the older pod.
+//  1. If only one of the pods is assigned to a node, the pod that is not
+//     assigned comes before the pod that is.
+//  2. If the pods' phases differ, a pending pod comes before a pod whose phase
+//     is unknown, and a pod whose phase is unknown comes before a running pod.
+//  3. If exactly one of the pods is ready, the pod that is not ready comes
+//     before the ready pod.
+//  4. If controller.kubernetes.io/pod-deletion-cost annotation is set, then
+//     the pod with the lower value will come first.
+//  5. If the pods' ranks differ, the pod with greater rank comes before the pod
+//     with lower rank.
+//  6. If both pods are ready but have not been ready for the same amount of
+//     time, the pod that has been ready for a shorter amount of time comes
+//     before the pod that has been ready for longer.
+//  7. If one pod has a container that has restarted more than any container in
+//     the other pod, the pod with the container with more restarts comes
+//     before the other pod.
+//  8. If the pods' creation times differ, the pod that was created more recently
+//     comes before the older pod.
 //
 // In 6 and 8, times are compared in a logarithmic scale. This allows a level
 // of randomness among equivalent Pods when sorting. If two pods have the same
@@ -833,7 +849,7 @@ func (s ActivePodsWithRanks) Less(i, j int) bool {
 		return !podutil.IsPodReady(s.Pods[i])
 	}
 
-	// 4. higher pod-deletion-cost < lower pod-deletion cost
+	// 4. lower pod-deletion-cost < higher pod-deletion cost
 	if utilfeature.DefaultFeatureGate.Enabled(features.PodDeletionCost) {
 		pi, _ := helper.GetDeletionCostFromPodAnnotations(s.Pods[i].Annotations)
 		pj, _ := helper.GetDeletionCostFromPodAnnotations(s.Pods[j].Annotations)
@@ -872,8 +888,8 @@ func (s ActivePodsWithRanks) Less(i, j int) bool {
 		}
 	}
 	// 7. Pods with containers with higher restart counts < lower restart counts
-	if maxContainerRestarts(s.Pods[i]) != maxContainerRestarts(s.Pods[j]) {
-		return maxContainerRestarts(s.Pods[i]) > maxContainerRestarts(s.Pods[j])
+	if res := compareMaxContainerRestarts(s.Pods[i], s.Pods[j]); res != nil {
+		return *res
 	}
 	// 8. Empty creation time pods < newer pods < older pods
 	if !s.Pods[i].CreationTimestamp.Equal(&s.Pods[j].CreationTimestamp) {
@@ -930,32 +946,98 @@ func podReadyTime(pod *v1.Pod) *metav1.Time {
 	return &metav1.Time{}
 }
 
-func maxContainerRestarts(pod *v1.Pod) int {
-	maxRestarts := 0
+func maxContainerRestarts(pod *v1.Pod) (regularRestarts, sidecarRestarts int) {
 	for _, c := range pod.Status.ContainerStatuses {
-		maxRestarts = integer.IntMax(maxRestarts, int(c.RestartCount))
+		regularRestarts = max(regularRestarts, int(c.RestartCount))
 	}
-	return maxRestarts
+	names := sets.New[string]()
+	for _, c := range pod.Spec.InitContainers {
+		if c.RestartPolicy != nil && *c.RestartPolicy == v1.ContainerRestartPolicyAlways {
+			names.Insert(c.Name)
+		}
+	}
+	for _, c := range pod.Status.InitContainerStatuses {
+		if names.Has(c.Name) {
+			sidecarRestarts = max(sidecarRestarts, int(c.RestartCount))
+		}
+	}
+	return
+}
+
+// We use *bool here to determine equality:
+// true: pi has a higher container restart count.
+// false: pj has a higher container restart count.
+// nil: Both have the same container restart count.
+func compareMaxContainerRestarts(pi *v1.Pod, pj *v1.Pod) *bool {
+	regularRestartsI, sidecarRestartsI := maxContainerRestarts(pi)
+	regularRestartsJ, sidecarRestartsJ := maxContainerRestarts(pj)
+	if regularRestartsI != regularRestartsJ {
+		res := regularRestartsI > regularRestartsJ
+		return &res
+	}
+	// If pods have the same restart count, an attempt is made to compare the restart counts of sidecar containers.
+	if sidecarRestartsI != sidecarRestartsJ {
+		res := sidecarRestartsI > sidecarRestartsJ
+		return &res
+	}
+	return nil
+}
+
+// FilterClaimedPods returns pods that are controlled by the controller and match the selector.
+func FilterClaimedPods(controller metav1.Object, selector labels.Selector, pods []*v1.Pod) []*v1.Pod {
+	var result []*v1.Pod
+	for _, pod := range pods {
+		if !metav1.IsControlledBy(pod, controller) {
+			// It's an orphan or owned by someone else.
+			continue
+		}
+		if selector.Matches(labels.Set(pod.Labels)) {
+			result = append(result, pod)
+		}
+	}
+	return result
 }
 
 // FilterActivePods returns pods that have not terminated.
-func FilterActivePods(pods []*v1.Pod) []*v1.Pod {
+func FilterActivePods(logger klog.Logger, pods []*v1.Pod) []*v1.Pod {
 	var result []*v1.Pod
 	for _, p := range pods {
 		if IsPodActive(p) {
 			result = append(result, p)
-		} else {
-			klog.V(4).Infof("Ignoring inactive pod %v/%v in state %v, deletion time %v",
-				p.Namespace, p.Name, p.Status.Phase, p.DeletionTimestamp)
 		}
 	}
 	return result
+}
+
+func FilterTerminatingPods(pods []*v1.Pod) []*v1.Pod {
+	var result []*v1.Pod
+	for _, p := range pods {
+		if IsPodTerminating(p) {
+			result = append(result, p)
+		}
+	}
+	return result
+}
+
+func CountTerminatingPods(pods []*v1.Pod) int32 {
+	numberOfTerminatingPods := 0
+	for _, p := range pods {
+		if IsPodTerminating(p) {
+			numberOfTerminatingPods += 1
+		}
+	}
+	return int32(numberOfTerminatingPods)
 }
 
 func IsPodActive(p *v1.Pod) bool {
 	return v1.PodSucceeded != p.Status.Phase &&
 		v1.PodFailed != p.Status.Phase &&
 		p.DeletionTimestamp == nil
+}
+
+func IsPodTerminating(p *v1.Pod) bool {
+	return !podutil.IsPodTerminal(p) &&
+		p.DeletionTimestamp != nil
 }
 
 // FilterActiveReplicaSets returns replica sets that have (or at least ought to have) pods.
@@ -977,6 +1059,52 @@ func FilterReplicaSets(RSes []*apps.ReplicaSet, filterFn filterRS) []*apps.Repli
 		}
 	}
 	return filtered
+}
+
+// AddPodNodeNameIndexer adds an indexer for Pod's nodeName to the given PodInformer.
+// This indexer is used to efficiently look up pods by their node name.
+func AddPodNodeNameIndexer(podInformer cache.SharedIndexInformer) error {
+	if _, exists := podInformer.GetIndexer().GetIndexers()[PodNodeNameKeyIndex]; exists {
+		// indexer already exists, do nothing
+		return nil
+	}
+
+	return podInformer.AddIndexers(cache.Indexers{
+		PodNodeNameKeyIndex: func(obj interface{}) ([]string, error) {
+			pod, ok := obj.(*v1.Pod)
+			if !ok {
+				return []string{}, nil
+			}
+			if len(pod.Spec.NodeName) == 0 {
+				return []string{}, nil
+			}
+			return []string{pod.Spec.NodeName}, nil
+		},
+	})
+}
+
+// AddPodControllerUIDIndexer adds an indexer for Pod's controllerRef.UID to the given PodInformer.
+// This indexer is used to efficiently look up pods by their ControllerRef.UID
+func AddPodControllerUIDIndexer(podInformer cache.SharedIndexInformer) error {
+	if _, exists := podInformer.GetIndexer().GetIndexers()[PodControllerUIDIndex]; exists {
+		// indexer already exists, do nothing
+		return nil
+	}
+	return podInformer.AddIndexers(cache.Indexers{
+		PodControllerUIDIndex: func(obj interface{}) ([]string, error) {
+			pod, ok := obj.(*v1.Pod)
+			if !ok {
+				return nil, nil
+			}
+			// Get the ControllerRef of the Pod to check if it's managed by a controller
+			if ref := metav1.GetControllerOf(pod); ref != nil {
+				return []string{string(ref.UID)}, nil
+			}
+			// If the Pod has no controller (i.e., it's orphaned), index it with the OrphanPodIndexKey
+			// This helps identify orphan pods for reconciliation and adoption by controllers
+			return []string{OrphanPodIndexKey}, nil
+		},
+	})
 }
 
 // PodKey returns a key unique to the given pod within a cluster.
@@ -1039,7 +1167,7 @@ func (o ReplicaSetsBySizeNewer) Less(i, j int) bool {
 
 // AddOrUpdateTaintOnNode add taints to the node. If taint was added into node, it'll issue API calls
 // to update nodes; otherwise, no API calls. Return error if any.
-func AddOrUpdateTaintOnNode(c clientset.Interface, nodeName string, taints ...*v1.Taint) error {
+func AddOrUpdateTaintOnNode(ctx context.Context, c clientset.Interface, nodeName string, taints ...*v1.Taint) error {
 	if len(taints) == 0 {
 		return nil
 	}
@@ -1049,12 +1177,12 @@ func AddOrUpdateTaintOnNode(c clientset.Interface, nodeName string, taints ...*v
 		var oldNode *v1.Node
 		// First we try getting node from the API server cache, as it's cheaper. If it fails
 		// we get it from etcd to be sure to have fresh data.
+		option := metav1.GetOptions{}
 		if firstTry {
-			oldNode, err = c.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{ResourceVersion: "0"})
+			option.ResourceVersion = "0"
 			firstTry = false
-		} else {
-			oldNode, err = c.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 		}
+		oldNode, err = c.CoreV1().Nodes().Get(ctx, nodeName, option)
 		if err != nil {
 			return err
 		}
@@ -1074,7 +1202,7 @@ func AddOrUpdateTaintOnNode(c clientset.Interface, nodeName string, taints ...*v
 		if !updated {
 			return nil
 		}
-		return PatchNodeTaints(c, nodeName, oldNode, newNode)
+		return PatchNodeTaints(ctx, c, nodeName, oldNode, newNode)
 	})
 }
 
@@ -1082,7 +1210,7 @@ func AddOrUpdateTaintOnNode(c clientset.Interface, nodeName string, taints ...*v
 // won't fail if target taint doesn't exist or has been removed.
 // If passed a node it'll check if there's anything to be done, if taint is not present it won't issue
 // any API calls.
-func RemoveTaintOffNode(c clientset.Interface, nodeName string, node *v1.Node, taints ...*v1.Taint) error {
+func RemoveTaintOffNode(ctx context.Context, c clientset.Interface, nodeName string, node *v1.Node, taints ...*v1.Taint) error {
 	if len(taints) == 0 {
 		return nil
 	}
@@ -1106,12 +1234,12 @@ func RemoveTaintOffNode(c clientset.Interface, nodeName string, node *v1.Node, t
 		var oldNode *v1.Node
 		// First we try getting node from the API server cache, as it's cheaper. If it fails
 		// we get it from etcd to be sure to have fresh data.
+		option := metav1.GetOptions{}
 		if firstTry {
-			oldNode, err = c.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{ResourceVersion: "0"})
+			option.ResourceVersion = "0"
 			firstTry = false
-		} else {
-			oldNode, err = c.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 		}
+		oldNode, err = c.CoreV1().Nodes().Get(ctx, nodeName, option)
 		if err != nil {
 			return err
 		}
@@ -1131,15 +1259,20 @@ func RemoveTaintOffNode(c clientset.Interface, nodeName string, node *v1.Node, t
 		if !updated {
 			return nil
 		}
-		return PatchNodeTaints(c, nodeName, oldNode, newNode)
+		return PatchNodeTaints(ctx, c, nodeName, oldNode, newNode)
 	})
 }
 
 // PatchNodeTaints patches node's taints.
-func PatchNodeTaints(c clientset.Interface, nodeName string, oldNode *v1.Node, newNode *v1.Node) error {
-	oldData, err := json.Marshal(oldNode)
+func PatchNodeTaints(ctx context.Context, c clientset.Interface, nodeName string, oldNode *v1.Node, newNode *v1.Node) error {
+	// Strip base diff node from RV to ensure that our Patch request will set RV to check for conflicts over .spec.taints.
+	// This is needed because .spec.taints does not specify patchMergeKey and patchStrategy and adding them is no longer an option for compatibility reasons.
+	// Using other Patch strategy works for adding new taints, however will not resolve problem with taint removal.
+	oldNodeNoRV := oldNode.DeepCopy()
+	oldNodeNoRV.ResourceVersion = ""
+	oldDataNoRV, err := json.Marshal(&oldNodeNoRV)
 	if err != nil {
-		return fmt.Errorf("failed to marshal old node %#v for node %q: %v", oldNode, nodeName, err)
+		return fmt.Errorf("failed to marshal old node %#v for node %q: %v", oldNodeNoRV, nodeName, err)
 	}
 
 	newTaints := newNode.Spec.Taints
@@ -1150,12 +1283,12 @@ func PatchNodeTaints(c clientset.Interface, nodeName string, oldNode *v1.Node, n
 		return fmt.Errorf("failed to marshal new node %#v for node %q: %v", newNodeClone, nodeName, err)
 	}
 
-	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, v1.Node{})
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldDataNoRV, newData, v1.Node{})
 	if err != nil {
 		return fmt.Errorf("failed to create patch for node %q: %v", nodeName, err)
 	}
 
-	_, err = c.CoreV1().Nodes().Patch(context.TODO(), nodeName, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
+	_, err = c.CoreV1().Nodes().Patch(ctx, nodeName, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
 	return err
 }
 
@@ -1183,12 +1316,12 @@ func AddOrUpdateLabelsOnNode(kubeClient clientset.Interface, nodeName string, la
 		var node *v1.Node
 		// First we try getting node from the API server cache, as it's cheaper. If it fails
 		// we get it from etcd to be sure to have fresh data.
+		option := metav1.GetOptions{}
 		if firstTry {
-			node, err = kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{ResourceVersion: "0"})
+			option.ResourceVersion = "0"
 			firstTry = false
-		} else {
-			node, err = kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 		}
+		node, err = kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, option)
 		if err != nil {
 			return err
 		}

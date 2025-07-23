@@ -16,7 +16,27 @@ limitations under the License.
 
 package volume
 
-import v1 "k8s.io/api/core/v1"
+import (
+	"fmt"
+
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/component-helpers/scheduling/corev1"
+)
+
+// PersistentVolumeClaimHasClass returns true if given claim has set StorageClassName field.
+func PersistentVolumeClaimHasClass(claim *v1.PersistentVolumeClaim) bool {
+	// Use beta annotation first
+	if _, found := claim.Annotations[v1.BetaStorageClassAnnotation]; found {
+		return true
+	}
+
+	if claim.Spec.StorageClassName != nil {
+		return true
+	}
+
+	return false
+}
 
 // GetPersistentVolumeClaimClass returns StorageClassName. If no storage class was
 // requested, it returns "".
@@ -41,4 +61,24 @@ func GetPersistentVolumeClass(volume *v1.PersistentVolume) string {
 	}
 
 	return volume.Spec.StorageClassName
+}
+
+// CheckNodeAffinity looks at the PV node affinity, and checks if the node has the same corresponding labels
+// This ensures that we don't mount a volume that doesn't belong to this node
+func CheckNodeAffinity(pv *v1.PersistentVolume, nodeLabels map[string]string) error {
+	if pv.Spec.NodeAffinity == nil {
+		return nil
+	}
+
+	if pv.Spec.NodeAffinity.Required != nil {
+		node := &v1.Node{ObjectMeta: metav1.ObjectMeta{Labels: nodeLabels}}
+		terms := pv.Spec.NodeAffinity.Required
+		if matches, err := corev1.MatchNodeSelectorTerms(node, terms); err != nil {
+			return err
+		} else if !matches {
+			return fmt.Errorf("no matching NodeSelectorTerms")
+		}
+	}
+
+	return nil
 }

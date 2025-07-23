@@ -33,10 +33,10 @@ type NodeMounter struct {
 	mount.Interface
 }
 
-func newNodeMounter() Mounter {
+func newNodeMounter() (Mounter, error) {
 	return &NodeMounter{
 		Interface: mount.New(""),
-	}
+	}, nil
 }
 
 func (m *NodeMounter) MakeDir(pathname string) error {
