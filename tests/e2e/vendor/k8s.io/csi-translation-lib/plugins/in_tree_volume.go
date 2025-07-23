@@ -25,6 +25,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	storage "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
 )
 
 // InTreePlugin handles translations between CSI and in-tree sources in a PV
@@ -32,17 +33,17 @@ type InTreePlugin interface {
 
 	// TranslateInTreeStorageClassToCSI takes in-tree volume options
 	// and translates them to a volume options consumable by CSI plugin
-	TranslateInTreeStorageClassToCSI(sc *storage.StorageClass) (*storage.StorageClass, error)
+	TranslateInTreeStorageClassToCSI(logger klog.Logger, sc *storage.StorageClass) (*storage.StorageClass, error)
 
 	// TranslateInTreeInlineVolumeToCSI takes a inline volume and will translate
 	// the in-tree inline volume source to a CSIPersistentVolumeSource
 	// A PV object containing the CSIPersistentVolumeSource in it's spec is returned
 	// podNamespace is only needed for azurefile to fetch secret namespace, no need to be set for other plugins.
-	TranslateInTreeInlineVolumeToCSI(volume *v1.Volume, podNamespace string) (*v1.PersistentVolume, error)
+	TranslateInTreeInlineVolumeToCSI(logger klog.Logger, volume *v1.Volume, podNamespace string) (*v1.PersistentVolume, error)
 
 	// TranslateInTreePVToCSI takes a persistent volume and will translate
 	// the in-tree pv source to a CSI Source. The input persistent volume can be modified
-	TranslateInTreePVToCSI(pv *v1.PersistentVolume) (*v1.PersistentVolume, error)
+	TranslateInTreePVToCSI(logger klog.Logger, pv *v1.PersistentVolume) (*v1.PersistentVolume, error)
 
 	// TranslateCSIPVToInTree takes a PV with a CSI PersistentVolume Source and will translate
 	// it to a in-tree Persistent Volume Source for the in-tree volume
@@ -215,12 +216,12 @@ func translateTopologyFromInTreeToCSI(pv *v1.PersistentVolume, csiTopologyKey st
 // getTopologyLabel checks if the kubernetes topology label used in this
 // PV is GA and return the zone/region label used.
 // The version checking follows the following orders
-// 1. Check NodeAffinity
-//   1.1 Check if zoneGA exists, if yes return GA labels
-//   1.2 Check if zoneBeta exists, if yes return Beta labels
-// 2. Check PV labels
-//   2.1 Check if zoneGA exists, if yes return GA labels
-//   2.2 Check if zoneBeta exists, if yes return Beta labels
+//  1. Check NodeAffinity
+//     1.1 Check if zoneGA exists, if yes return GA labels
+//     1.2 Check if zoneBeta exists, if yes return Beta labels
+//  2. Check PV labels
+//     2.1 Check if zoneGA exists, if yes return GA labels
+//     2.2 Check if zoneBeta exists, if yes return Beta labels
 func getTopologyLabel(pv *v1.PersistentVolume) (zoneLabel string, regionLabel string) {
 
 	if zoneGA := TopologyKeyExist(v1.LabelTopologyZone, pv.Spec.NodeAffinity); zoneGA {

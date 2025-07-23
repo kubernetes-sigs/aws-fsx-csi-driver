@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 /*
@@ -26,6 +27,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/opencontainers/selinux/go-selinux"
 	"golang.org/x/sys/unix"
 	"k8s.io/klog/v2"
 	"k8s.io/mount-utils"
@@ -64,7 +66,7 @@ func (hu *HostUtil) PathIsDevice(pathname string) (bool, error) {
 	return isDevice, err
 }
 
-// ExclusiveOpenFailsOnDevice is shared with NsEnterMounter
+// ExclusiveOpenFailsOnDevice checks if block device in use by calling Open with O_EXCL flag.
 func ExclusiveOpenFailsOnDevice(pathname string) (bool, error) {
 	var isDevice bool
 	finfo, err := os.Stat(pathname)
@@ -107,7 +109,7 @@ func (hu *HostUtil) GetDeviceNameFromMount(mounter mount.Interface, mountPath, p
 	return getDeviceNameFromMount(mounter, mountPath, pluginMountDir)
 }
 
-// getDeviceNameFromMountLinux find the device name from /proc/mounts in which
+// getDeviceNameFromMount find the device name from /proc/self/mountinfo in which
 // the mount path reference should match the given plugin mount directory. In case no mount path reference
 // matches, returns the volume name taken from its given mountPath
 func getDeviceNameFromMount(mounter mount.Interface, mountPath, pluginMountDir string) (string, error) {
@@ -152,8 +154,6 @@ func (hu *HostUtil) PathExists(pathname string) (bool, error) {
 }
 
 // EvalHostSymlinks returns the path name after evaluating symlinks.
-// TODO once the nsenter implementation is removed, this method can be removed
-// from the interface and filepath.EvalSymlinks used directly
 func (hu *HostUtil) EvalHostSymlinks(pathname string) (string, error) {
 	return filepath.EvalSymlinks(pathname)
 }
@@ -229,8 +229,16 @@ func DoMakeRShared(path string, mountInfoFilename string) error {
 	return nil
 }
 
+// selinux.SELinuxEnabled implementation for unit tests
+type seLinuxEnabledFunc func() bool
+
 // GetSELinux is common implementation of GetSELinuxSupport on Linux.
-func GetSELinux(path string, mountInfoFilename string) (bool, error) {
+func GetSELinux(path string, mountInfoFilename string, selinuxEnabled seLinuxEnabledFunc) (bool, error) {
+	// Skip /proc/mounts parsing if SELinux is disabled.
+	if !selinuxEnabled() {
+		return false, nil
+	}
+
 	info, err := findMountInfo(path, mountInfoFilename)
 	if err != nil {
 		return false, err
@@ -253,7 +261,7 @@ func GetSELinux(path string, mountInfoFilename string) (bool, error) {
 // GetSELinuxSupport returns true if given path is on a mount that supports
 // SELinux.
 func (hu *HostUtil) GetSELinuxSupport(pathname string) (bool, error) {
-	return GetSELinux(pathname, procMountInfoPath)
+	return GetSELinux(pathname, procMountInfoPath, selinux.GetEnabled)
 }
 
 // GetOwner returns the integer ID for the user and group of the given path
@@ -270,8 +278,8 @@ func (hu *HostUtil) GetMode(pathname string) (os.FileMode, error) {
 	return GetModeLinux(pathname)
 }
 
-// GetOwnerLinux is shared between Linux and NsEnterMounter
-// pathname must already be evaluated for symlinks
+// pathname must already be evaluated for symlinks.
+// GetOwnerLinux returns the integer ID for the user and group of the given path.
 func GetOwnerLinux(pathname string) (int64, int64, error) {
 	info, err := os.Stat(pathname)
 	if err != nil {
@@ -281,11 +289,43 @@ func GetOwnerLinux(pathname string) (int64, int64, error) {
 	return int64(stat.Uid), int64(stat.Gid), nil
 }
 
-// GetModeLinux is shared between Linux and NsEnterMounter
+// GetModeLinux returns permissions of the pathname.
 func GetModeLinux(pathname string) (os.FileMode, error) {
 	info, err := os.Stat(pathname)
 	if err != nil {
 		return 0, err
 	}
 	return info.Mode(), nil
+}
+
+// GetSELinuxMountContext returns value of -o context=XYZ mount option on
+// given mount point.
+func (hu *HostUtil) GetSELinuxMountContext(pathname string) (string, error) {
+	return getSELinuxMountContext(pathname, procMountInfoPath, selinux.GetEnabled)
+}
+
+// getSELinux is common implementation of GetSELinuxSupport on Linux.
+// Using an extra function for unit tests.
+func getSELinuxMountContext(path string, mountInfoFilename string, selinuxEnabled seLinuxEnabledFunc) (string, error) {
+	// Skip /proc/mounts parsing if SELinux is disabled.
+	if !selinuxEnabled() {
+		return "", nil
+	}
+
+	info, err := findMountInfo(path, mountInfoFilename)
+	if err != nil {
+		return "", err
+	}
+
+	for _, opt := range info.SuperOptions {
+		if !strings.HasPrefix(opt, "context=") {
+			continue
+		}
+		// Remove context=
+		context := strings.TrimPrefix(opt, "context=")
+		// Remove double quotes
+		context = strings.Trim(context, "\"")
+		return context, nil
+	}
+	return "", nil
 }

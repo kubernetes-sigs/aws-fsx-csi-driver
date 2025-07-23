@@ -20,14 +20,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/fsx"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/fsx"
+	"github.com/aws/aws-sdk-go-v2/service/fsx/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 )
@@ -53,6 +53,9 @@ const (
 	VolumeNameTagKey = "CSIVolumeName"
 )
 
+// Set during build time via -ldflags
+var driverVersion string
+
 var (
 	// ErrMultiDisks is an error that is returned when multiple
 	// disks are found with the same volume name.
@@ -69,17 +72,17 @@ var (
 // FileSystem represents a FSx for Lustre filesystem
 type FileSystem struct {
 	FileSystemId             string
-	CapacityGiB              int64
+	CapacityGiB              int32
 	DnsName                  string
 	MountName                string
 	StorageType              string
 	DeploymentType           string
-	PerUnitStorageThroughput int64
+	PerUnitStorageThroughput int32
 }
 
 // FileSystemOptions represents the options to create FSx for Lustre filesystem
 type FileSystemOptions struct {
-	CapacityGiB                   int64
+	CapacityGiB                   int32
 	SubnetId                      string
 	SecurityGroupIds              []string
 	AutoImportPolicy              string
@@ -87,51 +90,60 @@ type FileSystemOptions struct {
 	S3ExportPath                  string
 	DeploymentType                string
 	KmsKeyId                      string
-	PerUnitStorageThroughput      int64
+	PerUnitStorageThroughput      int32
 	StorageType                   string
 	DriveCacheType                string
 	DailyAutomaticBackupStartTime string
-	AutomaticBackupRetentionDays  int64
+	AutomaticBackupRetentionDays  int32
 	CopyTagsToBackups             bool
 	DataCompressionType           string
 	WeeklyMaintenanceStartTime    string
 	FileSystemTypeVersion         string
 	ExtraTags                     []string
+	EfaEnabled                    bool
+	MetadataConfigurationMode     string
+	MetadataIops                  int32
 }
 
 // FSx abstracts FSx client to facilitate its mocking.
-// See https://docs.aws.amazon.com/sdk-for-go/api/service/fsx/ for details
 type FSx interface {
-	CreateFileSystemWithContext(aws.Context, *fsx.CreateFileSystemInput, ...request.Option) (*fsx.CreateFileSystemOutput, error)
-	UpdateFileSystemWithContext(aws.Context, *fsx.UpdateFileSystemInput, ...request.Option) (*fsx.UpdateFileSystemOutput, error)
-	DeleteFileSystemWithContext(aws.Context, *fsx.DeleteFileSystemInput, ...request.Option) (*fsx.DeleteFileSystemOutput, error)
-	DescribeFileSystemsWithContext(aws.Context, *fsx.DescribeFileSystemsInput, ...request.Option) (*fsx.DescribeFileSystemsOutput, error)
+	CreateFileSystem(context.Context, *fsx.CreateFileSystemInput, ...func(*fsx.Options)) (*fsx.CreateFileSystemOutput, error)
+	UpdateFileSystem(context.Context, *fsx.UpdateFileSystemInput, ...func(*fsx.Options)) (*fsx.UpdateFileSystemOutput, error)
+	DeleteFileSystem(context.Context, *fsx.DeleteFileSystemInput, ...func(*fsx.Options)) (*fsx.DeleteFileSystemOutput, error)
+	DescribeFileSystems(context.Context, *fsx.DescribeFileSystemsInput, ...func(*fsx.Options)) (*fsx.DescribeFileSystemsOutput, error)
 }
 
 type Cloud interface {
 	CreateFileSystem(ctx context.Context, volumeName string, fileSystemOptions *FileSystemOptions) (fs *FileSystem, err error)
-	ResizeFileSystem(ctx context.Context, fileSystemId string, newSizeGiB int64) (int64, error)
+	ResizeFileSystem(ctx context.Context, fileSystemId string, newSizeGiB int32) (int32, error)
 	DeleteFileSystem(ctx context.Context, fileSystemId string) (err error)
 	DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error)
 	WaitForFileSystemAvailable(ctx context.Context, fileSystemId string) error
-	WaitForFileSystemResize(ctx context.Context, fileSystemId string, resizeGiB int64) error
+	WaitForFileSystemResize(ctx context.Context, fileSystemId string, resizeGiB int32) error
 }
 
 type cloud struct {
-	fsx FSx
+	region string
+	fsx    FSx
 }
 
 // NewCloud returns a new instance of AWS cloud
-// It panics if session is invalid
-func NewCloud(region string) Cloud {
-	awsConfig := &aws.Config{
-		Region:                        aws.String(region),
-		CredentialsChainVerboseErrors: aws.Bool(true),
+// It panics if config is invalid
+func NewCloud(region string) (Cloud, error) {
+	os.Setenv("AWS_EXECUTION_ENV", "aws-fsx-csi-driver-"+driverVersion)
+	awsConfig, err := config.LoadDefaultConfig(context.Background())
+	if err != nil {
+		panic(err)
 	}
+	awsConfig.Region = region
+	// Set RetryMaxAttempts to a high value. It will be "overwritten" if context deadline comes sooner.
+	awsConfig.RetryMaxAttempts = 8
 
+	svc := fsx.NewFromConfig(awsConfig)
 	return &cloud{
-		fsx: fsx.New(session.Must(session.NewSession(awsConfig))),
-	}
+		region: region,
+		fsx:    svc,
+	}, nil
 }
 
 func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSystemOptions *FileSystemOptions) (fs *FileSystem, err error) {
@@ -139,52 +151,64 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		return nil, fmt.Errorf("SubnetId is required")
 	}
 
-	lustreConfiguration := &fsx.CreateFileSystemLustreConfiguration{}
+	lustreConfiguration := &types.CreateFileSystemLustreConfiguration{}
 
 	if fileSystemOptions.AutoImportPolicy != "" {
-		lustreConfiguration.SetAutoImportPolicy(fileSystemOptions.AutoImportPolicy)
+		lustreConfiguration.AutoImportPolicy = types.AutoImportPolicyType(fileSystemOptions.AutoImportPolicy)
 	}
 
 	if fileSystemOptions.S3ImportPath != "" {
-		lustreConfiguration.SetImportPath(fileSystemOptions.S3ImportPath)
+		lustreConfiguration.ImportPath = aws.String(fileSystemOptions.S3ImportPath)
 	}
 
 	if fileSystemOptions.S3ExportPath != "" {
-		lustreConfiguration.SetExportPath(fileSystemOptions.S3ExportPath)
+		lustreConfiguration.ExportPath = aws.String(fileSystemOptions.S3ExportPath)
 	}
 
 	if fileSystemOptions.DeploymentType != "" {
-		lustreConfiguration.SetDeploymentType(fileSystemOptions.DeploymentType)
+		lustreConfiguration.DeploymentType = types.LustreDeploymentType(fileSystemOptions.DeploymentType)
 	}
 
 	if fileSystemOptions.DriveCacheType != "" {
-		lustreConfiguration.SetDriveCacheType(fileSystemOptions.DriveCacheType)
+		lustreConfiguration.DriveCacheType = types.DriveCacheType(fileSystemOptions.DriveCacheType)
 	}
 
 	if fileSystemOptions.PerUnitStorageThroughput != 0 {
-		lustreConfiguration.SetPerUnitStorageThroughput(fileSystemOptions.PerUnitStorageThroughput)
+		lustreConfiguration.PerUnitStorageThroughput = aws.Int32(fileSystemOptions.PerUnitStorageThroughput)
 	}
 
 	if fileSystemOptions.AutomaticBackupRetentionDays != 0 {
-		lustreConfiguration.SetAutomaticBackupRetentionDays(fileSystemOptions.AutomaticBackupRetentionDays)
+		lustreConfiguration.AutomaticBackupRetentionDays = aws.Int32(fileSystemOptions.AutomaticBackupRetentionDays)
 		if fileSystemOptions.DailyAutomaticBackupStartTime != "" {
-			lustreConfiguration.SetDailyAutomaticBackupStartTime(fileSystemOptions.DailyAutomaticBackupStartTime)
+			lustreConfiguration.DailyAutomaticBackupStartTime = aws.String(fileSystemOptions.DailyAutomaticBackupStartTime)
 		}
 	}
 
 	if fileSystemOptions.CopyTagsToBackups {
-		lustreConfiguration.SetCopyTagsToBackups(true)
+		lustreConfiguration.CopyTagsToBackups = aws.Bool(true)
 	}
 
 	if fileSystemOptions.DataCompressionType != "" {
-		lustreConfiguration.SetDataCompressionType(fileSystemOptions.DataCompressionType)
+		lustreConfiguration.DataCompressionType = types.DataCompressionType(fileSystemOptions.DataCompressionType)
 	}
 
 	if fileSystemOptions.WeeklyMaintenanceStartTime != "" {
-		lustreConfiguration.SetWeeklyMaintenanceStartTime(fileSystemOptions.WeeklyMaintenanceStartTime)
+		lustreConfiguration.WeeklyMaintenanceStartTime = aws.String(fileSystemOptions.WeeklyMaintenanceStartTime)
 	}
 
-	var tags = []*fsx.Tag{
+	if fileSystemOptions.EfaEnabled {
+		lustreConfiguration.EfaEnabled = aws.Bool(true)
+	}
+
+	if fileSystemOptions.MetadataConfigurationMode != "" {
+		metadataConfiguration := &types.CreateFileSystemLustreMetadataConfiguration{}
+		metadataConfiguration.Mode = types.MetadataConfigurationMode(fileSystemOptions.MetadataConfigurationMode)
+		if fileSystemOptions.MetadataIops != 0 {
+			metadataConfiguration.Iops = aws.Int32(fileSystemOptions.MetadataIops)
+		}
+		lustreConfiguration.MetadataConfiguration = metadataConfiguration
+	}
+	var tags = []types.Tag{
 		{
 			Key:   aws.String(VolumeNameTagKey),
 			Value: aws.String(volumeName),
@@ -196,7 +220,7 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		tagKey := extraTagSplit[0]
 		tagValue := extraTagSplit[1]
 
-		tags = append(tags, &fsx.Tag{
+		tags = append(tags, types.Tag{
 			Key:   aws.String(tagKey),
 			Value: aws.String(tagValue),
 		})
@@ -204,11 +228,11 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 
 	input := &fsx.CreateFileSystemInput{
 		ClientRequestToken:  aws.String(volumeName),
-		FileSystemType:      aws.String("LUSTRE"),
+		FileSystemType:      "LUSTRE",
 		LustreConfiguration: lustreConfiguration,
-		StorageCapacity:     aws.Int64(fileSystemOptions.CapacityGiB),
-		SubnetIds:           []*string{aws.String(fileSystemOptions.SubnetId)},
-		SecurityGroupIds:    aws.StringSlice(fileSystemOptions.SecurityGroupIds),
+		StorageCapacity:     aws.Int32(fileSystemOptions.CapacityGiB),
+		SubnetIds:           []string{fileSystemOptions.SubnetId},
+		SecurityGroupIds:    fileSystemOptions.SecurityGroupIds,
 		Tags:                tags,
 	}
 
@@ -216,17 +240,14 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		input.FileSystemTypeVersion = aws.String(fileSystemOptions.FileSystemTypeVersion)
 	}
 	if fileSystemOptions.StorageType != "" {
-		input.StorageType = aws.String(fileSystemOptions.StorageType)
+		input.StorageType = types.StorageType(fileSystemOptions.StorageType)
 	}
 	if fileSystemOptions.KmsKeyId != "" {
 		input.KmsKeyId = aws.String(fileSystemOptions.KmsKeyId)
 	}
 
-	output, err := c.fsx.CreateFileSystemWithContext(ctx, input)
+	output, err := c.fsx.CreateFileSystem(ctx, input)
 	if err != nil {
-		if isIncompatibleParameter(err) {
-			return nil, ErrFsExistsDiffSize
-		}
 		return nil, fmt.Errorf("CreateFileSystem failed: %v", err)
 	}
 
@@ -235,7 +256,7 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		mountName = *output.FileSystem.LustreConfiguration.MountName
 	}
 
-	perUnitStorageThroughput := int64(0)
+	perUnitStorageThroughput := int32(0)
 	if output.FileSystem.LustreConfiguration.PerUnitStorageThroughput != nil {
 		perUnitStorageThroughput = *output.FileSystem.LustreConfiguration.PerUnitStorageThroughput
 	}
@@ -245,14 +266,14 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		CapacityGiB:              *output.FileSystem.StorageCapacity,
 		DnsName:                  *output.FileSystem.DNSName,
 		MountName:                mountName,
-		StorageType:              *output.FileSystem.StorageType,
-		DeploymentType:           *output.FileSystem.LustreConfiguration.DeploymentType,
+		StorageType:              string(output.FileSystem.StorageType),
+		DeploymentType:           string(output.FileSystem.LustreConfiguration.DeploymentType),
 		PerUnitStorageThroughput: perUnitStorageThroughput,
 	}, nil
 }
 
 // ResizeFileSystem makes a request to the FSx API to update the storage capacity of the filesystem.
-func (c *cloud) ResizeFileSystem(ctx context.Context, fileSystemId string, newSizeGiB int64) (int64, error) {
+func (c *cloud) ResizeFileSystem(ctx context.Context, fileSystemId string, newSizeGiB int32) (int32, error) {
 	originalFs, err := c.getFileSystem(ctx, fileSystemId)
 	if err != nil {
 		return 0, fmt.Errorf("DescribeFileSystems failed: %v", err)
@@ -260,10 +281,10 @@ func (c *cloud) ResizeFileSystem(ctx context.Context, fileSystemId string, newSi
 
 	input := &fsx.UpdateFileSystemInput{
 		FileSystemId:    aws.String(fileSystemId),
-		StorageCapacity: aws.Int64(newSizeGiB),
+		StorageCapacity: aws.Int32(newSizeGiB),
 	}
 
-	_, err = c.fsx.UpdateFileSystemWithContext(ctx, input)
+	_, err = c.fsx.UpdateFileSystem(ctx, input)
 	if err != nil {
 		if !isBadRequestUpdateInProgress(err) {
 			return *originalFs.StorageCapacity, fmt.Errorf("UpdateFileSystem failed: %v", err)
@@ -285,7 +306,7 @@ func (c *cloud) DeleteFileSystem(ctx context.Context, fileSystemId string) (err 
 	input := &fsx.DeleteFileSystemInput{
 		FileSystemId: aws.String(fileSystemId),
 	}
-	if _, err = c.fsx.DeleteFileSystemWithContext(ctx, input); err != nil {
+	if _, err = c.fsx.DeleteFileSystem(ctx, input); err != nil {
 		if isFileSystemNotFound(err) {
 			return ErrNotFound
 		}
@@ -305,7 +326,7 @@ func (c *cloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (*F
 		mountName = *fs.LustreConfiguration.MountName
 	}
 
-	perUnitStorageThroughput := int64(0)
+	perUnitStorageThroughput := int32(0)
 	if fs.LustreConfiguration.PerUnitStorageThroughput != nil {
 		perUnitStorageThroughput = *fs.LustreConfiguration.PerUnitStorageThroughput
 	}
@@ -315,8 +336,8 @@ func (c *cloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (*F
 		CapacityGiB:              *fs.StorageCapacity,
 		DnsName:                  *fs.DNSName,
 		MountName:                mountName,
-		StorageType:              *fs.StorageType,
-		DeploymentType:           *fs.LustreConfiguration.DeploymentType,
+		StorageType:              string(fs.StorageType),
+		DeploymentType:           string(fs.LustreConfiguration.DeploymentType),
 		PerUnitStorageThroughput: perUnitStorageThroughput,
 	}, nil
 }
@@ -327,14 +348,14 @@ func (c *cloud) WaitForFileSystemAvailable(ctx context.Context, fileSystemId str
 		if err != nil {
 			return true, err
 		}
-		klog.V(2).Infof("WaitForFileSystemAvailable filesystem %q status is: %q", fileSystemId, *fs.Lifecycle)
-		switch *fs.Lifecycle {
+		klog.V(2).InfoS("WaitForFileSystemAvailable", "filesystem", fileSystemId, "status", string(fs.Lifecycle))
+		switch string(fs.Lifecycle) {
 		case "AVAILABLE":
 			return true, nil
 		case "CREATING":
 			return false, nil
 		default:
-			return true, fmt.Errorf("unexpected state for filesystem %s: %q", fileSystemId, *fs.Lifecycle)
+			return true, fmt.Errorf("unexpected state for filesystem %s: %q", fileSystemId, string(fs.Lifecycle))
 		}
 	})
 
@@ -343,15 +364,15 @@ func (c *cloud) WaitForFileSystemAvailable(ctx context.Context, fileSystemId str
 
 // WaitForFileSystemResize polls the FSx API for status of the update operation with the given target storage
 // capacity. The polling terminates when the update operation reaches a completed, failed, or unknown state.
-func (c *cloud) WaitForFileSystemResize(ctx context.Context, fileSystemId string, resizeGiB int64) error {
+func (c *cloud) WaitForFileSystemResize(ctx context.Context, fileSystemId string, resizeGiB int32) error {
 	err := wait.PollImmediate(PollCheckInterval, PollCheckTimeout, func() (done bool, err error) {
 		updateAction, err := c.getUpdateResizeAdministrativeAction(ctx, fileSystemId, resizeGiB)
 		if err != nil {
 			return true, err
 		}
 
-		klog.V(2).Infof("WaitForFileSystemResize filesystem %q update status is: %q", fileSystemId, *updateAction.Status)
-		switch *updateAction.Status {
+		klog.V(2).InfoS("WaitForFileSystemResize", "filesystem", fileSystemId, "update status", string(updateAction.Status))
+		switch string(updateAction.Status) {
 		case "PENDING", "IN_PROGRESS":
 			// The resizing workflow has not completed
 			return false, nil
@@ -367,12 +388,12 @@ func (c *cloud) WaitForFileSystemResize(ctx context.Context, fileSystemId string
 	return err
 }
 
-func (c *cloud) getFileSystem(ctx context.Context, fileSystemId string) (*fsx.FileSystem, error) {
+func (c *cloud) getFileSystem(ctx context.Context, fileSystemId string) (*types.FileSystem, error) {
 	input := &fsx.DescribeFileSystemsInput{
-		FileSystemIds: []*string{aws.String(fileSystemId)},
+		FileSystemIds: []string{fileSystemId},
 	}
 
-	output, err := c.fsx.DescribeFileSystemsWithContext(ctx, input)
+	output, err := c.fsx.DescribeFileSystems(ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -385,12 +406,12 @@ func (c *cloud) getFileSystem(ctx context.Context, fileSystemId string) (*fsx.Fi
 		return nil, ErrNotFound
 	}
 
-	return output.FileSystems[0], nil
+	return &(output.FileSystems[0]), nil
 }
 
 // getUpdateResizeAdministrativeAction retrieves the AdministrativeAction associated with a file system update with the
 // given target storage capacity, if one exists.
-func (c *cloud) getUpdateResizeAdministrativeAction(ctx context.Context, fileSystemId string, resizeGiB int64) (*fsx.AdministrativeAction, error) {
+func (c *cloud) getUpdateResizeAdministrativeAction(ctx context.Context, fileSystemId string, resizeGiB int32) (*types.AdministrativeAction, error) {
 	fs, err := c.getFileSystem(ctx, fileSystemId)
 	if err != nil {
 		return nil, fmt.Errorf("DescribeFileSystems failed: %v", err)
@@ -403,10 +424,10 @@ func (c *cloud) getUpdateResizeAdministrativeAction(ctx context.Context, fileSys
 	// AdministrativeAction items are ordered by newest to oldest start time, so use the first satisfactory target
 	// storage capacity match
 	for _, action := range fs.AdministrativeActions {
-		if *action.AdministrativeActionType == "FILE_SYSTEM_UPDATE" &&
+		if action.AdministrativeActionType == "FILE_SYSTEM_UPDATE" &&
 			action.TargetFileSystemValues.StorageCapacity != nil &&
 			*action.TargetFileSystemValues.StorageCapacity == resizeGiB {
-			return action, nil
+			return &action, nil
 		}
 	}
 
@@ -414,31 +435,13 @@ func (c *cloud) getUpdateResizeAdministrativeAction(ctx context.Context, fileSys
 }
 
 func isFileSystemNotFound(err error) bool {
-	if awsErr, ok := err.(awserr.Error); ok {
-		if awsErr.Code() == fsx.ErrCodeFileSystemNotFound {
-			return true
-		}
-	}
-	return false
-}
-
-func isIncompatibleParameter(err error) bool {
-	if awsErr, ok := err.(awserr.Error); ok {
-		if awsErr.Code() == fsx.ErrCodeIncompatibleParameterError {
-			return true
-		}
-	}
-	return false
+	var notFound *types.FileSystemNotFound
+	return errors.As(err, &notFound)
 }
 
 // isBadRequestUpdateInProgress identifies an error returned from the FSx API as a BadRequest with an "update already
 // in progress" message.
 func isBadRequestUpdateInProgress(err error) bool {
-	if awsErr, ok := err.(awserr.Error); ok {
-		if awsErr.Code() == fsx.ErrCodeBadRequest &&
-			awsErr.Message() == "Unable to perform the storage capacity update. There is an update already in progress." {
-			return true
-		}
-	}
-	return false
+	var badRequest *types.BadRequest
+	return errors.As(err, &badRequest) && strings.Contains(err.Error(), "Unable to perform the storage capacity update. There is an update already in progress.")
 }

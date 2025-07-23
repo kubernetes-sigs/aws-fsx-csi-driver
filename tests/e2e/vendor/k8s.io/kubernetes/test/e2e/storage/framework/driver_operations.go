@@ -17,30 +17,33 @@ limitations under the License.
 package framework
 
 import (
+	"context"
 	"fmt"
 
 	storagev1 "k8s.io/api/storage/v1"
+	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/kubernetes/pkg/volume/util"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
-// GetDriverNameWithFeatureTags returns driver name with feature tags
-// For example)
-//  - [Driver: nfs]
-//  - [Driver: rbd][Feature:Volumes]
-func GetDriverNameWithFeatureTags(driver TestDriver) string {
+// GetDriverNameWithFeatureTags returns parameters that can be passed to framework.Context.
+// For example:
+//   - [Driver: nfs]
+//   - [Driver: rbd], feature.Volumes
+func GetDriverNameWithFeatureTags(driver TestDriver) []interface{} {
 	dInfo := driver.GetDriverInfo()
 
-	return fmt.Sprintf("[Driver: %s]%s", dInfo.Name, dInfo.FeatureTag)
+	return append([]interface{}{fmt.Sprintf("[Driver: %s]", dInfo.Name)}, dInfo.TestTags...)
 }
 
 // CreateVolume creates volume for test unless dynamicPV or CSI ephemeral inline volume test
-func CreateVolume(driver TestDriver, config *PerTestConfig, volType TestVolType) TestVolume {
+func CreateVolume(ctx context.Context, driver TestDriver, config *PerTestConfig, volType TestVolType) TestVolume {
 	switch volType {
 	case InlineVolume, PreprovisionedPV:
 		if pDriver, ok := driver.(PreprovisionedVolumeTestDriver); ok {
-			return pDriver.CreateVolume(config, volType)
+			return pDriver.CreateVolume(ctx, config, volType)
 		}
 	case CSIInlineVolume, GenericEphemeralVolume, DynamicPV:
 		// No need to create volume
@@ -57,6 +60,11 @@ func CopyStorageClass(sc *storagev1.StorageClass, ns string, suffix string) *sto
 	copy := sc.DeepCopy()
 	copy.ObjectMeta.Name = names.SimpleNameGenerator.GenerateName(ns + "-" + suffix)
 	copy.ResourceVersion = ""
+
+	// Remove the default annotation from the storage class if they exists.
+	// Multiple storage classes with this annotation will result in failure.
+	delete(copy.Annotations, util.BetaIsDefaultStorageClassAnnotation)
+	delete(copy.Annotations, util.IsDefaultStorageClassAnnotation)
 	return copy
 }
 
@@ -84,4 +92,14 @@ func GetStorageClass(
 		Parameters:        parameters,
 		VolumeBindingMode: bindingMode,
 	}
+}
+
+// CopyVolumeAttributesClass constructs a new VolumeAttributesClass instance
+// with a unique name that is based on namespace + suffix
+// using the VolumeAttributesClass passed in as a parameter
+func CopyVolumeAttributesClass(vac *storagev1beta1.VolumeAttributesClass, ns string, suffix string) *storagev1beta1.VolumeAttributesClass {
+	copy := vac.DeepCopy()
+	copy.ObjectMeta.Name = names.SimpleNameGenerator.GenerateName(ns + "-" + suffix)
+	copy.ResourceVersion = ""
+	return copy
 }
