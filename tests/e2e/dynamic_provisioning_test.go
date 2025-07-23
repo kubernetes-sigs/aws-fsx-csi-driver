@@ -62,7 +62,7 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning", func() {
 						Parameters: map[string]string{
 							"subnetId":         		subnetId,
 							"securityGroupIds": 		strings.Join(securityGroupIds, ","),
-							"fileSystemTypeVersion": 	"2.15,"
+							"fileSystemTypeVersion": 	"2.15",
 						},
 						ClaimSize: "3600Gi",
 						VolumeMount: testsuites.VolumeMountDetails{
@@ -90,7 +90,7 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning", func() {
 						Parameters: map[string]string{
 							"subnetId":         		subnetId,
 							"securityGroupIds": 		strings.Join(securityGroupIds, ","),
-							"fileSystemTypeVersion": 	"2.15,"
+							"fileSystemTypeVersion": 	"2.15",
 						},
 						MountOptions: []string{"flock"},
 						ClaimSize:    "1200Gi",
