@@ -18,13 +18,12 @@ import (
 	"context"
 	"fmt"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
-	"k8s.io/kubernetes/test/e2e/storage/utils"
 	fsx "sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 	fsxcsidriver "sigs.k8s.io/aws-fsx-csi-driver/pkg/driver"
 )
@@ -35,8 +34,7 @@ type fsxVolume struct {
 	dnsName      string
 }
 
-func (v *fsxVolume) DeleteVolume() {
-	ctx := context.Background()
+func (v *fsxVolume) DeleteVolume(ctx context.Context) {
 	err := v.c.DeleteFileSystem(ctx, v.fileSystemId)
 	if err != nil {
 		Fail(fmt.Sprintf("failed to delete filesystem %s", err))
@@ -72,21 +70,15 @@ func (e *fsxDriver) GetDriverInfo() *storageframework.DriverInfo {
 
 func (e *fsxDriver) SkipUnsupportedTest(storageframework.TestPattern) {}
 
-func (e *fsxDriver) PrepareTest(f *framework.Framework) (*storageframework.PerTestConfig, func()) {
-	By("PrepareTest")
-	cancelPodLogs := utils.StartPodLogs(f, f.Namespace)
-
+func (e *fsxDriver) PrepareTest(ctx context.Context, f *framework.Framework) *storageframework.PerTestConfig {
 	return &storageframework.PerTestConfig{
-			Driver:    e,
-			Prefix:    "fsx",
-			Framework: f,
-		}, func() {
-			By("Cleaning up FSx CSI driver")
-			cancelPodLogs()
-		}
+		Driver:    e,
+		Prefix:    "fsx",
+		Framework: f,
+	}
 }
 
-func (e *fsxDriver) CreateVolume(config *storageframework.PerTestConfig, volType storageframework.TestVolType) storageframework.TestVolume {
+func (e *fsxDriver) CreateVolume(ctx context.Context, config *storageframework.PerTestConfig, volType storageframework.TestVolType) storageframework.TestVolume {
 	c := NewCloud(*region)
 	instance, err := c.getNodeInstance(*clusterName)
 	if err != nil {
@@ -95,12 +87,11 @@ func (e *fsxDriver) CreateVolume(config *storageframework.PerTestConfig, volType
 	securityGroupIds := getSecurityGroupIds(instance)
 	subnetId := *instance.SubnetId
 
-	ctx := context.Background()
 	options := &fsx.FileSystemOptions{
-		CapacityGiB:            3600,
-		SubnetId:               subnetId,
-		SecurityGroupIds:       securityGroupIds,
-		FileSystemTypeVersion:  "2.15",
+		CapacityGiB:           3600,
+		SubnetId:              subnetId,
+		SecurityGroupIds:      securityGroupIds,
+		FileSystemTypeVersion: "2.15",
 	}
 	ns := config.Framework.Namespace.Name
 	volumeName := fmt.Sprintf("fsx-e2e-test-volume-%s", ns)
@@ -183,7 +174,10 @@ var csiTestSuites = []func() storageframework.TestSuite{
 
 var _ = Describe("FSx CSI Driver Conformance", func() {
 	driver := InitFSxCSIDriver()
-	Context(storageframework.GetDriverNameWithFeatureTags(driver), func() {
+
+	args := storageframework.GetDriverNameWithFeatureTags(driver)
+	args = append(args, func() {
 		storageframework.DefineTestSuites(driver, csiTestSuites)
 	})
+	framework.Context(args...)
 })

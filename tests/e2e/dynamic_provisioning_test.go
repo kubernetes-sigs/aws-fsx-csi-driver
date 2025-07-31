@@ -19,16 +19,18 @@ import (
 	"log"
 	"strings"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	"k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
+	admissionapi "k8s.io/pod-security-admission/api"
 	"sigs.k8s.io/aws-fsx-csi-driver/tests/e2e/driver"
 	"sigs.k8s.io/aws-fsx-csi-driver/tests/e2e/testsuites"
 )
 
 var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning", func() {
 	f := framework.NewDefaultFramework("fsx")
+	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	var (
 		cs               clientset.Interface
@@ -60,9 +62,9 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning", func() {
 				Volumes: []testsuites.VolumeDetails{
 					{
 						Parameters: map[string]string{
-							"subnetId":                 subnetId,
-							"securityGroupIds":         strings.Join(securityGroupIds, ","),
-							"fileSystemTypeVersion":    "2.15",
+							"subnetId":              subnetId,
+							"securityGroupIds":      strings.Join(securityGroupIds, ","),
+							"fileSystemTypeVersion": "2.15",
 						},
 						ClaimSize: "3600Gi",
 						VolumeMount: testsuites.VolumeMountDetails{
@@ -88,9 +90,9 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning", func() {
 				Volumes: []testsuites.VolumeDetails{
 					{
 						Parameters: map[string]string{
-							"subnetId":                 subnetId,
-							"securityGroupIds":         strings.Join(securityGroupIds, ","),
-							"fileSystemTypeVersion":    "2.15",
+							"subnetId":              subnetId,
+							"securityGroupIds":      strings.Join(securityGroupIds, ","),
+							"fileSystemTypeVersion": "2.15",
 						},
 						MountOptions: []string{"flock"},
 						ClaimSize:    "1200Gi",
@@ -112,6 +114,7 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning", func() {
 
 var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning with s3 data repository", func() {
 	f := framework.NewDefaultFramework("fsx")
+	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	var (
 		cs               clientset.Interface
@@ -158,12 +161,12 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning with s3 data repository", f
 				Volumes: []testsuites.VolumeDetails{
 					{
 						Parameters: map[string]string{
-							"subnetId":                 subnetId,
-							"securityGroupIds":         strings.Join(securityGroupIds, ","),
-							"autoImportPolicy":         "NONE",
-							"s3ImportPath":             fmt.Sprintf("s3://%s", bucketName),
-							"s3ExportPath":             fmt.Sprintf("s3://%s/export", bucketName),
-							"fileSystemTypeVersion":    "2.15",
+							"subnetId":              subnetId,
+							"securityGroupIds":      strings.Join(securityGroupIds, ","),
+							"autoImportPolicy":      "NONE",
+							"s3ImportPath":          fmt.Sprintf("s3://%s", bucketName),
+							"s3ExportPath":          fmt.Sprintf("s3://%s/export", bucketName),
+							"fileSystemTypeVersion": "2.15",
 						},
 						ClaimSize: "3600Gi",
 						VolumeMount: testsuites.VolumeMountDetails{

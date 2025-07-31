@@ -65,10 +65,10 @@ uninstall: |
   helm delete aws-fsx-csi-driver --namespace kube-system
 
 test: |
-  go install github.com/onsi/ginkgo/ginkgo
+  go install github.com/onsi/ginkgo/v2/ginkgo
   export KUBECONFIG=$HOME/.kube/config
   cluster_name=test-cluster-{{TEST_ID}}.k8s.local
   skip="\[Disruptive\]\
   |subPath.should.be.able.to.unmount.after.the.subpath.directory.is.deleted\
   |should.not.mount./.map.unused.volumes.in.a.pod"
-  ginkgo -p -nodes=8 -skip=$skip -v ./tests/e2e -- --cluster-name=$cluster_name --region=us-west-2 --report-dir=$ARTIFACTS
+  ginkgo -timeout 24h -p -nodes=8 -skip=$skip -v ./tests/e2e -- --cluster-name=$cluster_name --region=us-west-2 --report-dir=$ARTIFACTS
