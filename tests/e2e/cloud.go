@@ -36,10 +36,16 @@ func NewCloud(region string) *cloud {
 	}
 	sess := session.Must(session.NewSession(config))
 
+	c, err := fsx.NewCloud(region)
+	if err != nil {
+		fmt.Sprintf("could not get NewCloud: %v", err)
+		return nil
+	}
+
 	return &cloud{
 		ec2.New(sess),
 		s3.New(sess),
-		fsx.NewCloud(region),
+		c,
 	}
 }
 
