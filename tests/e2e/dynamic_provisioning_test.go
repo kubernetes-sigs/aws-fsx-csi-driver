@@ -19,16 +19,18 @@ import (
 	"log"
 	"strings"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	"k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"sigs.k8s.io/aws-fsx-csi-driver/tests/e2e/driver"
 	"sigs.k8s.io/aws-fsx-csi-driver/tests/e2e/testsuites"
+	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning", func() {
 	f := framework.NewDefaultFramework("fsx")
+	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	var (
 		cs               clientset.Interface
@@ -112,6 +114,7 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning", func() {
 
 var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning with s3 data repository", func() {
 	f := framework.NewDefaultFramework("fsx")
+	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	var (
 		cs               clientset.Interface
