@@ -8,6 +8,7 @@ require (
 	k8s.io/apimachinery v0.33.3
 	k8s.io/client-go v1.5.2
 	k8s.io/kubernetes v1.33.3
+	k8s.io/pod-security-admission v0.0.0
 	sigs.k8s.io/aws-fsx-csi-driver v0.0.0-00010101000000-000000000000
 )
 
@@ -140,7 +141,6 @@ require (
 	k8s.io/kubectl v0.0.0 // indirect
 	k8s.io/kubelet v0.33.3 // indirect
 	k8s.io/mount-utils v0.33.0 // indirect
-	k8s.io/pod-security-admission v0.0.0 // indirect
 	k8s.io/utils v0.0.0-20250502105355-0f33e8f1c979 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
