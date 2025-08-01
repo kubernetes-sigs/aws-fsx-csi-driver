@@ -15,26 +15,25 @@ limitations under the License.
 package e2e
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	fsx "sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 )
 
 type cloud struct {
-	ec2client *ec2.EC2
-	s3client  *s3.S3
+	ec2client *ec2.Client
+	s3client  *s3.Client
 	fsx.Cloud
 }
 
 func NewCloud(region string) *cloud {
-	config := &aws.Config{
-		Region: aws.String(region),
-	}
-	sess := session.Must(session.NewSession(config))
+	config, _ := config.LoadDefaultConfig(context.Background(), config.WithRegion(region))
 
 	c, err := fsx.NewCloud(region)
 	if err != nil {
@@ -43,24 +42,25 @@ func NewCloud(region string) *cloud {
 	}
 
 	return &cloud{
-		ec2.New(sess),
-		s3.New(sess),
+		ec2.NewFromConfig(config),
+		s3.NewFromConfig(config),
 		c,
 	}
 }
 
-func (c *cloud) getNodeInstance(clusterName string) (*ec2.Instance, error) {
+func (c *cloud) getNodeInstance(clusterName string) (*ec2types.Instance, error) {
 	request := &ec2.DescribeInstancesInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			{
 				Name:   aws.String("tag:KubernetesCluster"),
-				Values: []*string{aws.String(clusterName)},
+				Values: []string{clusterName},
 			},
 		},
 	}
 
-	instances := []*ec2.Instance{}
-	response, err := c.ec2client.DescribeInstances(request)
+	instances := []ec2types.Instance{}
+	ctx := context.Background()
+	response, err := c.ec2client.DescribeInstances(ctx, request)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (c *cloud) getNodeInstance(clusterName string) (*ec2.Instance, error) {
 		return nil, fmt.Errorf("no instances in cluster %q found", clusterName)
 	}
 
-	return instances[0], nil
+	return &instances[0], nil
 }
 
 func (c *cloud) createS3Bucket(name string) error {
@@ -80,7 +80,8 @@ func (c *cloud) createS3Bucket(name string) error {
 		Bucket: aws.String(name),
 	}
 
-	_, err := c.s3client.CreateBucket(request)
+	ctx := context.Background()
+	_, err := c.s3client.CreateBucket(ctx, request)
 	if err != nil {
 		return err
 	}
@@ -92,14 +93,15 @@ func (c *cloud) deleteS3Bucket(name string) error {
 		Bucket: aws.String(name),
 	}
 
-	_, err := c.s3client.DeleteBucket(request)
+	ctx := context.Background()
+	_, err := c.s3client.DeleteBucket(ctx, request)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func getSecurityGroupIds(node *ec2.Instance) []string {
+func getSecurityGroupIds(node *ec2types.Instance) []string {
 	groups := []string{}
 	for _, sg := range node.SecurityGroups {
 		groups = append(groups, *sg.GroupId)
