@@ -17,7 +17,7 @@ import (
 	"os"
 	"testing"
 
-	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	sanity "github.com/kubernetes-csi/csi-test/pkg/sanity"
