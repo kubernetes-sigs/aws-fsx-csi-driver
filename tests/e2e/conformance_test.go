@@ -72,10 +72,10 @@ func (e *fsxDriver) SkipUnsupportedTest(storageframework.TestPattern) {}
 
 func (e *fsxDriver) PrepareTest(ctx context.Context, f *framework.Framework) *storageframework.PerTestConfig {
 	return &storageframework.PerTestConfig{
-			Driver:    e,
-			Prefix:    "fsx",
-			Framework: f,
-		}
+		Driver:    e,
+		Prefix:    "fsx",
+		Framework: f,
+	}
 }
 
 func (e *fsxDriver) CreateVolume(ctx context.Context, config *storageframework.PerTestConfig, volType storageframework.TestVolType) storageframework.TestVolume {
@@ -88,10 +88,10 @@ func (e *fsxDriver) CreateVolume(ctx context.Context, config *storageframework.P
 	subnetId := *instance.SubnetId
 
 	options := &fsx.FileSystemOptions{
-		CapacityGiB:            3600,
-		SubnetId:               subnetId,
-		SecurityGroupIds:       securityGroupIds,
-		FileSystemTypeVersion:  "2.15",
+		CapacityGiB:           3600,
+		SubnetId:              subnetId,
+		SecurityGroupIds:      securityGroupIds,
+		FileSystemTypeVersion: "2.15",
 	}
 	ns := config.Framework.Namespace.Name
 	volumeName := fmt.Sprintf("fsx-e2e-test-volume-%s", ns)
@@ -174,7 +174,7 @@ var csiTestSuites = []func() storageframework.TestSuite{
 
 var _ = Describe("FSx CSI Driver Conformance", func() {
 	driver := InitFSxCSIDriver()
-	
+
 	args := storageframework.GetDriverNameWithFeatureTags(driver)
 	args = append(args, func() {
 		storageframework.DefineTestSuites(driver, csiTestSuites)
