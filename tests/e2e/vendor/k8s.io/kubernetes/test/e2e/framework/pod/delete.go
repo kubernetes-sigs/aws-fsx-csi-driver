@@ -32,7 +32,7 @@ import (
 
 const (
 	// PodDeleteTimeout is how long to wait for a pod to be deleted.
-	PodDeleteTimeout = 15 * time.Minute
+	PodDeleteTimeout = 5 * time.Minute
 )
 
 // DeletePodOrFail deletes the pod of the specified namespace and name. Resilient to the pod
