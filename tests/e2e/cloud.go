@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	fsx "sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 )
 
@@ -75,9 +76,12 @@ func (c *cloud) getNodeInstance(clusterName string) (*ec2types.Instance, error) 
 	return &instances[0], nil
 }
 
-func (c *cloud) createS3Bucket(name string) error {
+func (c *cloud) createS3Bucket(name string, region string) error {
 	request := &s3.CreateBucketInput{
 		Bucket: aws.String(name),
+		CreateBucketConfiguration: &types.CreateBucketConfiguration{
+			LocationConstraint: types.BucketLocationConstraint(region),
+		},
 	}
 
 	ctx := context.Background()
