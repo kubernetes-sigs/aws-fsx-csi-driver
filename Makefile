@@ -53,7 +53,7 @@ word-hyphen = $(word $2,$(subst -, ,$1))
 .PHONY: linux/$(ARCH) bin/aws-fsx-csi-driver
 linux/$(ARCH): bin/aws-fsx-csi-driver
 bin/aws-fsx-csi-driver: | bin
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -ldflags ${LDFLAGS} -o bin/aws-fsx-csi-driver ./cmd/
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -mod=mod -ldflags ${LDFLAGS} -o bin/aws-fsx-csi-driver ./cmd/
 
 .PHONY: all
 all: all-image-docker
@@ -89,6 +89,7 @@ image: .image-$(TAG)-$(OS)-$(ARCH)-$(OSVERSION)
 		-t=$(IMAGE):$(TAG)-$(OS)-$(ARCH)-$(OSVERSION) \
 		--build-arg=GOPROXY=$(GOPROXY) \
 		--build-arg=VERSION=$(VERSION) \
+		--build-arg=AL_VERSION=$(AL_VERSION) \
 		`./hack/provenance` \
 		.
 	touch $@

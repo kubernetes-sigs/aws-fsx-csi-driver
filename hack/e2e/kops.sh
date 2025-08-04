@@ -35,6 +35,7 @@ function kops_create_cluster() {
   KOPS_PATCH_FILE=${10}
   KOPS_PATCH_NODE_FILE=${11}
   KOPS_STATE_FILE=${12}
+  AMI_ID=${13}
 
   generate_ssh_key "${SSH_KEY_PATH}"
 
@@ -48,6 +49,7 @@ function kops_create_cluster() {
       --zones "${ZONES}" \
       --node-count="${NODE_COUNT}" \
       --node-size="${INSTANCE_TYPE}" \
+      --image="${AMI_ID}" \
       --kubernetes-version="${K8S_VERSION}" \
       --dry-run \
       -o yaml \

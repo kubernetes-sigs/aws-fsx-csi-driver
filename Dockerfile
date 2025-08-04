@@ -12,27 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+ARG AL_VERSION=al23
 FROM --platform=$BUILDPLATFORM golang:1.24 as builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-fsx-csi-driver
+COPY go.* .
+RUN go mod download
 COPY . .
 ARG TARGETOS
 ARG TARGETARCH
 RUN OS=$TARGETOS ARCH=$TARGETARCH make $TARGETOS/$TARGETARCH
 
 # https://github.com/aws/eks-distro-build-tooling/blob/main/eks-distro-base/Dockerfile.minimal-base-csi-ebs#L36
-FROM public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-csi-ebs-builder:latest-al2 as rpm-installer
-
+FROM public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-csi-ebs-builder:latest-${AL_VERSION} as rpm-installer
+ARG AL_VERSION
 # shallow install systemd and the kernel which are not needed in the final container image
 # since lustre is not run as a systemd service and the kernel module is node loaded via the container
 # to avoid pulling in a large tree of unnecessary dependencies
 RUN set -x && \
     enable_extra lustre && \
-    clean_install "kernel systemd" true true && \
-    clean_install lustre-client && \
+    clean_install "kernel systemd" true true; \
+    if [[ "${AL_VERSION}" == "al23" ]]; then \
+    clean_install lustre-client; \
+    else \
+    clean_install lustre; \
+    fi; \
     remove_package "kernel systemd" true && \
     cleanup "fsx-csi"
 
-FROM public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-csi-ebs:latest-al2 AS linux-amazon
+FROM public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-csi-ebs:latest-${AL_VERSION} AS linux-amazon
 
 COPY --from=rpm-installer /newroot /
 
