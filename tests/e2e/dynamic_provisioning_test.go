@@ -140,7 +140,7 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning with s3 data repository", f
 
 		bucketName = fmt.Sprintf("fsx-e2e-%s", ns.Name)
 		fmt.Println("name: " + bucketName)
-		err = cloud.createS3Bucket(bucketName)
+		err = cloud.createS3Bucket(bucketName, *region)
 		if err != nil {
 			Fail(fmt.Sprintf("failed to create s3 bucket %v", err))
 		}
