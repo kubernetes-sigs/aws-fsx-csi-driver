@@ -15,6 +15,8 @@
 ARG AL_VERSION=al23
 FROM --platform=$BUILDPLATFORM golang:1.24 as builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-fsx-csi-driver
+COPY go.* .
+RUN go mod download
 COPY . .
 ARG TARGETOS
 ARG TARGETARCH
