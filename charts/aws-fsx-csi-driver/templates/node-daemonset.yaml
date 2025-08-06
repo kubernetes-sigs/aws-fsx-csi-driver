@@ -40,13 +40,13 @@ spec:
       tolerations:
         {{- if .Values.node.tolerateAllTaints }}
         - operator: Exists
-        {{- else }}
-        {{- with .Values.node.tolerations }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+          {{- else }}
+          {{- with .Values.node.tolerations }}
+          {{- toYaml . | nindent 8 }}
+          {{- end }}
         - key: "fsx.csi.aws.com/agent-not-ready"
           operator: "Exists"
-        {{- end }}
+          {{- end }}
       {{- with .Values.node.affinity }}
       affinity: {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -68,10 +68,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            {{- with .Values.node.region }}
+              {{- with .Values.node.region }}
             - name: AWS_REGION
               value: {{ . }}
-            {{- end }}
+              {{- end }}
           volumeMounts:
             - name: kubelet-dir
               mountPath: /var/lib/kubelet

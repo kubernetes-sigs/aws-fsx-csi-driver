@@ -21,7 +21,7 @@ spec:
         kubernetes.io/os: linux
       dnsPolicy: ClusterFirst
       serviceAccountName: fsx-csi-node-sa
-      terminationGracePeriodSeconds: 30
+      terminationGracePeriodSeconds: 
       priorityClassName: system-node-critical
       tolerations:
         - operator: Exists
@@ -34,6 +34,7 @@ spec:
                 operator: NotIn
                 values:
                 - fargate
+                - hybrid
       containers:
         - name: fsx-plugin
           securityContext:
@@ -74,8 +75,14 @@ spec:
             preStop:
               exec:
                 command: [ "/bin/aws-fsx-csi-driver", "pre-stop-hook" ]
+          resources:
+            limits:
+              memory: 256Mi
+            requests:
+              cpu: 10m
+              memory: 40Mi
         - name: node-driver-registrar
-          image: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar:v2.13.0-eks-1-33-3
+          image: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar:v2.13.0-eks-1-33-9
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=$(ADDRESS)
@@ -95,8 +102,14 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
+          resources:
+            limits:
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 32Mi
         - name: liveness-probe
-          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.15.0-eks-1-33-3
+          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.15.0-eks-1-33-9
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/csi/csi.sock
@@ -104,6 +117,12 @@ spec:
           volumeMounts:
             - mountPath: /csi
               name: plugin-dir
+          resources:
+            limits:
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 32Mi
       volumes:
         - name: kubelet-dir
           hostPath:
