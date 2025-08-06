@@ -1,3 +1,16 @@
+# v1.5.0
+
+### Bug fixes
+* Update e2e test dependencies - Kubernetes, Ginkgo, pinned AMI, eksctl ([#441](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/441), [@nppietra](https://github.com/nppietra))
+* Expose AWS_REGION on the node ([#430](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/428), [@olemarkus](https://github.com/olemarkus))
+
+### Improvements
+* Add prestop hook for graceful termination ([#428](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/428), [@kuba-wolf](https://github.com/kuba-wolf))
+* Add Affinity to Controller and Node in the Helm Chart ([#444](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/444), [@Trickybrain](https://github.com/Trickybrain))
+* Add Security Context in the Helm Chart ([#444](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/444), [@Trickybrain](https://github.com/Trickybrain))
+* Add PodDisruptionBudget ([#444](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/444), [@Trickybrain](https://github.com/Trickybrain))
+* Add more flexibility in specifying where to pull the container image from ([#444](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/444), [@Trickybrain](https://github.com/Trickybrain))
+
 # v1.4.0
 
 ### Bug fixes
