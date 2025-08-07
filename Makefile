@@ -35,6 +35,7 @@ OUTPUT_TYPE?=docker
 OS?=linux
 ARCH?=amd64
 OSVERSION?=amazon
+AL_VERSION?=al23
 
 ALL_OS?=linux
 ALL_ARCH_linux?=amd64 arm64
