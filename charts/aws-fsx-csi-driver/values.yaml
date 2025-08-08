@@ -4,7 +4,7 @@
 
 image:
   repository: public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver
-  tag: v1.4.0
+  tag: "v1.4.0"
   pullPolicy: IfNotPresent
 
 csidriver:
@@ -14,37 +14,75 @@ sidecars:
   livenessProbe:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
-      tag: v2.15.0-eks-1-33-3
+      tag: v2.15.0-eks-1-33-9
       pullPolicy: IfNotPresent
-    resources: {}
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 128Mi
+    securityContext:
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
   nodeDriverRegistrar:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
-      tag: v2.13.0-eks-1-33-3
+      tag: v2.13.0-eks-1-33-9
       pullPolicy: IfNotPresent
     logLevel: 2
-    resources: {}
+    resources: 
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 128Mi
+    securityContext:
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
   provisioner:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner
-      tag: v5.2.0-eks-1-33-3
+      tag: v5.2.0-eks-1-33-9
       pullPolicy: IfNotPresent
     logLevel: 2
-    resources: {}
+    resources: 
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 128Mi
+    securityContext:
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
   resizer:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/external-resizer
-      tag: v1.13.2-eks-1-33-3
+      tag: v1.13.2-eks-1-33-9
       pullPolicy: IfNotPresent
     logLevel: 2
-    resources: {}
+    resources: 
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 128Mi
+    securityContext:
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
 
 controller:
   mode: controller
   loggingFormat: text
   nodeSelector: {}
   replicaCount: 2
-  resources: {}
+  #If you do want to specify resources, uncomment the following lines, adjust them as necessary
+  resources:
+    requests:
+      cpu: 10m
+      memory: 40Mi
+    limits:
+      memory: 256Mi
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -65,6 +103,41 @@ controller:
     - effect: NoExecute
       operator: Exists
       tolerationSeconds: 300
+  # securityContext on the controller pod
+  securityContext:
+    runAsNonRoot: false
+    runAsUser: 0
+    runAsGroup: 0
+    fsGroup: 0
+  # securityContext on the controller container
+  # Setting privileged=false will cause the "delete-access-point-root-dir" controller option to fail
+  containerSecurityContext:
+    privileged: true
+  leaderElectionRenewDeadline: 10s
+  leaderElectionLeaseDuration: 15s
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: eks.amazonaws.com/compute-type
+                operator: NotIn
+                values:
+                  - fargate
+                  - hybrid
+  # topologySpreadConstraints:
+  #  - maxSkew: 1
+  #    topologyKey: topology.kubernetes.io/zone
+  #    whenUnsatisfiable: ScheduleAnyway
+  #  - maxSkew: 1
+  #    topologyKey: kubernetes.io/hostname
+  #    whenUnsatisfiable: ScheduleAnyway
+  topologySpreadConstraints: []  
+  podDisruptionBudget:
+    # Warning: Disabling PodDisruptionBudget may lead to delays in stateful workloads starting due to controller
+    # pod restarts or evictions.
+    enabled: true
 
 node:
   mode: node
@@ -72,7 +145,13 @@ node:
   logLevel: 2
   nodeSelector: {}
   updateStrategy: {}
-  resources: {}
+  #If you do want to specify resources, uncomment the following lines, adjust them as necessary,
+  resources:
+    requests:
+      cpu: 10m
+      memory: 40Mi
+    limits:
+      memory: 256Mi
   dnsPolicy: ClusterFirst
   dnsConfig:
     {}
@@ -88,13 +167,18 @@ node:
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/fsx-csi-role
     name: fsx-csi-node-sa
     annotations: {}
+  healthPort: 9809
+  # securityContext on the node pod
+  securityContext:
+    # The node pod must be run as root to bind to the registration/driver sockets
+    runAsNonRoot: false
+    runAsUser: 0
+    runAsGroup: 0
+    fsGroup: 0
+  env: []
+  volumes: []
+  volumeMounts: []
   podAnnotations: {}
-  # AWS region to use. If not specified then the region will be looked up via the AWS EC2 metadata
-  # service.
-  # ---
-  # region: us-east-1
-  region:
-  terminationGracePeriodSeconds: 30
   tolerateAllTaints: true
   tolerations:
     - operator: Exists
@@ -109,8 +193,15 @@ node:
             operator: NotIn
             values:
             - fargate
-
+            - hybrid 
+            
 nameOverride: ""
 fullnameOverride: ""
 
 imagePullSecrets: []
+
+nodeComponentOnly: false
+# nodeComponentOnly: true
+  # Only deploys the node DaemonSet, Skips controller deployment
+# nodeComponentOnly: false (default)
+  # Deploys both controller and node components, normal full deployment

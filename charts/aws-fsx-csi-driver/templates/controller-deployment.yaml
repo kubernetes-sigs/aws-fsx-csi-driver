@@ -39,7 +39,7 @@ spec:
         {{- end }}
       containers:
         - name: fsx-plugin
-          image: {{ printf "%s:%s" .Values.image.repository (default (printf "v%s" .Chart.AppVersion) (toString .Values.image.tag)) }}
+          image: {{ printf "%s%s:%s" (default "" .Values.image.containerRegistry) .Values.image.repository (default (printf "v%s" .Chart.AppVersion) (.Values.image.tag | toString)) }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - --mode={{ .Values.controller.mode }}
@@ -65,10 +65,10 @@ spec:
                   name: aws-secret
                   key: access_key
                   optional: true
-            {{- with .Values.controller.region }}
+              {{- with .Values.controller.region }}
             - name: AWS_REGION
               value: {{ . }}
-            {{- end }}
+              {{- end }}
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -89,7 +89,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
         - name: csi-provisioner
-          image: {{ printf "%s:%s" .Values.sidecars.provisioner.image.repository .Values.sidecars.provisioner.image.tag }}
+          image: {{ printf "%s%s:%s" (default "" .Values.image.containerRegistry) .Values.sidecars.provisioner.image.repository .Values.sidecars.provisioner.image.tag }}
           args:
             - --csi-address=$(ADDRESS)
             - --v={{ .Values.sidecars.provisioner.logLevel }}
@@ -107,7 +107,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
         - name: csi-resizer
-          image: {{ printf "%s:%s" .Values.sidecars.resizer.image.repository .Values.sidecars.resizer.image.tag }}
+          image: {{ printf "%s%s:%s" (default "" .Values.image.containerRegistry) .Values.sidecars.resizer.image.repository .Values.sidecars.resizer.image.tag }}
           args:
             - --csi-address=$(ADDRESS)
             - --v={{ .Values.sidecars.resizer.logLevel }}
@@ -124,7 +124,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
         - name: liveness-probe
-          image: {{ printf "%s:%s" .Values.sidecars.livenessProbe.image.repository .Values.sidecars.livenessProbe.image.tag }}
+          image: {{ printf "%s%s:%s" (default "" .Values.image.containerRegistry) .Values.sidecars.livenessProbe.image.repository .Values.sidecars.livenessProbe.image.tag }}
           args:
             - --csi-address=/csi/csi.sock
             - --health-port=9910
@@ -138,3 +138,11 @@ spec:
       volumes:
         - name: socket-dir
           emptyDir: {}
+      {{- with .Values.controller.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controller.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

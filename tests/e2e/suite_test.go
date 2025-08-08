@@ -16,22 +16,16 @@ package e2e
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"math/rand"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
-
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/kubernetes/test/e2e/framework"
 	frameworkconfig "k8s.io/kubernetes/test/e2e/framework/config"
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
@@ -71,11 +65,8 @@ func TestE2E(t *testing.T) {
 	if framework.TestContext.ReportDir != "" {
 		if err := os.MkdirAll(framework.TestContext.ReportDir, 0755); err != nil {
 			log.Fatalf("Failed creating report directory: %v", err)
-		} else {
-			r = append(r, reporters.NewJUnitReporter(path.Join(framework.TestContext.ReportDir, fmt.Sprintf("junit_%v%02d.xml", framework.TestContext.ReportPrefix, config.GinkgoConfig.ParallelNode))))
 		}
 	}
-	log.Printf("Starting e2e run %q on Ginkgo node %d", uuid.NewUUID(), config.GinkgoConfig.ParallelNode) // TODO use framework.RunID like upstream
 
 	RunSpecsWithDefaultAndCustomReporters(t, "AWS FSx CSI Driver End-to-End Tests", r)
 }

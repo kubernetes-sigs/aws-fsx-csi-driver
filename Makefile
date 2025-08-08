@@ -35,6 +35,7 @@ OUTPUT_TYPE?=docker
 OS?=linux
 ARCH?=amd64
 OSVERSION?=amazon
+AL_VERSION?=al23
 
 ALL_OS?=linux
 ALL_ARCH_linux?=amd64 arm64
@@ -53,7 +54,7 @@ word-hyphen = $(word $2,$(subst -, ,$1))
 .PHONY: linux/$(ARCH) bin/aws-fsx-csi-driver
 linux/$(ARCH): bin/aws-fsx-csi-driver
 bin/aws-fsx-csi-driver: | bin
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -ldflags ${LDFLAGS} -o bin/aws-fsx-csi-driver ./cmd/
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -mod=mod -ldflags ${LDFLAGS} -o bin/aws-fsx-csi-driver ./cmd/
 
 .PHONY: all
 all: all-image-docker
@@ -89,6 +90,7 @@ image: .image-$(TAG)-$(OS)-$(ARCH)-$(OSVERSION)
 		-t=$(IMAGE):$(TAG)-$(OS)-$(ARCH)-$(OSVERSION) \
 		--build-arg=GOPROXY=$(GOPROXY) \
 		--build-arg=VERSION=$(VERSION) \
+		--build-arg=AL_VERSION=$(AL_VERSION) \
 		`./hack/provenance` \
 		.
 	touch $@

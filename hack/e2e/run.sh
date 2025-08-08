@@ -49,15 +49,18 @@ IMAGE_TAG=${IMAGE_TAG:-${TEST_ID}}
 
 # kops: must include patch version (e.g. 1.19.1)
 # eksctl: mustn't include patch version (e.g. 1.19)
-K8S_VERSION_KOPS=${K8S_VERSION_KOPS:-${K8S_VERSION:-1.23.0}}
-K8S_VERSION_EKSCTL=${K8S_VERSION_EKSCTL:-${K8S_VERSION:-1.23}}
+K8S_VERSION_KOPS=${K8S_VERSION_KOPS:-${K8S_VERSION:-1.32.0}}
+K8S_VERSION_EKSCTL=${K8S_VERSION_EKSCTL:-${K8S_VERSION:-1.32}}
 
-KOPS_VERSION=${KOPS_VERSION:-1.23.1}
+KOPS_VERSION=${KOPS_VERSION:-1.32.0}
 KOPS_STATE_FILE=${KOPS_STATE_FILE:-s3://k8s-kops-csi-shared-e2e}
 KOPS_PATCH_FILE=${KOPS_PATCH_FILE:-./hack/kops-patch.yaml}
 KOPS_PATCH_NODE_FILE=${KOPS_PATCH_NODE_FILE:-./hack/kops-patch-node.yaml}
 
-EKSCTL_VERSION=${EKSCTL_VERSION:-0.133.0}
+AMI_PARAMETER=${AMI_PARAMETER:-/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}
+AMI_ID=$(aws ssm get-parameters --names ${AMI_PARAMETER} --region ${AWS_REGION} --query 'Parameters[0].Value' --output text)
+
+EKSCTL_VERSION=${EKSCTL_VERSION:-0.208.0}
 EKSCTL_PATCH_FILE=${EKSCTL_PATCH_FILE:-./hack/eksctl-patch.yaml}
 EKSCTL_ADMIN_ROLE=${EKSCTL_ADMIN_ROLE:-}
 
@@ -99,7 +102,7 @@ loudecho "Installing ginkgo to ${BIN_DIR}"
 GINKGO_BIN=${BIN_DIR}/ginkgo
 if [[ ! -e ${GINKGO_BIN} ]]; then
   pushd /tmp
-  GOPATH=${TEST_DIR} GOBIN=${BIN_DIR} GO111MODULE=on go install github.com/onsi/ginkgo/ginkgo@v1.12.0
+  GOPATH=${TEST_DIR} GOBIN=${BIN_DIR} GO111MODULE=on go install github.com/onsi/ginkgo/v2/ginkgo@v2.21.0
   popd
 fi
 
@@ -121,7 +124,8 @@ if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
     "$KUBECONFIG" \
     "$KOPS_PATCH_FILE" \
     "$KOPS_PATCH_NODE_FILE" \
-    "$KOPS_STATE_FILE"
+    "$KOPS_STATE_FILE" \
+    "$AMI_ID"
   if [[ $? -ne 0 ]]; then
     exit 1
   fi
@@ -177,7 +181,7 @@ eval "EXPANDED_TEST_EXTRA_FLAGS=$TEST_EXTRA_FLAGS"
 set -x
 set +e
 pushd "${TEST_PATH}"
-${GINKGO_BIN} -p -nodes="${GINKGO_NODES}" -v --focus="${GINKGO_FOCUS}" --skip="${GINKGO_SKIP}" ./... -- -kubeconfig="${KUBECONFIG}" -report-dir="${ARTIFACTS}" -gce-zone="${FIRST_ZONE}" "${EXPANDED_TEST_EXTRA_FLAGS}"
+${GINKGO_BIN} -timeout 24h -p -nodes="${GINKGO_NODES}" -v --focus="${GINKGO_FOCUS}" --skip="${GINKGO_SKIP}" ./... -- -kubeconfig="${KUBECONFIG}" -report-dir="${ARTIFACTS}" -gce-zone="${FIRST_ZONE}" "${EXPANDED_TEST_EXTRA_FLAGS}"
 TEST_PASSED=$?
 set -e
 set +x
