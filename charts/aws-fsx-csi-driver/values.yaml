@@ -138,6 +138,7 @@ controller:
     # Warning: Disabling PodDisruptionBudget may lead to delays in stateful workloads starting due to controller
     # pod restarts or evictions.
     enabled: true
+  extraTags: {}
 
 node:
   mode: node
