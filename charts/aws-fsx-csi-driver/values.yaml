@@ -31,7 +31,7 @@ sidecars:
       tag: v2.13.0-eks-1-33-9
       pullPolicy: IfNotPresent
     logLevel: 2
-    resources: 
+    resources:
       requests:
         cpu: 10m
         memory: 32Mi
@@ -46,7 +46,7 @@ sidecars:
       tag: v5.2.0-eks-1-33-9
       pullPolicy: IfNotPresent
     logLevel: 2
-    resources: 
+    resources:
       requests:
         cpu: 10m
         memory: 32Mi
@@ -61,7 +61,7 @@ sidecars:
       tag: v1.13.2-eks-1-33-9
       pullPolicy: IfNotPresent
     logLevel: 2
-    resources: 
+    resources:
       requests:
         cpu: 10m
         memory: 32Mi
@@ -133,7 +133,7 @@ controller:
   #  - maxSkew: 1
   #    topologyKey: kubernetes.io/hostname
   #    whenUnsatisfiable: ScheduleAnyway
-  topologySpreadConstraints: []  
+  topologySpreadConstraints: []
   podDisruptionBudget:
     # Warning: Disabling PodDisruptionBudget may lead to delays in stateful workloads starting due to controller
     # pod restarts or evictions.
@@ -193,8 +193,8 @@ node:
             operator: NotIn
             values:
             - fargate
-            - hybrid 
-            
+            - hybrid
+
 nameOverride: ""
 fullnameOverride: ""
 
