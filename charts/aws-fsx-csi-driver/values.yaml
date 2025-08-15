@@ -138,6 +138,12 @@ controller:
     # Warning: Disabling PodDisruptionBudget may lead to delays in stateful workloads starting due to controller
     # pod restarts or evictions.
     enabled: true
+  # Extra tags to attach to each dynamically provisioned file system.
+  # ---
+  # extraTags:
+  #   key1: value1
+  #   key2: value2
+  extraTags: {}
 
 node:
   mode: node

@@ -1,5 +1,8 @@
 # Helm chart
 
+# v1.12.1
+* Parameterize controller.extraTags
+
 # v1.12.0
 * Use driver image 1.5.0
 

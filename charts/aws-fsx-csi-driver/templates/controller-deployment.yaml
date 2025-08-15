@@ -44,6 +44,9 @@ spec:
           args:
             - --mode={{ .Values.controller.mode }}
             - --endpoint=$(CSI_ENDPOINT)
+            {{- if .Values.controller.extraTags }}
+              {{- include "aws-fsx-csi-driver.extra-tags" . | nindent 12 }}
+            {{- end }}
             - --logging-format={{ .Values.controller.loggingFormat }}
             - --v={{ .Values.controller.logLevel }}
           env:
