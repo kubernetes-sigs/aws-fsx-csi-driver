@@ -54,3 +54,16 @@ app.kubernetes.io/name: {{ include "aws-fsx-csi-driver.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 {{- end -}}
+
+{{/*
+Prepare the `--extra-tags` controller flag from a map.
+*/}}
+{{- define "aws-fsx-csi-driver.extra-tags" -}}
+{{- $extraTags := list -}}
+{{- range $key, $value := .Values.controller.extraTags -}}
+{{- $extraTags = printf "%s=%v" $key $value | append $extraTags -}}
+{{- end -}}
+{{- if $extraTags -}}
+{{- printf "- \"--extra-tags=%s\"" (join "," $extraTags) -}}
+{{- end -}}
+{{- end -}}
