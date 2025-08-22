@@ -18,6 +18,7 @@ package driver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -109,6 +110,13 @@ func newControllerService(driverOptions *DriverOptions) controllerService {
 		driverOptions: driverOptions,
 	}
 }
+func abs(x int64) int64 {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
 func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	klog.V(4).InfoS("CreateVolume: called", "args", util.SanitizeRequest(req))
 	volName := req.GetName()
@@ -132,140 +140,182 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}
 	defer d.inFlight.Delete(volName)
 
-	// create a new volume with idempotency
-	// idempotency is handled by `CreateFileSystem`
-	volumeParams := req.GetParameters()
-	subnetId := volumeParams[volumeParamsSubnetId]
-	securityGroupIds := volumeParams[volumeParamsSecurityGroupIds]
-	fsOptions := &cloud.FileSystemOptions{
-		SubnetId:         subnetId,
-		SecurityGroupIds: strings.Split(securityGroupIds, ","),
+	existingFS, err := d.cloud.FindFileSystemByVolumeName(ctx, volName)
+	if err != nil && !errors.Is(err, cloud.ErrNotFound) {
+		return nil, status.Errorf(codes.Internal, "Failed to check existing filesystem: %v", err)
 	}
 
-	if val, ok := volumeParams[volumeParamsAutoImportPolicy]; ok {
-		fsOptions.AutoImportPolicy = val
-	}
+	var fs *cloud.FileSystem
+	if existingFS != nil {
+		// Filesystem exists, skip creation
+		klog.V(2).InfoS("Found existing filesystem",
+			"volumeName", volName, "fsId", existingFS.FileSystemId)
+		capRange := req.GetCapacityRange()
+		if capRange != nil && capRange.GetRequiredBytes() > 0 {
+			// Calculate what the requested size WOULD BE after rounding
+			volumeParams := req.GetParameters()
+			deploymentType := volumeParams[volumeParamsDeploymentType]
+			storageType := volumeParams[volumeParamsStorageType]
 
-	if val, ok := volumeParams[volumeParamsS3ImportPath]; ok {
-		fsOptions.S3ImportPath = val
-	}
+			var perUnitThroughput int32 = 0
+			if val, ok := volumeParams[volumeParamsPerUnitStorageThroughput]; ok {
+				n, err := strconv.ParseInt(val, 10, 32)
+				if err == nil {
+					perUnitThroughput = int32(n)
+				}
+			}
 
-	if val, ok := volumeParams[volumeParamsS3ExportPath]; ok {
-		fsOptions.S3ExportPath = val
-	}
+			// Round the requested size using the same logic as creation
+			roundedSizeGiB := util.RoundUpVolumeSize(capRange.GetRequiredBytes(), deploymentType, storageType, perUnitThroughput)
+			roundedSizeInt32, err := util.ConvertToInt32(roundedSizeGiB)
+			if err != nil {
+				return nil, status.Errorf(codes.OutOfRange, "Request storage capacity %d GiB is too large", roundedSizeGiB)
+			}
 
-	if val, ok := volumeParams[volumeParamsDeploymentType]; ok {
-		fsOptions.DeploymentType = val
-	}
-
-	if val, ok := volumeParams[volumeParamsKmsKeyId]; ok {
-		fsOptions.KmsKeyId = val
-	}
-
-	if val, ok := volumeParams[volumeParamsDailyAutomaticBackupStartTime]; ok {
-		fsOptions.DailyAutomaticBackupStartTime = val
-	}
-
-	if val, ok := volumeParams[volumeParamsAutomaticBackupRetentionDays]; ok {
-		n, err := strconv.ParseInt(val, 10, 64)
-		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, "automaticBackupRetentionDays must be a number")
+			// Compare rounded requested size with existing size
+			if existingFS.CapacityGiB != roundedSizeInt32 {
+				return nil, status.Error(codes.AlreadyExists, cloud.ErrFsExistsDiffSize.Error())
+			}
 		}
-		fsOptions.AutomaticBackupRetentionDays = int32(n)
-	}
-
-	if val, ok := volumeParams[volumeParamsCopyTagsToBackups]; ok {
-		b, err := strconv.ParseBool(val)
-		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, "copyTagsToBackups must be a bool")
-		}
-		fsOptions.CopyTagsToBackups = b
-	}
-
-	if val, ok := volumeParams[volumeParamsStorageType]; ok {
-		fsOptions.StorageType = val
-	}
-
-	if val, ok := volumeParams[volumeParamsDriveCacheType]; ok {
-		fsOptions.DriveCacheType = val
-	}
-
-	if val, ok := volumeParams[volumeParamsDataCompressionType]; ok {
-		fsOptions.DataCompressionType = val
-	}
-
-	if val, ok := volumeParams[volumeParamsPerUnitStorageThroughput]; ok {
-		n, err := strconv.ParseInt(val, 10, 64)
-		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, "perUnitStorageThroughput must be a number")
-		}
-		fsOptions.PerUnitStorageThroughput = int32(n)
-	}
-
-	if val, ok := volumeParams[volumeParamsWeeklyMaintenanceStartTime]; ok {
-		fsOptions.WeeklyMaintenanceStartTime = val
-	}
-
-	if val, ok := volumeParams[volumeParamsFileSystemTypeVersion]; ok {
-		fsOptions.FileSystemTypeVersion = val
-	}
-
-	if val, ok := volumeParams[volumeParamsEfaEnabled]; ok {
-		b, err := strconv.ParseBool(val)
-		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, "efaEnabled must be a bool")
-		}
-		fsOptions.EfaEnabled = b
-	}
-
-	if val, ok := volumeParams[volumeParamsMetadataConfigurationMode]; ok {
-		fsOptions.MetadataConfigurationMode = val
-	}
-
-	if val, ok := volumeParams[volumeParamsMetadataIops]; ok {
-		n, err := strconv.ParseInt(val, 10, 64)
-		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, "metadataIops must be a number")
-		}
-		fsOptions.MetadataIops = int32(n)
-	}
-
-	capRange := req.GetCapacityRange()
-	if capRange == nil {
-		fsOptions.CapacityGiB = cloud.DefaultVolumeSize
+		fs = existingFS
 	} else {
-		newSizeInt64 := util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fsOptions.DeploymentType, fsOptions.StorageType, fsOptions.PerUnitStorageThroughput)
-		newSizeGiB, err := util.ConvertToInt32(newSizeInt64)
-		if err != nil {
-			return nil, status.Errorf(codes.OutOfRange, "Request storage capacity %d GiB is too large for integer type", newSizeInt64)
+		// No existing filesystem, create new one
+
+		// create a new volume with idempotency
+		// idempotency is handled by `CreateFileSystem`
+		volumeParams := req.GetParameters()
+		subnetId := volumeParams[volumeParamsSubnetId]
+		securityGroupIds := volumeParams[volumeParamsSecurityGroupIds]
+		fsOptions := &cloud.FileSystemOptions{
+			SubnetId:         subnetId,
+			SecurityGroupIds: strings.Split(securityGroupIds, ","),
 		}
-		fsOptions.CapacityGiB = newSizeGiB
-	}
 
-	var tagArray []string
-	optionsTags := d.driverOptions.extraTags
-
-	if optionsTags != "" {
-		tagArray = strings.Split(optionsTags, ",")
-	}
-
-	if val, ok := volumeParams[volumeParamsExtraTags]; ok && len(val) > 0 {
-		extraTags := strings.Split(val, ",")
-		err := validateExtraTags(extraTags)
-		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, err.Error())
+		if val, ok := volumeParams[volumeParamsAutoImportPolicy]; ok {
+			fsOptions.AutoImportPolicy = val
 		}
-		tagArray = append(tagArray, extraTags...)
-	}
-	fsOptions.ExtraTags = tagArray
 
-	fs, err := d.cloud.CreateFileSystem(ctx, volName, fsOptions)
-	if err != nil {
-		switch err {
-		case cloud.ErrFsExistsDiffSize:
-			return nil, status.Error(codes.AlreadyExists, err.Error())
-		default:
-			return nil, status.Errorf(codes.Internal, "Could not create volume %q: %v", volName, err)
+		if val, ok := volumeParams[volumeParamsS3ImportPath]; ok {
+			fsOptions.S3ImportPath = val
+		}
+
+		if val, ok := volumeParams[volumeParamsS3ExportPath]; ok {
+			fsOptions.S3ExportPath = val
+		}
+
+		if val, ok := volumeParams[volumeParamsDeploymentType]; ok {
+			fsOptions.DeploymentType = val
+		}
+
+		if val, ok := volumeParams[volumeParamsKmsKeyId]; ok {
+			fsOptions.KmsKeyId = val
+		}
+
+		if val, ok := volumeParams[volumeParamsDailyAutomaticBackupStartTime]; ok {
+			fsOptions.DailyAutomaticBackupStartTime = val
+		}
+
+		if val, ok := volumeParams[volumeParamsAutomaticBackupRetentionDays]; ok {
+			n, err := strconv.ParseInt(val, 10, 64)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, "automaticBackupRetentionDays must be a number")
+			}
+			fsOptions.AutomaticBackupRetentionDays = int32(n)
+		}
+
+		if val, ok := volumeParams[volumeParamsCopyTagsToBackups]; ok {
+			b, err := strconv.ParseBool(val)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, "copyTagsToBackups must be a bool")
+			}
+			fsOptions.CopyTagsToBackups = b
+		}
+
+		if val, ok := volumeParams[volumeParamsStorageType]; ok {
+			fsOptions.StorageType = val
+		}
+
+		if val, ok := volumeParams[volumeParamsDriveCacheType]; ok {
+			fsOptions.DriveCacheType = val
+		}
+
+		if val, ok := volumeParams[volumeParamsDataCompressionType]; ok {
+			fsOptions.DataCompressionType = val
+		}
+
+		if val, ok := volumeParams[volumeParamsPerUnitStorageThroughput]; ok {
+			n, err := strconv.ParseInt(val, 10, 64)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, "perUnitStorageThroughput must be a number")
+			}
+			fsOptions.PerUnitStorageThroughput = int32(n)
+		}
+
+		if val, ok := volumeParams[volumeParamsWeeklyMaintenanceStartTime]; ok {
+			fsOptions.WeeklyMaintenanceStartTime = val
+		}
+
+		if val, ok := volumeParams[volumeParamsFileSystemTypeVersion]; ok {
+			fsOptions.FileSystemTypeVersion = val
+		}
+
+		if val, ok := volumeParams[volumeParamsEfaEnabled]; ok {
+			b, err := strconv.ParseBool(val)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, "efaEnabled must be a bool")
+			}
+			fsOptions.EfaEnabled = b
+		}
+
+		if val, ok := volumeParams[volumeParamsMetadataConfigurationMode]; ok {
+			fsOptions.MetadataConfigurationMode = val
+		}
+
+		if val, ok := volumeParams[volumeParamsMetadataIops]; ok {
+			n, err := strconv.ParseInt(val, 10, 64)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, "metadataIops must be a number")
+			}
+			fsOptions.MetadataIops = int32(n)
+		}
+
+		capRange := req.GetCapacityRange()
+		if capRange == nil {
+			fsOptions.CapacityGiB = cloud.DefaultVolumeSize
+		} else {
+			newSizeInt64 := util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fsOptions.DeploymentType, fsOptions.StorageType, fsOptions.PerUnitStorageThroughput)
+			newSizeGiB, err := util.ConvertToInt32(newSizeInt64)
+			if err != nil {
+				return nil, status.Errorf(codes.OutOfRange, "Request storage capacity %d GiB is too large for integer type", newSizeInt64)
+			}
+			fsOptions.CapacityGiB = newSizeGiB
+		}
+
+		var tagArray []string
+		optionsTags := d.driverOptions.extraTags
+
+		if optionsTags != "" {
+			tagArray = strings.Split(optionsTags, ",")
+		}
+
+		if val, ok := volumeParams[volumeParamsExtraTags]; ok && len(val) > 0 {
+			extraTags := strings.Split(val, ",")
+			err := validateExtraTags(extraTags)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, err.Error())
+			}
+			tagArray = append(tagArray, extraTags...)
+		}
+		fsOptions.ExtraTags = tagArray
+
+		fs, err = d.cloud.CreateFileSystem(ctx, volName, fsOptions)
+		if err != nil {
+			switch err {
+			case cloud.ErrFsExistsDiffSize:
+				return nil, status.Error(codes.AlreadyExists, err.Error())
+			default:
+				return nil, status.Errorf(codes.Internal, "Could not create volume %q: %v", volName, err)
+			}
 		}
 	}
 
