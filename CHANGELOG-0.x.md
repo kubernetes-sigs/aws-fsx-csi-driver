@@ -1,3 +1,10 @@
+# v1.6.0
+* Allow the timeout of the CSI driver to be set ([#fd9e97c0](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/fd9e97c0), [@trickybrain](https://github.com/trickybrain))
+* Add podLabels parameter ([#94da9385](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/94da9385), [@trickybrain](https://github.com/trickybrain))
+* Update dependencies and implement idempotency changes ([#4b3abe29](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/4b3abe29), [@trickybrain](https://github.com/trickybrain))
+* Add support for --extra-tags to Helm chart ([#e302bc4e](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/e302bc4e), [@Eric Bailey](https://github.com/Eric Bailey))
+* Clean up whitespace in Helm chart values ([#f8e9a864](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/f8e9a864), [@Eric Bailey](https://github.com/Eric Bailey))
+
 # v1.5.0
 
 ### Bug fixes
