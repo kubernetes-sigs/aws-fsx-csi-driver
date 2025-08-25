@@ -103,6 +103,8 @@ controller:
     - effect: NoExecute
       operator: Exists
       tolerationSeconds: 300
+  # Specify the timeout of all calls to the CSI driver.
+  timeout: 5m
   # securityContext on the controller pod
   securityContext:
     runAsNonRoot: false
@@ -126,6 +128,7 @@ controller:
                 values:
                   - fargate
                   - hybrid
+  podLabels: {}
   # topologySpreadConstraints:
   #  - maxSkew: 1
   #    topologyKey: topology.kubernetes.io/zone
@@ -200,6 +203,7 @@ node:
             values:
             - fargate
             - hybrid
+  podLabels: {}
 
 nameOverride: ""
 fullnameOverride: ""
