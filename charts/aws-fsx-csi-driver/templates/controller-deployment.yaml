@@ -19,6 +19,9 @@ spec:
       labels:
         app: fsx-csi-controller
         {{- include "aws-fsx-csi-driver.labels" . | nindent 8 }}
+        {{- if .Values.controller.podLabels }}
+          {{- toYaml .Values.controller.podLabels | nindent 8 }}
+        {{- end }}
     spec:
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -44,6 +47,9 @@ spec:
           args:
             - --mode={{ .Values.controller.mode }}
             - --endpoint=$(CSI_ENDPOINT)
+            {{- if .Values.controller.extraTags }}
+              {{- include "aws-fsx-csi-driver.extra-tags" . | nindent 12 }}
+            {{- end }}
             - --logging-format={{ .Values.controller.loggingFormat }}
             - --v={{ .Values.controller.logLevel }}
           env:
@@ -93,7 +99,7 @@ spec:
           args:
             - --csi-address=$(ADDRESS)
             - --v={{ .Values.sidecars.provisioner.logLevel }}
-            - --timeout=5m
+            - --timeout={{ .Values.controller.timeout| default "5m" }}
             - --extra-create-metadata
             - --leader-election=true
           env:

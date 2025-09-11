@@ -1,3 +1,23 @@
+# v1.6.0
+* Allow the timeout of the CSI driver to be set ([#fd9e97c0](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/fd9e97c0), [@trickybrain](https://github.com/trickybrain))
+* Add podLabels parameter ([#94da9385](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/94da9385), [@trickybrain](https://github.com/trickybrain))
+* Update dependencies and implement idempotency changes ([#4b3abe29](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/4b3abe29), [@trickybrain](https://github.com/trickybrain))
+* Add support for --extra-tags to Helm chart ([#e302bc4e](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/e302bc4e), [@Eric Bailey](https://github.com/Eric Bailey))
+* Clean up whitespace in Helm chart values ([#f8e9a864](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/f8e9a864), [@Eric Bailey](https://github.com/Eric Bailey))
+
+# v1.5.0
+
+### Bug fixes
+* Update e2e test dependencies - Kubernetes, Ginkgo, pinned AMI, eksctl ([#441](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/441), [@nppietra](https://github.com/nppietra))
+* Expose AWS_REGION on the node ([#430](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/428), [@olemarkus](https://github.com/olemarkus))
+
+### Improvements
+* Add prestop hook for graceful termination ([#428](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/428), [@kuba-wolf](https://github.com/kuba-wolf))
+* Add Affinity to Controller and Node in the Helm Chart ([#444](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/444), [@Trickybrain](https://github.com/Trickybrain))
+* Add Security Context in the Helm Chart ([#444](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/444), [@Trickybrain](https://github.com/Trickybrain))
+* Add PodDisruptionBudget ([#444](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/444), [@Trickybrain](https://github.com/Trickybrain))
+* Add more flexibility in specifying where to pull the container image from ([#444](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/pull/444), [@Trickybrain](https://github.com/Trickybrain))
+
 # v1.4.0
 
 ### Bug fixes

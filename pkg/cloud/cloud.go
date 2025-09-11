@@ -120,6 +120,7 @@ type Cloud interface {
 	DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error)
 	WaitForFileSystemAvailable(ctx context.Context, fileSystemId string) error
 	WaitForFileSystemResize(ctx context.Context, fileSystemId string, resizeGiB int32) error
+	FindFileSystemByVolumeName(ctx context.Context, volumeName string) (*FileSystem, error)
 }
 
 type cloud struct {
@@ -444,4 +445,75 @@ func isFileSystemNotFound(err error) bool {
 func isBadRequestUpdateInProgress(err error) bool {
 	var badRequest *types.BadRequest
 	return errors.As(err, &badRequest) && strings.Contains(err.Error(), "Unable to perform the storage capacity update. There is an update already in progress.")
+}
+
+func (c *cloud) FindFileSystemByVolumeName(ctx context.Context, volumeName string) (*FileSystem, error) {
+	var nextToken *string
+	const maxResults = 100
+
+	klog.V(4).InfoS("Searching for existing filesystem", "volumeName", volumeName)
+
+	// AWS FSx DescribeFileSystems API doesn't support filtering by tags,
+	// so we paginate through all filesystems and filter client-side
+	for {
+		input := &fsx.DescribeFileSystemsInput{
+			MaxResults: aws.Int32(maxResults),
+			NextToken:  nextToken,
+		}
+
+		output, err := c.fsx.DescribeFileSystems(ctx, input)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe filesystems: %v", err)
+		}
+
+		klog.V(5).InfoS("Checking batch of filesystems", "count", len(output.FileSystems))
+
+		// Search current batch
+		for _, fs := range output.FileSystems {
+			// Skip if filesystem is being deleted
+			if fs.Lifecycle != types.FileSystemLifecycleAvailable &&
+				fs.Lifecycle != types.FileSystemLifecycleCreating {
+				continue
+			}
+
+			// Check tags for volume name match
+			for _, tag := range fs.Tags {
+				if *tag.Key == VolumeNameTagKey && *tag.Value == volumeName {
+					klog.V(2).InfoS("Found existing filesystem",
+						"volumeName", volumeName,
+						"fileSystemId", *fs.FileSystemId,
+						"lifecycle", string(fs.Lifecycle))
+
+					mountName := "fsx"
+					if fs.LustreConfiguration.MountName != nil {
+						mountName = *fs.LustreConfiguration.MountName
+					}
+
+					perUnitStorageThroughput := int32(0)
+					if fs.LustreConfiguration.PerUnitStorageThroughput != nil {
+						perUnitStorageThroughput = *fs.LustreConfiguration.PerUnitStorageThroughput
+					}
+
+					return &FileSystem{
+						FileSystemId:             *fs.FileSystemId,
+						CapacityGiB:              *fs.StorageCapacity,
+						DnsName:                  *fs.DNSName,
+						MountName:                mountName,
+						StorageType:              string(fs.StorageType),
+						DeploymentType:           string(fs.LustreConfiguration.DeploymentType),
+						PerUnitStorageThroughput: perUnitStorageThroughput,
+					}, nil
+				}
+			}
+		}
+
+		// Check if more results exist
+		if output.NextToken == nil {
+			break
+		}
+		nextToken = output.NextToken
+	}
+
+	klog.V(2).InfoS("No existing filesystem found", "volumeName", volumeName)
+	return nil, ErrNotFound
 }

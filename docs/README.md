@@ -15,6 +15,8 @@ For installation and deployment instructions, please refer to our [installation 
 ### CSI Specification Compatibility Matrix
 | AWS FSx for Lustre CSI Driver \ CSI Version | v0.3.0 | v1.x.x |
 |---------------------------------------------|--------|--------|
+| v1.6.0                                      | no     | yes    |
+| v1.5.0                                      | no     | yes    |
 | v1.4.0                                      | no     | yes    |
 | v1.3.0                                      | no     | yes    |
 | v1.2.0                                      | no     | yes    |
@@ -48,6 +50,8 @@ The following sections are Kubernetes-specific. If you are a Kubernetes user, us
 ### Kubernetes Version Compatibility Matrix
 | AWS FSx for Lustre CSI Driver \ Kubernetes Version | v1.11 | v1.12 | v1.13 | v1.14-16 | v1.17+ |
 |----------------------------------------------------|-------|-------|-------|----------|--------|
+| v1.6.0                                             | no    | no    | no    | no       | yes    |
+| v1.5.0                                             | no    | no    | no    | no       | yes    |
 | v1.4.0                                             | no    | no    | no    | no       | yes    |
 | v1.3.0                                             | no    | no    | no    | no       | yes    |
 | v1.2.0                                             | no    | no    | no    | no       | yes    |
@@ -72,6 +76,8 @@ The following sections are Kubernetes-specific. If you are a Kubernetes user, us
 ### Container Images
 | FSx CSI Driver Version | Image                                                    |
 |------------------------|----------------------------------------------------------|
+| v1.6.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v1.6.0  |
+| v1.5.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v1.5.0  |
 | v1.4.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v1.4.0  |
 | v1.3.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v1.3.0  |
 | v1.2.0                 | public.ecr.aws/fsx-csi-driver/aws-fsx-csi-driver:v1.2.0  |

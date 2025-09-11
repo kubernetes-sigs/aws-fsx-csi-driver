@@ -29,7 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/fsx/types"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
@@ -94,6 +94,7 @@ func TestCreateVolume(t *testing.T) {
 					DnsName:      dnsName,
 					MountName:    mountName,
 				}
+				mockCloud.EXPECT().FindFileSystemByVolumeName(gomock.Eq(ctx), gomock.Eq(volumeName)).Return(nil, cloud.ErrNotFound)
 				mockCloud.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(fs, nil)
 				mockCloud.EXPECT().WaitForFileSystemAvailable(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(nil)
 
@@ -170,6 +171,7 @@ func TestCreateVolume(t *testing.T) {
 					DnsName:      dnsName,
 					MountName:    mountName,
 				}
+				mockCloud.EXPECT().FindFileSystemByVolumeName(gomock.Eq(ctx), gomock.Eq(volumeName)).Return(nil, cloud.ErrNotFound)
 				mockCloud.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(fs, nil)
 				mockCloud.EXPECT().WaitForFileSystemAvailable(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(nil)
 
@@ -251,6 +253,7 @@ func TestCreateVolume(t *testing.T) {
 					DnsName:      dnsName,
 					MountName:    mountName,
 				}
+				mockCloud.EXPECT().FindFileSystemByVolumeName(gomock.Eq(ctx), gomock.Eq(volumeName)).Return(nil, cloud.ErrNotFound)
 				mockCloud.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(fs, nil)
 				mockCloud.EXPECT().WaitForFileSystemAvailable(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(nil)
 
@@ -335,6 +338,7 @@ func TestCreateVolume(t *testing.T) {
 					DnsName:      dnsName,
 					MountName:    mountName,
 				}
+				mockCloud.EXPECT().FindFileSystemByVolumeName(gomock.Eq(ctx), gomock.Eq(volumeName)).Return(nil, cloud.ErrNotFound)
 				mockCloud.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(fs, nil)
 				mockCloud.EXPECT().WaitForFileSystemAvailable(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(nil)
 
@@ -407,6 +411,7 @@ func TestCreateVolume(t *testing.T) {
 					DnsName:      dnsName,
 					MountName:    mountName,
 				}
+				mockCloud.EXPECT().FindFileSystemByVolumeName(gomock.Eq(ctx), gomock.Eq(volumeName)).Return(nil, cloud.ErrNotFound)
 				mockCloud.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(fs, nil)
 				mockCloud.EXPECT().WaitForFileSystemAvailable(gomock.Eq(ctx), gomock.Eq(fileSystemId)).Return(nil)
 
@@ -473,6 +478,7 @@ func TestCreateVolume(t *testing.T) {
 				}
 
 				ctx := context.Background()
+				mockCloud.EXPECT().FindFileSystemByVolumeName(gomock.Eq(ctx), gomock.Eq(volumeName)).Return(nil, cloud.ErrNotFound)
 				_, err := driver.CreateVolume(ctx, req)
 				if err == nil {
 					t.Fatal("CreateVolume is not failed")
@@ -597,6 +603,7 @@ func TestCreateVolume(t *testing.T) {
 				}
 
 				ctx := context.Background()
+				mockCloud.EXPECT().FindFileSystemByVolumeName(gomock.Eq(ctx), gomock.Eq(volumeName)).Return(nil, cloud.ErrNotFound)
 				mockCloud.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(nil, cloud.ErrFsExistsDiffSize)
 
 				_, err := driver.CreateVolume(ctx, req)
