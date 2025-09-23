@@ -35,6 +35,25 @@ spec:
                 values:
                 - fargate
                 - hybrid
+      initContainers:
+      - name: lustre-client-installer
+        image: amazonlinux:2
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - name: host-root
+            mountPath: /host
+        command:
+          - /bin/sh
+          - -c
+          - |
+            if chroot /host grep -q "Amazon Linux 2023" /etc/os-release; then
+              chroot /host dnf install -y lustre-client
+            elif chroot /host grep -q "Amazon Linux 2" /etc/os-release; then
+              chroot /host amazon-linux-extras install -y lustre
+            else
+              echo "Non-AL based distro, no need to install userspace"
+            fi
       containers:
         - name: fsx-plugin
           securityContext:
@@ -136,3 +155,7 @@ spec:
           hostPath:
             path: /var/lib/kubelet/plugins/fsx.csi.aws.com/
             type: DirectoryOrCreate
+        - name: host-root
+          hostPath:
+            path: /
+            type: Directory
