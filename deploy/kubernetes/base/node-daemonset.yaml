@@ -34,7 +34,6 @@ spec:
                 operator: NotIn
                 values:
                 - fargate
-                - hybrid
       containers:
         - name: fsx-plugin
           securityContext:

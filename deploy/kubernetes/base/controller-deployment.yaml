@@ -142,5 +142,4 @@ spec:
                 operator: NotIn
                 values:
                 - fargate
-                - hybrid
             weight: 1
