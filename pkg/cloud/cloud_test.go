@@ -25,7 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/fsx"
 	"github.com/aws/aws-sdk-go-v2/service/fsx/types"
-	"go.uber.org/mock/gomock"
+	"github.com/golang/mock/gomock"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud/mocks"
 )
 
