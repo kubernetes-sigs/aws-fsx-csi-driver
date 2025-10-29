@@ -21,9 +21,9 @@ import (
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 	v1 "k8s.io/api/core/v1"
 	driverMocks "sigs.k8s.io/aws-fsx-csi-driver/pkg/driver/mocks"
 )

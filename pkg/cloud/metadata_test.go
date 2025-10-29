@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
-	"go.uber.org/mock/gomock"
+	"github.com/golang/mock/gomock"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
