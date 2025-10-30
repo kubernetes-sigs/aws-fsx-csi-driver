@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fsx-app
+spec:
+  initContainers:
+  - name: set-lustre-tunings
+    image: amazonlinux:2023
+    command: 
+      - /bin/sh
+      - -c
+      - |
+        dnf install -y lustre-client | tail
+        /sbin/lctl set_param ldlm.namespaces.*.lru_max_age=600000
+        lru_size=$((100 * $(nproc)))
+        if [ "$lru_size" -lt 1600 ]; then
+          lru_size=1600
+        fi
+        /sbin/lctl set_param ldlm.namespaces.*.lru_size=$lru_size
+        /sbin/lctl set_param llite.*.max_cached_mb=64
+        /sbin/lctl set_param osc.*OST*.max_rpcs_in_flight=32
+        /sbin/lctl set_param mdc.*.max_rpcs_in_flight=64
+        /sbin/lctl set_param mdc.*.max_mod_rpcs_in_flight=50
+    volumeMounts:
+      - name: sys-fs-lustre
+        mountPath: /sys/fs/lustre
+    securityContext:
+      privileged: true
+  containers:
+  - name: app
+    image: amazonlinux:2
+    command: ["/bin/sh"]
+    args: ["-c", "sleep 999999"]
+    volumeMounts:
+    - name: persistent-storage
+      mountPath: /data
+  volumes:
+  - name: persistent-storage
+    persistentVolumeClaim:
+      claimName: fsx-claim
+  - name: sys-fs-lustre
+    hostPath:
+      path: /sys/fs/lustre
+      type: Directory
