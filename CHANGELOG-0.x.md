@@ -1,3 +1,11 @@
+# v1.7.0
+* Bump dependencies for v1.7.0 ([#9f5ebc7f](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/9f5ebc7f), [@Trickybrain](https://github.com/Trickybrain))
+* ensure helm installation directory exists and use correct working directory ([#3e0617be](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/3e0617be), [@Trickybrain](https://github.com/Trickybrain))
+* Add example for EFA configuration ([#cf178598](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/cf178598), [@Kaitlin Hoang](https://github.com/Kaitlin Hoang))
+* Remove hybrid node exclusions ([#35eceaa4](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/35eceaa4), [@Trickybrain](https://github.com/Trickybrain))
+* updating container registry configuration across all containers ([#da9ff6b5](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/da9ff6b5), [@Trickybrain](https://github.com/Trickybrain))
+* Fix instance ID and region for EKS hybrid node ([#5348b080](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/5348b080), [@junpengdev](https://github.com/junpengdev))
+
 # v1.6.0
 * Allow the timeout of the CSI driver to be set ([#fd9e97c0](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/fd9e97c0), [@trickybrain](https://github.com/trickybrain))
 * Add podLabels parameter ([#94da9385](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/94da9385), [@trickybrain](https://github.com/trickybrain))
