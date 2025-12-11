@@ -1,3 +1,8 @@
+# v1.8.0
+* Bump dependencies for v1.8.0 ([#a9c70802](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/a9c70802), [@Trickybrain](https://github.com/Trickybrain))
+* fix: initialize volumeCache in cloud tests to avoid nil map panic ([#b10824ad](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/b10824ad), [@nholguin (aider)](https://github.com/nholguin (aider)))
+* feat: add background FSx filesystem poller and cache ([#a2da25f8](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/a2da25f8), [@nholguin (aider)](https://github.com/nholguin (aider)))
+
 # v1.7.0
 * Bump dependencies for v1.7.0 ([#9f5ebc7f](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/9f5ebc7f), [@Trickybrain](https://github.com/Trickybrain))
 * ensure helm installation directory exists and use correct working directory ([#3e0617be](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/3e0617be), [@Trickybrain](https://github.com/Trickybrain))
