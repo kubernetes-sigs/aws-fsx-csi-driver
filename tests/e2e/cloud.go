@@ -17,6 +17,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -86,10 +87,16 @@ func (c *cloud) createS3Bucket(name string, region string) error {
 
 	ctx := context.Background()
 	_, err := c.s3client.CreateBucket(ctx, request)
-	if err != nil {
-		return err
+	return err
+}
+
+func (c *cloud) isBucketAlreadyExistsError(err error) bool {
+	if err == nil {
+		return false
 	}
-	return nil
+	// Check if error message contains BucketAlreadyExists or BucketAlreadyOwnedByYou
+	errStr := err.Error()
+	return strings.Contains(errStr, "BucketAlreadyExists") || strings.Contains(errStr, "BucketAlreadyOwnedByYou")
 }
 
 func (c *cloud) deleteS3Bucket(name string) error {
