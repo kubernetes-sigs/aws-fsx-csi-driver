@@ -54,6 +54,7 @@ var (
 const (
 	volumeContextDnsName                      = "dnsname"
 	volumeContextMountName                    = "mountname"
+	volumeContextSkipFinalBackup              = "skipFinalBackup"
 	volumeParamsSubnetId                      = "subnetId"
 	volumeParamsSecurityGroupIds              = "securityGroupIds"
 	volumeParamsAutoImportPolicy              = "autoImportPolicy"
@@ -74,6 +75,10 @@ const (
 	volumeParamsEfaEnabled                    = "efaEnabled"
 	volumeParamsMetadataConfigurationMode     = "metadataConfigurationMode"
 	volumeParamsMetadataIops                  = "metadataIops"
+	volumeParamsThroughputCapacity            = "throughputCapacity"
+	volumeParamsDataReadCacheSizingMode       = "dataReadCacheSizingMode"
+	volumeParamsDataReadCacheSizeGiB          = "dataReadCacheSizeGiB"
+	volumeParamsSkipFinalBackup               = "skipFinalBackup"
 )
 
 // controllerService represents the controller service of CSI driver
@@ -117,6 +122,75 @@ func abs(x int64) int64 {
 	return x
 }
 
+// validateIntelligentTieringParams validates parameters for INTELLIGENT_TIERING storage type
+func validateIntelligentTieringParams(params map[string]string) error {
+	// Validate throughputCapacity is present and multiple of 4000
+	throughputCapacityStr, ok := params[volumeParamsThroughputCapacity]
+	if !ok || throughputCapacityStr == "" {
+		return fmt.Errorf("throughputCapacity is required for INTELLIGENT_TIERING storage type")
+	}
+	
+	throughputCapacity, err := strconv.ParseInt(throughputCapacityStr, 10, 32)
+	if err != nil {
+		return fmt.Errorf("throughputCapacity must be a number")
+	}
+	
+	if throughputCapacity <= 0 || throughputCapacity%4000 != 0 {
+		return fmt.Errorf("throughputCapacity must be a multiple of 4000 for INTELLIGENT_TIERING, got: %d", throughputCapacity)
+	}
+	
+	// Validate deploymentType is PERSISTENT_2 or empty
+	if deploymentType, ok := params[volumeParamsDeploymentType]; ok && deploymentType != "" {
+		if deploymentType != "PERSISTENT_2" {
+			return fmt.Errorf("deploymentType must be PERSISTENT_2 for INTELLIGENT_TIERING storage type")
+		}
+	}
+	
+	// Validate metadataIops is 6000 or 12000 if specified
+	if metadataIopsStr, ok := params[volumeParamsMetadataIops]; ok && metadataIopsStr != "" {
+		metadataIops, err := strconv.ParseInt(metadataIopsStr, 10, 32)
+		if err != nil {
+			return fmt.Errorf("metadataIops must be a number")
+		}
+		
+		if metadataIops != 6000 && metadataIops != 12000 {
+			return fmt.Errorf("metadataIops must be 6000 or 12000 for INTELLIGENT_TIERING, got: %d", metadataIops)
+		}
+	}
+	
+	// Validate dataReadCacheSizingMode is valid enum if specified
+	if cacheSizingMode, ok := params[volumeParamsDataReadCacheSizingMode]; ok && cacheSizingMode != "" {
+		validModes := map[string]bool{
+			"NO_CACHE":                              true,
+			"PROPORTIONAL_TO_THROUGHPUT_CAPACITY":   true,
+			"USER_PROVISIONED":                      true,
+		}
+		
+		if !validModes[cacheSizingMode] {
+			return fmt.Errorf("dataReadCacheSizingMode must be one of: NO_CACHE, PROPORTIONAL_TO_THROUGHPUT_CAPACITY, USER_PROVISIONED")
+		}
+		
+		// Validate dataReadCacheSizeGiB >= 32 when USER_PROVISIONED
+		if cacheSizingMode == "USER_PROVISIONED" {
+			cacheSizeStr, ok := params[volumeParamsDataReadCacheSizeGiB]
+			if !ok || cacheSizeStr == "" {
+				return fmt.Errorf("dataReadCacheSizeGiB is required when dataReadCacheSizingMode is USER_PROVISIONED")
+			}
+			
+			cacheSize, err := strconv.ParseInt(cacheSizeStr, 10, 32)
+			if err != nil {
+				return fmt.Errorf("dataReadCacheSizeGiB must be a number")
+			}
+			
+			if cacheSize < 32 {
+				return fmt.Errorf("dataReadCacheSizeGiB must be at least 32 GiB, got: %d", cacheSize)
+			}
+		}
+	}
+	
+	return nil
+}
+
 func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	klog.V(4).InfoS("CreateVolume: called", "args", util.SanitizeRequest(req))
 	volName := req.GetName()
@@ -150,31 +224,36 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		// Filesystem exists, skip creation
 		klog.V(2).InfoS("Found existing filesystem",
 			"volumeName", volName, "fsId", existingFS.FileSystemId)
-		capRange := req.GetCapacityRange()
-		if capRange != nil && capRange.GetRequiredBytes() > 0 {
-			// Calculate what the requested size WOULD BE after rounding
-			volumeParams := req.GetParameters()
-			deploymentType := volumeParams[volumeParamsDeploymentType]
-			storageType := volumeParams[volumeParamsStorageType]
+		
+		volumeParams := req.GetParameters()
+		storageType := volumeParams[volumeParamsStorageType]
+		
+		// For INTELLIGENT_TIERING, skip capacity comparison since AWS manages capacity automatically
+		if storageType != "INTELLIGENT_TIERING" {
+			capRange := req.GetCapacityRange()
+			if capRange != nil && capRange.GetRequiredBytes() > 0 {
+				// Calculate what the requested size WOULD BE after rounding
+				deploymentType := volumeParams[volumeParamsDeploymentType]
 
-			var perUnitThroughput int32 = 0
-			if val, ok := volumeParams[volumeParamsPerUnitStorageThroughput]; ok {
-				n, err := strconv.ParseInt(val, 10, 32)
-				if err == nil {
-					perUnitThroughput = int32(n)
+				var perUnitThroughput int32 = 0
+				if val, ok := volumeParams[volumeParamsPerUnitStorageThroughput]; ok {
+					n, err := strconv.ParseInt(val, 10, 32)
+					if err == nil {
+						perUnitThroughput = int32(n)
+					}
 				}
-			}
 
-			// Round the requested size using the same logic as creation
-			roundedSizeGiB := util.RoundUpVolumeSize(capRange.GetRequiredBytes(), deploymentType, storageType, perUnitThroughput)
-			roundedSizeInt32, err := util.ConvertToInt32(roundedSizeGiB)
-			if err != nil {
-				return nil, status.Errorf(codes.OutOfRange, "Request storage capacity %d GiB is too large", roundedSizeGiB)
-			}
+				// Round the requested size using the same logic as creation
+				roundedSizeGiB := util.RoundUpVolumeSize(capRange.GetRequiredBytes(), deploymentType, storageType, perUnitThroughput)
+				roundedSizeInt32, err := util.ConvertToInt32(roundedSizeGiB)
+				if err != nil {
+					return nil, status.Errorf(codes.OutOfRange, "Request storage capacity %d GiB is too large", roundedSizeGiB)
+				}
 
-			// Compare rounded requested size with existing size
-			if existingFS.CapacityGiB != roundedSizeInt32 {
-				return nil, status.Error(codes.AlreadyExists, cloud.ErrFsExistsDiffSize.Error())
+				// Compare rounded requested size with existing size
+				if existingFS.CapacityGiB != roundedSizeInt32 {
+					return nil, status.Error(codes.AlreadyExists, cloud.ErrFsExistsDiffSize.Error())
+				}
 			}
 		}
 		fs = existingFS
@@ -279,16 +358,74 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 			fsOptions.MetadataIops = int32(n)
 		}
 
-		capRange := req.GetCapacityRange()
-		if capRange == nil {
-			fsOptions.CapacityGiB = cloud.DefaultVolumeSize
-		} else {
-			newSizeInt64 := util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fsOptions.DeploymentType, fsOptions.StorageType, fsOptions.PerUnitStorageThroughput)
-			newSizeGiB, err := util.ConvertToInt32(newSizeInt64)
-			if err != nil {
-				return nil, status.Errorf(codes.OutOfRange, "Request storage capacity %d GiB is too large for integer type", newSizeInt64)
+		// Handle INTELLIGENT_TIERING storage type
+		if fsOptions.StorageType == "INTELLIGENT_TIERING" {
+			// Validate INTELLIGENT_TIERING parameters
+			if err := validateIntelligentTieringParams(volumeParams); err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Invalid INTELLIGENT_TIERING parameters: %v", err)
 			}
-			fsOptions.CapacityGiB = newSizeGiB
+
+			// Apply defaults for INTELLIGENT_TIERING
+			if fsOptions.DeploymentType == "" {
+				fsOptions.DeploymentType = "PERSISTENT_2"
+			}
+
+			// Set metadata configuration mode to USER_PROVISIONED for INTELLIGENT_TIERING
+			// This is required by AWS FSx API when metadata configuration is specified
+			if fsOptions.MetadataConfigurationMode == "" {
+				fsOptions.MetadataConfigurationMode = "USER_PROVISIONED"
+			}
+
+			if fsOptions.MetadataIops == 0 {
+				fsOptions.MetadataIops = 6000
+			}
+
+			// Parse and set throughputCapacity (required for INTELLIGENT_TIERING)
+			if val, ok := volumeParams[volumeParamsThroughputCapacity]; ok {
+				n, err := strconv.ParseInt(val, 10, 64)
+				if err != nil {
+					return nil, status.Error(codes.InvalidArgument, "throughputCapacity must be a number")
+				}
+				fsOptions.ThroughputCapacity = int32(n)
+			}
+
+			// Parse and set dataReadCacheSizingMode (optional, defaults to PROPORTIONAL_TO_THROUGHPUT_CAPACITY)
+			if val, ok := volumeParams[volumeParamsDataReadCacheSizingMode]; ok {
+				fsOptions.DataReadCacheSizingMode = val
+			} else {
+				fsOptions.DataReadCacheSizingMode = "PROPORTIONAL_TO_THROUGHPUT_CAPACITY"
+			}
+
+			// Parse and set dataReadCacheSizeGiB (required only for USER_PROVISIONED mode)
+			if val, ok := volumeParams[volumeParamsDataReadCacheSizeGiB]; ok {
+				n, err := strconv.ParseInt(val, 10, 64)
+				if err != nil {
+					return nil, status.Error(codes.InvalidArgument, "dataReadCacheSizeGiB must be a number")
+				}
+				fsOptions.DataReadCacheSizeGiB = int32(n)
+			}
+
+			// Log warning if storageCapacity is specified (it will be ignored)
+			capRange := req.GetCapacityRange()
+			if capRange != nil && capRange.GetRequiredBytes() > 0 {
+				klog.Warningf("storageCapacity is ignored for INTELLIGENT_TIERING storage type, AWS manages capacity automatically")
+			}
+
+			// Skip setting CapacityGiB for INTELLIGENT_TIERING (AWS manages capacity)
+			fsOptions.CapacityGiB = 0
+		} else {
+			// For non-INTELLIGENT_TIERING storage types, handle capacity normally
+			capRange := req.GetCapacityRange()
+			if capRange == nil {
+				fsOptions.CapacityGiB = cloud.DefaultVolumeSize
+			} else {
+				newSizeInt64 := util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fsOptions.DeploymentType, fsOptions.StorageType, fsOptions.PerUnitStorageThroughput)
+				newSizeGiB, err := util.ConvertToInt32(newSizeInt64)
+				if err != nil {
+					return nil, status.Errorf(codes.OutOfRange, "Request storage capacity %d GiB is too large for integer type", newSizeInt64)
+				}
+				fsOptions.CapacityGiB = newSizeGiB
+			}
 		}
 
 		var tagArray []string
@@ -308,6 +445,15 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		}
 		fsOptions.ExtraTags = tagArray
 
+		// Parse skipFinalBackup parameter (defaults to false for safety)
+		if val, ok := volumeParams[volumeParamsSkipFinalBackup]; ok {
+			b, err := strconv.ParseBool(val)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, "skipFinalBackup must be a bool")
+			}
+			fsOptions.SkipFinalBackup = b
+		}
+
 		fs, err = d.cloud.CreateFileSystem(ctx, volName, fsOptions)
 		if err != nil {
 			switch err {
@@ -322,6 +468,23 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	err = d.cloud.WaitForFileSystemAvailable(ctx, fs.FileSystemId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Filesystem is not ready: %v", err)
+	}
+
+	// For INTELLIGENT_TIERING, AWS doesn't return StorageCapacity, so we need to use the requested capacity
+	// from the PVC to satisfy Kubernetes PV/PVC binding requirements
+	if fs.StorageType == "INTELLIGENT_TIERING" && fs.CapacityGiB == 0 {
+		capRange := req.GetCapacityRange()
+		if capRange != nil && capRange.GetRequiredBytes() > 0 {
+			// Convert the requested bytes to GiB for the response
+			requestedGiB := capRange.GetRequiredBytes() / (1024 * 1024 * 1024)
+			if requestedGiB == 0 {
+				requestedGiB = 1 // Minimum 1 GiB
+			}
+			fs.CapacityGiB = int32(requestedGiB)
+		} else {
+			// Use default if no capacity was requested
+			fs.CapacityGiB = cloud.DefaultVolumeSize
+		}
 	}
 
 	return newCreateVolumeResponse(fs), nil
@@ -522,8 +685,9 @@ func newCreateVolumeResponse(fs *cloud.FileSystem) *csi.CreateVolumeResponse {
 			VolumeId:      fs.FileSystemId,
 			CapacityBytes: util.GiBToBytes(fs.CapacityGiB),
 			VolumeContext: map[string]string{
-				volumeContextDnsName:   fs.DnsName,
-				volumeContextMountName: fs.MountName,
+				volumeContextDnsName:         fs.DnsName,
+				volumeContextMountName:       fs.MountName,
+				volumeContextSkipFinalBackup: strconv.FormatBool(fs.SkipFinalBackup),
 			},
 		},
 	}

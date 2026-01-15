@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
+
+	"github.com/aws/aws-sdk-go-v2/service/fsx/types"
 )
 
 var random *rand.Rand
@@ -113,4 +115,14 @@ func (c *FakeCloudProvider) FindFileSystemByVolumeName(ctx context.Context, volu
 		return fs, nil
 	}
 	return nil, ErrNotFound
+}
+
+func (c *FakeCloudProvider) GetBackupsForFileSystem(ctx context.Context, fileSystemId string) ([]types.Backup, error) {
+	// For fake implementation, return empty list
+	return []types.Backup{}, nil
+}
+
+func (c *FakeCloudProvider) DeleteBackup(ctx context.Context, backupId string) error {
+	// For fake implementation, do nothing
+	return nil
 }

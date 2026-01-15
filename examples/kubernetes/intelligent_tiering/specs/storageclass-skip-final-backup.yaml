@@ -1,0 +1,16 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: fsx-sc-intelligent-tiering-test
+provisioner: fsx.csi.aws.com
+parameters:
+  subnetId: subnet-0eabfaa81fb22bcaf
+  securityGroupIds: sg-068000ccf82dfba88
+  storageType: INTELLIGENT_TIERING
+  throughputCapacity: "4000"
+  skipFinalBackup: "true"  # Skip final backup on deletion for faster cleanup (useful for testing)
+  # Optional: deploymentType is automatically set to PERSISTENT_2
+  # Optional: metadataIops defaults to 6000
+  # Optional: dataReadCacheSizingMode defaults to PROPORTIONAL_TO_THROUGHPUT_CAPACITY
+mountOptions:
+  - flock
