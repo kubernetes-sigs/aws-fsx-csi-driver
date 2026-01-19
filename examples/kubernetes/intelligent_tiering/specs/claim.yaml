@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fsx-claim-intelligent-tiering
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: fsx-sc-intelligent-tiering
+  resources:
+    requests:
+      storage: 1200Gi

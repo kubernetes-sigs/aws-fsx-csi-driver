@@ -1,0 +1,15 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: fsx-sc-intelligent-tiering-high-metadata
+provisioner: fsx.csi.aws.com
+parameters:
+  subnetId: subnet-0eabfaa81fb22bcaf
+  securityGroupIds: sg-068000ccf82dfba88
+  storageType: INTELLIGENT_TIERING
+  throughputCapacity: "8000"
+  metadataIops: "12000"
+  # High metadata IOPS configuration for metadata-intensive workloads
+  # Use this for workloads with many small files or frequent directory operations
+mountOptions:
+  - flock

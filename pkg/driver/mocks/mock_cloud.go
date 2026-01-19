@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	types "github.com/aws/aws-sdk-go-v2/service/fsx/types"
 	gomock "go.uber.org/mock/gomock"
 	cloud "sigs.k8s.io/aws-fsx-csi-driver/pkg/cloud"
 )
@@ -54,6 +55,20 @@ func (m *MockCloud) CreateFileSystem(ctx context.Context, volumeName string, fil
 func (mr *MockCloudMockRecorder) CreateFileSystem(ctx, volumeName, fileSystemOptions any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFileSystem", reflect.TypeOf((*MockCloud)(nil).CreateFileSystem), ctx, volumeName, fileSystemOptions)
+}
+
+// DeleteBackup mocks base method.
+func (m *MockCloud) DeleteBackup(ctx context.Context, backupId string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteBackup", ctx, backupId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteBackup indicates an expected call of DeleteBackup.
+func (mr *MockCloudMockRecorder) DeleteBackup(ctx, backupId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBackup", reflect.TypeOf((*MockCloud)(nil).DeleteBackup), ctx, backupId)
 }
 
 // DeleteFileSystem mocks base method.
@@ -98,6 +113,21 @@ func (m *MockCloud) FindFileSystemByVolumeName(ctx context.Context, volumeName s
 func (mr *MockCloudMockRecorder) FindFileSystemByVolumeName(ctx, volumeName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindFileSystemByVolumeName", reflect.TypeOf((*MockCloud)(nil).FindFileSystemByVolumeName), ctx, volumeName)
+}
+
+// GetBackupsForFileSystem mocks base method.
+func (m *MockCloud) GetBackupsForFileSystem(ctx context.Context, fileSystemId string) ([]types.Backup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBackupsForFileSystem", ctx, fileSystemId)
+	ret0, _ := ret[0].([]types.Backup)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBackupsForFileSystem indicates an expected call of GetBackupsForFileSystem.
+func (mr *MockCloudMockRecorder) GetBackupsForFileSystem(ctx, fileSystemId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBackupsForFileSystem", reflect.TypeOf((*MockCloud)(nil).GetBackupsForFileSystem), ctx, fileSystemId)
 }
 
 // ResizeFileSystem mocks base method.

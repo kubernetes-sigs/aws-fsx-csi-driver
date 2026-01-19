@@ -1,0 +1,15 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: fsx-sc-intelligent-tiering-no-cache
+provisioner: fsx.csi.aws.com
+parameters:
+  subnetId: subnet-0eabfaa81fb22bcaf
+  securityGroupIds: sg-068000ccf82dfba88
+  storageType: INTELLIGENT_TIERING
+  throughputCapacity: "4000"
+  dataReadCacheSizingMode: NO_CACHE
+  # No SSD cache configuration for cost optimization
+  # Suitable for write-heavy workloads that don't benefit from read caching
+mountOptions:
+  - flock

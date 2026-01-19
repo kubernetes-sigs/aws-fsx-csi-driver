@@ -61,6 +61,26 @@ func (mr *MockFSxMockRecorder) CreateFileSystem(arg0, arg1 any, arg2 ...any) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFileSystem", reflect.TypeOf((*MockFSx)(nil).CreateFileSystem), varargs...)
 }
 
+// DeleteBackup mocks base method.
+func (m *MockFSx) DeleteBackup(arg0 context.Context, arg1 *fsx.DeleteBackupInput, arg2 ...func(*fsx.Options)) (*fsx.DeleteBackupOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteBackup", varargs...)
+	ret0, _ := ret[0].(*fsx.DeleteBackupOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteBackup indicates an expected call of DeleteBackup.
+func (mr *MockFSxMockRecorder) DeleteBackup(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBackup", reflect.TypeOf((*MockFSx)(nil).DeleteBackup), varargs...)
+}
+
 // DeleteFileSystem mocks base method.
 func (m *MockFSx) DeleteFileSystem(arg0 context.Context, arg1 *fsx.DeleteFileSystemInput, arg2 ...func(*fsx.Options)) (*fsx.DeleteFileSystemOutput, error) {
 	m.ctrl.T.Helper()
@@ -79,6 +99,26 @@ func (mr *MockFSxMockRecorder) DeleteFileSystem(arg0, arg1 any, arg2 ...any) *go
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFileSystem", reflect.TypeOf((*MockFSx)(nil).DeleteFileSystem), varargs...)
+}
+
+// DescribeBackups mocks base method.
+func (m *MockFSx) DescribeBackups(arg0 context.Context, arg1 *fsx.DescribeBackupsInput, arg2 ...func(*fsx.Options)) (*fsx.DescribeBackupsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeBackups", varargs...)
+	ret0, _ := ret[0].(*fsx.DescribeBackupsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeBackups indicates an expected call of DescribeBackups.
+func (mr *MockFSxMockRecorder) DescribeBackups(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeBackups", reflect.TypeOf((*MockFSx)(nil).DescribeBackups), varargs...)
 }
 
 // DescribeFileSystems mocks base method.
