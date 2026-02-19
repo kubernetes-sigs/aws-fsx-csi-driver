@@ -151,6 +151,7 @@ node:
   mode: node
   loggingFormat: text
   logLevel: 2
+  kubeletPath: /var/lib/kubelet
   nodeSelector: {}
   updateStrategy: {}
   #If you do want to specify resources, uncomment the following lines, adjust them as necessary,
