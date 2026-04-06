@@ -1,3 +1,10 @@
+# v1.9.0
+* Bump up Chart Version ([#8ab53c91](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/8ab53c91), [@Trickybrain](https://github.com/Trickybrain))
+* Bump up kubeVersion ([#961b67cf](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/961b67cf), [@Trickybrain](https://github.com/Trickybrain))
+* Update ECR Repo ([#b398dd43](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/b398dd43), [@Trickybrain](https://github.com/Trickybrain))
+* Configurable kubeletPath for fsx-csi-node DaemonSet ([#43d67995](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/43d67995), [@vardaro](https://github.com/vardaro))
+* Updating the go version and its dependency ([#ea19fdaf](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/ea19fdaf), [@Trickybrain](https://github.com/Trickybrain))
+
 # v1.8.0
 * Bump dependencies for v1.8.0 ([#a9c70802](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/a9c70802), [@Trickybrain](https://github.com/Trickybrain))
 * fix: initialize volumeCache in cloud tests to avoid nil map panic ([#b10824ad](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/b10824ad), [@nholguin (aider)](https://github.com/nholguin (aider)))
