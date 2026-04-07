@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -54,6 +55,8 @@ const (
 const (
 	// VolumeNameTagKey is the key value that refers to the volume's name.
 	VolumeNameTagKey = "CSIVolumeName"
+	// SkipFinalBackupTagKey is the key value that indicates whether to skip final backup on deletion.
+	SkipFinalBackupTagKey = "CSISkipFinalBackup"
 )
 
 // Set during build time via -ldflags
@@ -81,6 +84,7 @@ type FileSystem struct {
 	StorageType              string
 	DeploymentType           string
 	PerUnitStorageThroughput int32
+	SkipFinalBackup          bool
 }
 
 // FileSystemOptions represents the options to create FSx for Lustre filesystem
@@ -106,6 +110,10 @@ type FileSystemOptions struct {
 	EfaEnabled                    bool
 	MetadataConfigurationMode     string
 	MetadataIops                  int32
+	ThroughputCapacity            int32
+	DataReadCacheSizingMode       string
+	DataReadCacheSizeGiB          int32
+	SkipFinalBackup               bool
 }
 
 // FSx abstracts FSx client to facilitate its mocking.
@@ -114,6 +122,8 @@ type FSx interface {
 	UpdateFileSystem(context.Context, *fsx.UpdateFileSystemInput, ...func(*fsx.Options)) (*fsx.UpdateFileSystemOutput, error)
 	DeleteFileSystem(context.Context, *fsx.DeleteFileSystemInput, ...func(*fsx.Options)) (*fsx.DeleteFileSystemOutput, error)
 	DescribeFileSystems(context.Context, *fsx.DescribeFileSystemsInput, ...func(*fsx.Options)) (*fsx.DescribeFileSystemsOutput, error)
+	DescribeBackups(context.Context, *fsx.DescribeBackupsInput, ...func(*fsx.Options)) (*fsx.DescribeBackupsOutput, error)
+	DeleteBackup(context.Context, *fsx.DeleteBackupInput, ...func(*fsx.Options)) (*fsx.DeleteBackupOutput, error)
 }
 
 type Cloud interface {
@@ -124,8 +134,9 @@ type Cloud interface {
 	WaitForFileSystemAvailable(ctx context.Context, fileSystemId string) error
 	WaitForFileSystemResize(ctx context.Context, fileSystemId string, resizeGiB int32) error
 	FindFileSystemByVolumeName(ctx context.Context, volumeName string) (*FileSystem, error)
+	GetBackupsForFileSystem(ctx context.Context, fileSystemId string) ([]types.Backup, error)
+	DeleteBackup(ctx context.Context, backupId string) error
 }
-
 type cloud struct {
 	region      string
 	fsx         FSx
@@ -217,10 +228,27 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		}
 		lustreConfiguration.MetadataConfiguration = metadataConfiguration
 	}
+
+	if fileSystemOptions.ThroughputCapacity != 0 {
+		lustreConfiguration.ThroughputCapacity = aws.Int32(fileSystemOptions.ThroughputCapacity)
+	}
+
+	if fileSystemOptions.DataReadCacheSizingMode != "" {
+		dataReadCacheConfiguration := &types.LustreReadCacheConfiguration{}
+		dataReadCacheConfiguration.SizingMode = types.LustreReadCacheSizingMode(fileSystemOptions.DataReadCacheSizingMode)
+		if fileSystemOptions.DataReadCacheSizeGiB != 0 {
+			dataReadCacheConfiguration.SizeGiB = aws.Int32(fileSystemOptions.DataReadCacheSizeGiB)
+		}
+		lustreConfiguration.DataReadCacheConfiguration = dataReadCacheConfiguration
+	}
 	var tags = []types.Tag{
 		{
 			Key:   aws.String(VolumeNameTagKey),
 			Value: aws.String(volumeName),
+		},
+		{
+			Key:   aws.String(SkipFinalBackupTagKey),
+			Value: aws.String(strconv.FormatBool(fileSystemOptions.SkipFinalBackup)),
 		},
 	}
 
@@ -239,10 +267,14 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		ClientRequestToken:  aws.String(volumeName),
 		FileSystemType:      "LUSTRE",
 		LustreConfiguration: lustreConfiguration,
-		StorageCapacity:     aws.Int32(fileSystemOptions.CapacityGiB),
 		SubnetIds:           []string{fileSystemOptions.SubnetId},
 		SecurityGroupIds:    fileSystemOptions.SecurityGroupIds,
 		Tags:                tags,
+	}
+
+	// Only set StorageCapacity if not INTELLIGENT_TIERING
+	if fileSystemOptions.StorageType != "INTELLIGENT_TIERING" {
+		input.StorageCapacity = aws.Int32(fileSystemOptions.CapacityGiB)
 	}
 
 	if fileSystemOptions.FileSystemTypeVersion != "" {
@@ -261,23 +293,33 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 	}
 
 	mountName := "fsx"
-	if output.FileSystem.LustreConfiguration.MountName != nil {
-		mountName = *output.FileSystem.LustreConfiguration.MountName
+	perUnitStorageThroughput := int32(0)
+	deploymentType := ""
+	capacityGiB := int32(0)
+
+	if output.FileSystem.LustreConfiguration != nil {
+		if output.FileSystem.LustreConfiguration.MountName != nil {
+			mountName = *output.FileSystem.LustreConfiguration.MountName
+		}
+		if output.FileSystem.LustreConfiguration.PerUnitStorageThroughput != nil {
+			perUnitStorageThroughput = *output.FileSystem.LustreConfiguration.PerUnitStorageThroughput
+		}
+		deploymentType = string(output.FileSystem.LustreConfiguration.DeploymentType)
 	}
 
-	perUnitStorageThroughput := int32(0)
-	if output.FileSystem.LustreConfiguration.PerUnitStorageThroughput != nil {
-		perUnitStorageThroughput = *output.FileSystem.LustreConfiguration.PerUnitStorageThroughput
+	if output.FileSystem.StorageCapacity != nil {
+		capacityGiB = *output.FileSystem.StorageCapacity
 	}
 
 	fs = &FileSystem{
 		FileSystemId:             *output.FileSystem.FileSystemId,
-		CapacityGiB:              *output.FileSystem.StorageCapacity,
+		CapacityGiB:              capacityGiB,
 		DnsName:                  *output.FileSystem.DNSName,
 		MountName:                mountName,
 		StorageType:              string(output.FileSystem.StorageType),
-		DeploymentType:           string(output.FileSystem.LustreConfiguration.DeploymentType),
+		DeploymentType:           deploymentType,
 		PerUnitStorageThroughput: perUnitStorageThroughput,
+		SkipFinalBackup:          fileSystemOptions.SkipFinalBackup,
 	}
 
 	c.cacheMutex.Lock()
@@ -319,9 +361,35 @@ func (c *cloud) ResizeFileSystem(ctx context.Context, fileSystemId string, newSi
 }
 
 func (c *cloud) DeleteFileSystem(ctx context.Context, fileSystemId string) (err error) {
+	// Always check the filesystem tags to determine if we should skip final backup
+	skipFinalBackup := false
+	fs, describeErr := c.getFileSystem(ctx, fileSystemId)
+	if describeErr == nil {
+		// Check for the skipFinalBackup tag
+		for _, tag := range fs.Tags {
+			if tag.Key != nil && *tag.Key == SkipFinalBackupTagKey {
+				if tag.Value != nil {
+					if parsed, err := strconv.ParseBool(*tag.Value); err == nil {
+						skipFinalBackup = parsed
+						break
+					}
+				}
+			}
+		}
+	}
+	
 	input := &fsx.DeleteFileSystemInput{
 		FileSystemId: aws.String(fileSystemId),
 	}
+	
+	// Apply skipFinalBackup if the tag indicates it
+	if skipFinalBackup {
+		input.LustreConfiguration = &types.DeleteFileSystemLustreConfiguration{
+			SkipFinalBackup: aws.Bool(true),
+		}
+		klog.V(4).InfoS("DeleteFileSystem: skipping final backup", "fileSystemId", fileSystemId)
+	}
+	
 	if _, err = c.fsx.DeleteFileSystem(ctx, input); err != nil {
 		if isFileSystemNotFound(err) {
 			return ErrNotFound
@@ -349,22 +417,31 @@ func (c *cloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (*F
 	}
 
 	mountName := "fsx"
-	if fs.LustreConfiguration.MountName != nil {
-		mountName = *fs.LustreConfiguration.MountName
+	perUnitStorageThroughput := int32(0)
+	deploymentType := ""
+	capacityGiB := int32(0)
+
+	if fs.LustreConfiguration != nil {
+		if fs.LustreConfiguration.MountName != nil {
+			mountName = *fs.LustreConfiguration.MountName
+		}
+		if fs.LustreConfiguration.PerUnitStorageThroughput != nil {
+			perUnitStorageThroughput = *fs.LustreConfiguration.PerUnitStorageThroughput
+		}
+		deploymentType = string(fs.LustreConfiguration.DeploymentType)
 	}
 
-	perUnitStorageThroughput := int32(0)
-	if fs.LustreConfiguration.PerUnitStorageThroughput != nil {
-		perUnitStorageThroughput = *fs.LustreConfiguration.PerUnitStorageThroughput
+	if fs.StorageCapacity != nil {
+		capacityGiB = *fs.StorageCapacity
 	}
 
 	return &FileSystem{
 		FileSystemId:             *fs.FileSystemId,
-		CapacityGiB:              *fs.StorageCapacity,
+		CapacityGiB:              capacityGiB,
 		DnsName:                  *fs.DNSName,
 		MountName:                mountName,
 		StorageType:              string(fs.StorageType),
-		DeploymentType:           string(fs.LustreConfiguration.DeploymentType),
+		DeploymentType:           deploymentType,
 		PerUnitStorageThroughput: perUnitStorageThroughput,
 	}, nil
 }
@@ -522,22 +599,37 @@ func (c *cloud) pollFileSystems() {
 
 				if volumeName != "" {
 					mountName := "fsx"
-					if fs.LustreConfiguration.MountName != nil {
-						mountName = *fs.LustreConfiguration.MountName
+					perUnitStorageThroughput := int32(0)
+					deploymentType := ""
+					capacityGiB := int32(0)
+
+					if fs.LustreConfiguration != nil {
+						if fs.LustreConfiguration.MountName != nil {
+							mountName = *fs.LustreConfiguration.MountName
+						}
+						if fs.LustreConfiguration.PerUnitStorageThroughput != nil {
+							perUnitStorageThroughput = *fs.LustreConfiguration.PerUnitStorageThroughput
+						}
+						deploymentType = string(fs.LustreConfiguration.DeploymentType)
 					}
 
-					perUnitStorageThroughput := int32(0)
-					if fs.LustreConfiguration.PerUnitStorageThroughput != nil {
-						perUnitStorageThroughput = *fs.LustreConfiguration.PerUnitStorageThroughput
+					if fs.StorageCapacity != nil {
+						capacityGiB = *fs.StorageCapacity
+					}
+
+					// Skip filesystems with missing required fields
+					if fs.FileSystemId == nil || fs.DNSName == nil {
+						klog.V(4).InfoS("pollFileSystems: skipping filesystem with missing required fields", "volumeName", volumeName)
+						continue
 					}
 
 					newCache[volumeName] = &FileSystem{
 						FileSystemId:             *fs.FileSystemId,
-						CapacityGiB:              *fs.StorageCapacity,
+						CapacityGiB:              capacityGiB,
 						DnsName:                  *fs.DNSName,
 						MountName:                mountName,
 						StorageType:              string(fs.StorageType),
-						DeploymentType:           string(fs.LustreConfiguration.DeploymentType),
+						DeploymentType:           deploymentType,
 						PerUnitStorageThroughput: perUnitStorageThroughput,
 					}
 				}
@@ -556,4 +648,39 @@ func (c *cloud) pollFileSystems() {
 
 		time.Sleep(CachePollInterval)
 	}
+}
+
+
+// GetBackupsForFileSystem retrieves all backups for a specific filesystem
+func (c *cloud) GetBackupsForFileSystem(ctx context.Context, fileSystemId string) ([]types.Backup, error) {
+	input := &fsx.DescribeBackupsInput{
+		Filters: []types.Filter{
+			{
+				Name:   types.FilterNameFileSystemId,
+				Values: []string{fileSystemId},
+			},
+		},
+	}
+
+	output, err := c.fsx.DescribeBackups(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("DescribeBackups failed: %v", err)
+	}
+
+	return output.Backups, nil
+}
+
+// DeleteBackup deletes a backup by its ID
+func (c *cloud) DeleteBackup(ctx context.Context, backupId string) error {
+	input := &fsx.DeleteBackupInput{
+		BackupId: aws.String(backupId),
+	}
+
+	_, err := c.fsx.DeleteBackup(ctx, input)
+	if err != nil {
+		return fmt.Errorf("DeleteBackup failed: %v", err)
+	}
+
+	klog.V(4).InfoS("DeleteBackup: backup deleted", "backupId", backupId)
+	return nil
 }

@@ -1043,9 +1043,32 @@ func TestDeleteFileSystem(t *testing.T) {
 					volumeCache: make(map[string]*FileSystem),
 				}
 
-				output := &fsx.DeleteFileSystemOutput{}
 				ctx := context.Background()
-				mockFSx.EXPECT().DeleteFileSystem(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				
+				// Mock DescribeFileSystems to return a non-INTELLIGENT_TIERING filesystem without skipFinalBackup tag
+				describeOutput := &fsx.DescribeFileSystemsOutput{
+					FileSystems: []types.FileSystem{
+						{
+							FileSystemId: aws.String(fileSystemId),
+							StorageType:  types.StorageTypeSsd,
+							DNSName:      aws.String("test.fsx.us-west-2.amazonaws.com"),
+							Lifecycle:    types.FileSystemLifecycleAvailable,
+							Tags:         []types.Tag{},
+						},
+					},
+				}
+				mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(describeOutput, nil)
+				
+				output := &fsx.DeleteFileSystemOutput{}
+				mockFSx.EXPECT().DeleteFileSystem(gomock.Eq(ctx), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, input *fsx.DeleteFileSystemInput, opts ...func(*fsx.Options)) (*fsx.DeleteFileSystemOutput, error) {
+						// Should not set LustreConfiguration when skipFinalBackup is false
+						if input.LustreConfiguration != nil {
+							t.Error("LustreConfiguration should not be set when skipFinalBackup is false")
+						}
+						return output, nil
+					},
+				).Return(output, nil)
 				err := c.DeleteFileSystem(ctx, fileSystemId)
 				if err != nil {
 					t.Fatalf("DeleteFileSystem is failed: %v", err)
@@ -1065,10 +1088,112 @@ func TestDeleteFileSystem(t *testing.T) {
 				}
 
 				ctx := context.Background()
+				
+				// Mock DescribeFileSystems to return a non-INTELLIGENT_TIERING filesystem
+				describeOutput := &fsx.DescribeFileSystemsOutput{
+					FileSystems: []types.FileSystem{
+						{
+							FileSystemId: aws.String(fileSystemId),
+							StorageType:  types.StorageTypeSsd,
+							DNSName:      aws.String("test.fsx.us-west-2.amazonaws.com"),
+							Lifecycle:    types.FileSystemLifecycleAvailable,
+							Tags:         []types.Tag{},
+						},
+					},
+				}
+				mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(describeOutput, nil)
+				
 				mockFSx.EXPECT().DeleteFileSystem(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("DeleteFileSystemWithContext failed"))
 				err := c.DeleteFileSystem(ctx, fileSystemId)
 				if err == nil {
 					t.Fatal("DeleteFileSystem is not failed")
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "success: skipFinalBackup from tag",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx:         mockFSx,
+					volumeCache: make(map[string]*FileSystem),
+				}
+
+				ctx := context.Background()
+				
+				// Mock DescribeFileSystems to return filesystem with skipFinalBackup tag set to true
+				describeOutput := &fsx.DescribeFileSystemsOutput{
+					FileSystems: []types.FileSystem{
+						{
+							FileSystemId: aws.String(fileSystemId),
+							StorageType:  types.StorageTypeIntelligentTiering,
+							DNSName:      aws.String("test.fsx.us-west-2.amazonaws.com"),
+							Lifecycle:    types.FileSystemLifecycleAvailable,
+							Tags: []types.Tag{
+								{
+									Key:   aws.String(SkipFinalBackupTagKey),
+									Value: aws.String("true"),
+								},
+							},
+						},
+					},
+				}
+				mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(describeOutput, nil)
+				
+				// Mock DeleteFileSystem and verify SkipFinalBackup is set based on tag
+				deleteOutput := &fsx.DeleteFileSystemOutput{}
+				mockFSx.EXPECT().DeleteFileSystem(gomock.Eq(ctx), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, input *fsx.DeleteFileSystemInput, opts ...func(*fsx.Options)) (*fsx.DeleteFileSystemOutput, error) {
+						if input.LustreConfiguration == nil {
+							t.Error("LustreConfiguration should be set when tag indicates skipFinalBackup")
+						} else if input.LustreConfiguration.SkipFinalBackup == nil || !*input.LustreConfiguration.SkipFinalBackup {
+							t.Error("SkipFinalBackup should be true when tag is set to true")
+						}
+						return deleteOutput, nil
+					},
+				).Return(deleteOutput, nil)
+				
+				err := c.DeleteFileSystem(ctx, fileSystemId)
+				if err != nil {
+					t.Fatalf("DeleteFileSystem failed: %v", err)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "success: DescribeFileSystems fails but deletion proceeds",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockFSx := mocks.NewMockFSx(mockCtl)
+				c := &cloud{
+					fsx:         mockFSx,
+					volumeCache: make(map[string]*FileSystem),
+				}
+
+				ctx := context.Background()
+				
+				// Mock DescribeFileSystems to fail
+				mockFSx.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("DescribeFileSystems failed"))
+				
+				// Mock DeleteFileSystem - should still be called without SkipFinalBackup
+				deleteOutput := &fsx.DeleteFileSystemOutput{}
+				mockFSx.EXPECT().DeleteFileSystem(gomock.Eq(ctx), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, input *fsx.DeleteFileSystemInput, opts ...func(*fsx.Options)) (*fsx.DeleteFileSystemOutput, error) {
+						// When describe fails, we should not set LustreConfiguration
+						if input.LustreConfiguration != nil {
+							t.Error("LustreConfiguration should not be set when DescribeFileSystems fails")
+						}
+						return deleteOutput, nil
+					},
+				).Return(deleteOutput, nil)
+				
+				err := c.DeleteFileSystem(ctx, fileSystemId)
+				if err != nil {
+					t.Fatalf("DeleteFileSystem failed: %v", err)
 				}
 
 				mockCtl.Finish()
@@ -1670,6 +1795,118 @@ func TestWaitForFileSystemResize(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, tc.testFunc)
+	}
+}
+
+// Feature: intelligent-tiering, Property 6: Storage Capacity Exclusion
+// For any INTELLIGENT_TIERING filesystem creation request, the driver SHALL NOT include
+// StorageCapacity in the AWS API request, regardless of whether a storage capacity was
+// specified in the PVC.
+// Validates: Requirements 1.3, 5.2
+func TestCreateFileSystem_IntelligentTiering_StorageCapacityExclusion(t *testing.T) {
+	var (
+		volumeName       = "volumeName"
+		fileSystemId     = "fs-1234"
+		subnetId         = "subnet-056da83524edbe641"
+		securityGroupIds = []string{"sg-086f61ea73388fb6b"}
+		dnsname          = "test.fsx.us-west-2.amazoawd.com"
+		mountName        = "fsx"
+	)
+
+	testCases := []struct {
+		name              string
+		capacityGiB       int32
+		expectCapacitySet bool
+	}{
+		{
+			name:              "INTELLIGENT_TIERING with zero capacity",
+			capacityGiB:       0,
+			expectCapacitySet: false,
+		},
+		{
+			name:              "INTELLIGENT_TIERING with 1200 GiB capacity",
+			capacityGiB:       1200,
+			expectCapacitySet: false,
+		},
+		{
+			name:              "INTELLIGENT_TIERING with 4800 GiB capacity",
+			capacityGiB:       4800,
+			expectCapacitySet: false,
+		},
+		{
+			name:              "INTELLIGENT_TIERING with 10000 GiB capacity",
+			capacityGiB:       10000,
+			expectCapacitySet: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtl := gomock.NewController(t)
+			defer mockCtl.Finish()
+
+			mockFSx := mocks.NewMockFSx(mockCtl)
+			c := &cloud{
+				fsx:         mockFSx,
+				volumeCache: make(map[string]*FileSystem),
+			}
+
+			req := &FileSystemOptions{
+				CapacityGiB:            tc.capacityGiB,
+				SubnetId:               subnetId,
+				SecurityGroupIds:       securityGroupIds,
+				StorageType:            "INTELLIGENT_TIERING",
+				DeploymentType:         string(types.LustreDeploymentTypePersistent2),
+				ThroughputCapacity:     4000,
+				DataReadCacheSizingMode: "PROPORTIONAL_TO_THROUGHPUT_CAPACITY",
+			}
+
+			output := &fsx.CreateFileSystemOutput{
+				FileSystem: &types.FileSystem{
+					FileSystemId:    aws.String(fileSystemId),
+					StorageType:     types.StorageTypeIntelligentTiering,
+					StorageCapacity: aws.Int32(1200), // AWS returns a capacity even for INTELLIGENT_TIERING
+					DNSName:         aws.String(dnsname),
+					LustreConfiguration: &types.LustreFileSystemConfiguration{
+						DeploymentType:     types.LustreDeploymentTypePersistent2,
+						MountName:          aws.String(mountName),
+						ThroughputCapacity: aws.Int32(4000),
+					},
+				},
+			}
+
+			ctx := context.Background()
+
+			// Capture the input to verify StorageCapacity is not set
+			mockFSx.EXPECT().CreateFileSystem(gomock.Eq(ctx), gomock.Any()).DoAndReturn(
+				func(ctx context.Context, input *fsx.CreateFileSystemInput, opts ...func(*fsx.Options)) (*fsx.CreateFileSystemOutput, error) {
+					// Property validation: StorageCapacity must NOT be set for INTELLIGENT_TIERING
+					if input.StorageCapacity != nil {
+						t.Errorf("StorageCapacity should not be set for INTELLIGENT_TIERING, but got: %d", *input.StorageCapacity)
+					}
+
+					// Verify INTELLIGENT_TIERING storage type is set
+					if input.StorageType != types.StorageTypeIntelligentTiering {
+						t.Errorf("StorageType should be INTELLIGENT_TIERING, but got: %v", input.StorageType)
+					}
+
+					return output, nil
+				},
+			)
+
+			resp, err := c.CreateFileSystem(ctx, volumeName, req)
+			if err != nil {
+				t.Fatalf("CreateFileSystem failed: %v", err)
+			}
+
+			if resp == nil {
+				t.Fatal("resp is nil")
+			}
+
+			if resp.FileSystemId != fileSystemId {
+				t.Fatalf("FileSystemId mismatch. actual: %v expected: %v", resp.FileSystemId, fileSystemId)
+			}
+		})
 	}
 }
 
