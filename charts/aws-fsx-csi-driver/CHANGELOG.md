@@ -1,5 +1,8 @@
 # Helm chart
 
+# v1.17.0
+* Use driver image 1.9.0
+
 # v1.15.0
 * Use driver image 1.8.0
 
