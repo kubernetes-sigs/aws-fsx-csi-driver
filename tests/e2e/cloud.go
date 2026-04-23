@@ -50,11 +50,35 @@ func NewCloud(region string) *cloud {
 }
 
 func (c *cloud) getNodeInstance(clusterName string) (*ec2types.Instance, error) {
+	
+	// Try kops tag
+	instances, err := c.getInstancesByTag("tag:KubernetesCluster", clusterName)
+	if err != nil {
+		fmt.Printf("error querying kops tag: %v\n", err)
+	}
+	if err == nil && len(instances) > 0 {
+		return &instances[0], nil
+	}
+
+	// Try eks tag
+	instances, err = c.getInstancesByTag("tag:eks:cluster-name", clusterName)
+	if err != nil {
+		fmt.Printf("error querying eks tag: %v\n", err)
+	}
+	if err == nil && len(instances) > 0 {
+		return &instances[0], nil
+	}
+
+	return nil, fmt.Errorf("no instances in cluster %q found", clusterName)
+}
+
+func (c *cloud) getInstancesByTag(tagName string, tagValue string) ([]ec2types.Instance, error) {
+	
 	request := &ec2.DescribeInstancesInput{
 		Filters: []ec2types.Filter{
 			{
-				Name:   aws.String("tag:KubernetesCluster"),
-				Values: []string{clusterName},
+				Name:   aws.String(tagName),
+				Values: []string{tagValue},
 			},
 		},
 	}
@@ -69,11 +93,7 @@ func (c *cloud) getNodeInstance(clusterName string) (*ec2types.Instance, error) 
 		instances = append(instances, reservation.Instances...)
 	}
 
-	if len(instances) == 0 {
-		return nil, fmt.Errorf("no instances in cluster %q found", clusterName)
-	}
-
-	return &instances[0], nil
+	return instances, nil
 }
 
 func (c *cloud) createS3Bucket(name string, region string) error {
