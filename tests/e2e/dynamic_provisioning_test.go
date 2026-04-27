@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	"k8s.io/api/core/v1"
@@ -138,9 +139,17 @@ var _ = Describe("[fsx-csi-e2e] Dynamic Provisioning with s3 data repository", f
 		securityGroupIds = getSecurityGroupIds(instance)
 		subnetId = *instance.SubnetId
 
+		// Try old naming scheme first for backwards compatibility
 		bucketName = fmt.Sprintf("fsx-e2e-%s", ns.Name)
-		fmt.Println("name: " + bucketName)
+		fmt.Println("attempting to create bucket: " + bucketName)
 		err = cloud.createS3Bucket(bucketName, *region)
+		if err != nil && cloud.isBucketAlreadyExistsError(err) {
+			// If bucket already exists globally, add timestamp for uniqueness
+			timestamp := fmt.Sprintf("%d", time.Now().Unix())
+			bucketName = fmt.Sprintf("fsx-e2e-%s-%s", ns.Name, timestamp)
+			fmt.Println("bucket exists, trying with timestamp: " + bucketName)
+			err = cloud.createS3Bucket(bucketName, *region)
+		}
 		if err != nil {
 			Fail(fmt.Sprintf("failed to create s3 bucket %v", err))
 		}
