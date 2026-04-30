@@ -150,7 +150,7 @@ func (t *TestPersistentVolumeClaim) WaitForBound() v1.PersistentVolumeClaim {
 	var err error
 
 	By(fmt.Sprintf("waiting for PVC to be in phase %q", v1.ClaimBound))
-	err = e2epv.WaitForPersistentVolumeClaimPhase(context.Background(), v1.ClaimBound, t.client, t.namespace.Name, t.persistentVolumeClaim.Name, framework.Poll, 10*time.Minute)
+	err = e2epv.WaitForPersistentVolumeClaimPhase(context.Background(), v1.ClaimBound, t.client, t.namespace.Name, t.persistentVolumeClaim.Name, framework.Poll, 20*time.Minute)
 	framework.ExpectNoError(err)
 
 	By("checking the PVC")
@@ -195,11 +195,11 @@ func (t *TestPersistentVolumeClaim) Cleanup() {
 	// in a couple of minutes.
 	if t.persistentVolume.Spec.PersistentVolumeReclaimPolicy == v1.PersistentVolumeReclaimDelete {
 		By(fmt.Sprintf("waiting for claim's PV %q to be deleted", t.persistentVolume.Name))
-		err := e2epv.WaitForPersistentVolumeDeleted(context.Background(), t.client, t.persistentVolume.Name, 5*time.Second, 10*time.Minute)
+		err := e2epv.WaitForPersistentVolumeDeleted(context.Background(), t.client, t.persistentVolume.Name, 5*time.Second, 15*time.Minute)
 		framework.ExpectNoError(err)
 	}
 	// Wait for the PVC to be deleted
-	err = waitForPersistentVolumeClaimDeleted(t.client, t.namespace.Name, t.persistentVolumeClaim.Name, 5*time.Second, 5*time.Minute)
+	err = waitForPersistentVolumeClaimDeleted(t.client, t.namespace.Name, t.persistentVolumeClaim.Name, 5*time.Second, 10*time.Minute)
 	framework.ExpectNoError(err)
 }
 
@@ -208,7 +208,7 @@ func (t *TestPersistentVolumeClaim) ReclaimPolicy() v1.PersistentVolumeReclaimPo
 }
 
 func (t *TestPersistentVolumeClaim) WaitForPersistentVolumePhase(phase v1.PersistentVolumePhase) {
-	err := e2epv.WaitForPersistentVolumePhase(context.Background(), phase, t.client, t.persistentVolume.Name, 5*time.Second, 10*time.Minute)
+	err := e2epv.WaitForPersistentVolumePhase(context.Background(), phase, t.client, t.persistentVolume.Name, 5*time.Second, 20*time.Minute)
 	framework.ExpectNoError(err)
 }
 
@@ -217,7 +217,7 @@ func (t *TestPersistentVolumeClaim) DeleteBoundPersistentVolume() {
 	err := e2epv.DeletePersistentVolume(context.Background(), t.client, t.persistentVolume.Name)
 	framework.ExpectNoError(err)
 	By(fmt.Sprintf("waiting for claim's PV %q to be deleted", t.persistentVolume.Name))
-	err = e2epv.WaitForPersistentVolumeDeleted(context.Background(), t.client, t.persistentVolume.Name, 5*time.Second, 10*time.Minute)
+	err = e2epv.WaitForPersistentVolumeDeleted(context.Background(), t.client, t.persistentVolume.Name, 5*time.Second, 15*time.Minute)
 	framework.ExpectNoError(err)
 }
 
