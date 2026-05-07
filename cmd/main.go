@@ -23,6 +23,7 @@ import (
 
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/aws-fsx-csi-driver/pkg/driver"
+	"sigs.k8s.io/aws-fsx-csi-driver/pkg/metrics"
 )
 
 func main() {
@@ -33,6 +34,14 @@ func main() {
 	}
 
 	options := GetOptions(fs)
+
+	if options.ServerOptions.HTTPEndpoint != "" {
+		r := metrics.InitializeRecorder()
+		if options.ServerOptions.DriverMode == string(driver.ControllerMode) || options.ServerOptions.DriverMode == string(driver.AllMode) {
+			r.InitializeAPIMetrics()
+		}
+		r.InitializeMetricsHandler(options.ServerOptions.HTTPEndpoint, "/metrics", options.ServerOptions.MetricsCertFile, options.ServerOptions.MetricsKeyFile)
+	}
 
 	drv, err := driver.NewDriver(
 		driver.WithEndpoint(options.ServerOptions.Endpoint),

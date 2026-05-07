@@ -76,6 +76,15 @@ controller:
   loggingFormat: text
   nodeSelector: {}
   replicaCount: 2
+  # enableMetrics enables the Prometheus metrics endpoint on the controller.
+  # When true, the driver exposes metrics on port 3301.
+  enableMetrics: false
+  # enablePrometheusAnnotations adds prometheus.io scrape annotations to the controller pod.
+  enablePrometheusAnnotations: true
+  # serviceMonitor controls creation of Prometheus Operator ServiceMonitor resources.
+  # Requires the Prometheus Operator CRDs to be installed.
+  serviceMonitor:
+    enabled: false
   #If you do want to specify resources, uncomment the following lines, adjust them as necessary
   resources:
     requests:

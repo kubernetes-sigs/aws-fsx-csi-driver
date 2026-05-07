@@ -28,11 +28,21 @@ type ServerOptions struct {
 	DriverMode string
 	// Endpoint is the endpoint that the driver server should listen on.
 	Endpoint string
+	// HTTPEndpoint is the TCP address for the Prometheus metrics HTTP server (e.g. :3301).
+	// An empty value disables metrics.
+	HTTPEndpoint string
+	// MetricsCertFile is the path to the TLS certificate for the metrics server.
+	MetricsCertFile string
+	// MetricsKeyFile is the path to the TLS private key for the metrics server.
+	MetricsKeyFile string
 }
 
 func (s *ServerOptions) AddFlags(fs *flag.FlagSet) string {
 	fs.StringVar(&s.DriverMode, "mode", driver.AllMode, "Service mode the driver server should run in")
 	fs.StringVar(&s.Endpoint, "endpoint", driver.DefaultCSIEndpoint, "Endpoint for the CSI driver server")
+	fs.StringVar(&s.HTTPEndpoint, "http-endpoint", "", "TCP network address for the Prometheus metrics HTTP server (e.g. 0.0.0.0:3301). An empty value disables metrics.")
+	fs.StringVar(&s.MetricsCertFile, "metrics-cert-file", "", "Path to the TLS certificate file for the metrics server. Requires --metrics-key-file.")
+	fs.StringVar(&s.MetricsKeyFile, "metrics-key-file", "", "Path to the TLS private key file for the metrics server. Requires --metrics-cert-file.")
 
 	return s.DriverMode
 }

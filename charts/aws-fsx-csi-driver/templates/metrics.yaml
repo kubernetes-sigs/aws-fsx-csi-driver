@@ -1,0 +1,42 @@
+{{- if .Values.controller.enableMetrics }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fsx-csi-controller
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: fsx-csi-controller
+    {{- include "aws-fsx-csi-driver.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: fsx-csi-controller
+    {{- include "aws-fsx-csi-driver.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: metrics
+      port: 3301
+      targetPort: 3301
+      protocol: TCP
+{{- if .Values.controller.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: fsx-csi-controller
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: fsx-csi-controller
+    {{- include "aws-fsx-csi-driver.labels" . | nindent 4 }}
+spec:
+  endpoints:
+    - interval: 15s
+      path: /metrics
+      port: metrics
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      app: fsx-csi-controller
+{{- end }}
+{{- end }}
