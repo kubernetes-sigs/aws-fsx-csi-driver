@@ -97,9 +97,10 @@ func (m *MetricRecorder) InitializeMetricsHandler(address, path, certFile, keyFi
 	mux.Handle(path, rateLimitMiddleware(limiter, metricsHandler))
 
 	server := &http.Server{
-		Addr:        address,
-		Handler:     mux,
-		ReadTimeout: 3 * time.Second,
+		Addr:         address,
+		Handler:      mux,
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 5 * time.Second,
 	}
 
 	go func() {

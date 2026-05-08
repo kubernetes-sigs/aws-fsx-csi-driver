@@ -69,7 +69,7 @@ func LogServerErrorsMiddleware() func(*middleware.Stack) error {
 						if _, isThrottle := retry.DefaultThrottleErrorCodes[apiErr.ErrorCode()]; isThrottle {
 							klog.V(4).ErrorS(apiErr, "Throttle error from AWS API")
 						} else {
-							klog.V(3).ErrorS(apiErr, "Error from AWS API")
+							klog.ErrorS(apiErr, "Error from AWS API")
 						}
 					} else {
 						klog.ErrorS(err, "Unknown error attempting to contact AWS API")
