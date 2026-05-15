@@ -47,7 +47,7 @@ var (
 
 // MetricRecorder holds a Prometheus registry and the registered metrics.
 type MetricRecorder struct {
-	mu       sync.Mutex
+	mu       sync.RWMutex
 	registry *prometheus.Registry
 	metrics  map[string]any
 }
@@ -126,14 +126,18 @@ func (m *MetricRecorder) IncreaseCount(name, helpText string, labels map[string]
 		return
 	}
 
-	m.mu.Lock()
+	m.mu.RLock()
 	metric, ok := m.metrics[name]
+	m.mu.RUnlock()
 	if !ok {
-		klog.V(4).InfoS("Metric not found, registering", "name", name, "labels", labels)
-		m.registerCounterVecLocked(name, helpText, getLabelNames(labels))
+		m.mu.Lock()
+		if _, exists := m.metrics[name]; !exists {
+			klog.V(4).InfoS("Metric not found, registering", "name", name, "labels", labels)
+			m.registerCounterVecLocked(name, helpText, getLabelNames(labels))
+		}
 		metric = m.metrics[name]
+		m.mu.Unlock()
 	}
-	m.mu.Unlock()
 
 	if cv, ok := metric.(*prometheus.CounterVec); ok {
 		cv.With(labels).Inc()
@@ -148,14 +152,18 @@ func (m *MetricRecorder) ObserveHistogram(name, helpText string, value float64, 
 		return
 	}
 
-	m.mu.Lock()
+	m.mu.RLock()
 	metric, ok := m.metrics[name]
+	m.mu.RUnlock()
 	if !ok {
-		klog.V(4).InfoS("Metric not found, registering", "name", name, "labels", labels)
-		m.registerHistogramVecLocked(name, helpText, getLabelNames(labels), buckets)
+		m.mu.Lock()
+		if _, exists := m.metrics[name]; !exists {
+			klog.V(4).InfoS("Metric not found, registering", "name", name, "labels", labels)
+			m.registerHistogramVecLocked(name, helpText, getLabelNames(labels), buckets)
+		}
 		metric = m.metrics[name]
+		m.mu.Unlock()
 	}
-	m.mu.Unlock()
 
 	if hv, ok := metric.(*prometheus.HistogramVec); ok {
 		hv.With(labels).Observe(value)
