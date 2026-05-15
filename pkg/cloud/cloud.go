@@ -145,7 +145,9 @@ func NewCloud(region string) (Cloud, error) {
 	// Set RetryMaxAttempts to a high value. It will be "overwritten" if context deadline comes sooner.
 	awsConfig.RetryMaxAttempts = 8
 
-	svc := fsx.NewFromConfig(awsConfig)
+	svc := fsx.NewFromConfig(awsConfig, func(o *fsx.Options) {
+		o.APIOptions = append(o.APIOptions, RecordRequestsMiddleware(), LogServerErrorsMiddleware())
+	})
 	c := &cloud{
 		region:      region,
 		fsx:         svc,

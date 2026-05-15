@@ -12,9 +12,15 @@ spec:
       {{- include "aws-fsx-csi-driver.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.controller.podAnnotations }}
+      {{- if or .Values.controller.podAnnotations (and .Values.controller.enableMetrics .Values.controller.enablePrometheusAnnotations) }}
       annotations:
+        {{- with .Values.controller.podAnnotations }}
         {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if and .Values.controller.enableMetrics .Values.controller.enablePrometheusAnnotations }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3301"
+        {{- end }}
       {{- end }}
       labels:
         app: fsx-csi-controller
@@ -52,6 +58,9 @@ spec:
             {{- end }}
             - --logging-format={{ .Values.controller.loggingFormat }}
             - --v={{ .Values.controller.logLevel }}
+            {{- if .Values.controller.enableMetrics }}
+            - --http-endpoint=0.0.0.0:3301
+            {{- end }}
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
@@ -82,6 +91,11 @@ spec:
             - name: healthz
               containerPort: 9910
               protocol: TCP
+            {{- if .Values.controller.enableMetrics }}
+            - name: metrics
+              containerPort: 3301
+              protocol: TCP
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /healthz
