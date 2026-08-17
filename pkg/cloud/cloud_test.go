@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -1670,6 +1671,95 @@ func TestWaitForFileSystemResize(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, tc.testFunc)
+	}
+}
+
+func TestFileSystemLifecycleState(t *testing.T) {
+	var (
+		fileSystemId  = "fs-1234"
+		failureReason = "Insufficient capacity in the specified subnet"
+	)
+	testCases := []struct {
+		name         string
+		fs           *types.FileSystem
+		wantDone     bool
+		wantErr      bool
+		wantContains []string
+		wantErrExact string
+	}{
+		{
+			name:     "AVAILABLE: done, no error",
+			fs:       &types.FileSystem{Lifecycle: types.FileSystemLifecycleAvailable},
+			wantDone: true,
+		},
+		{
+			name:     "CREATING: not done, no error",
+			fs:       &types.FileSystem{Lifecycle: types.FileSystemLifecycleCreating},
+			wantDone: false,
+		},
+		{
+			name: "FAILED: with FailureDetails.Message, error includes filesystem ID, FAILED state, and AWS failure message",
+			fs: &types.FileSystem{
+				Lifecycle:      types.FileSystemLifecycleFailed,
+				FailureDetails: &types.FileSystemFailureDetails{Message: aws.String(failureReason)},
+			},
+			wantDone:     true,
+			wantErr:      true,
+			wantContains: []string{fileSystemId, "FAILED", failureReason},
+		},
+		{
+			name: "FAILED: FailureDetails nil, error is FAILED-specific without panicking",
+			fs: &types.FileSystem{
+				Lifecycle:      types.FileSystemLifecycleFailed,
+				FailureDetails: nil,
+			},
+			wantDone:     true,
+			wantErr:      true,
+			wantContains: []string{fileSystemId, "FAILED"},
+		},
+		{
+			name: "FAILED: FailureDetails.Message nil, error is FAILED-specific without panicking",
+			fs: &types.FileSystem{
+				Lifecycle:      types.FileSystemLifecycleFailed,
+				FailureDetails: &types.FileSystemFailureDetails{Message: nil},
+			},
+			wantDone:     true,
+			wantErr:      true,
+			wantContains: []string{fileSystemId, "FAILED"},
+		},
+		{
+			name:         "unexpected lifecycle (MISCONFIGURED): preserves generic unexpected state error",
+			fs:           &types.FileSystem{Lifecycle: types.FileSystemLifecycleMisconfigured},
+			wantDone:     true,
+			wantErr:      true,
+			wantErrExact: fmt.Sprintf("unexpected state for filesystem %s: %q", fileSystemId, string(types.FileSystemLifecycleMisconfigured)),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			done, err := fileSystemLifecycleState(fileSystemId, tc.fs)
+			if done != tc.wantDone {
+				t.Fatalf("fileSystemLifecycleState returned done=%v, expected %v", done, tc.wantDone)
+			}
+			if !tc.wantErr {
+				if err != nil {
+					t.Fatalf("fileSystemLifecycleState returned error [%v], expected nil", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatal("fileSystemLifecycleState did not return error, expected one")
+			}
+			if tc.wantErrExact != "" && err.Error() != tc.wantErrExact {
+				t.Fatalf("fileSystemLifecycleState returned error [%v], expected [%v]", err, tc.wantErrExact)
+			}
+			for _, s := range tc.wantContains {
+				if !strings.Contains(err.Error(), s) {
+					t.Fatalf("error [%v] does not contain %q", err, s)
+				}
+			}
+		})
 	}
 }
 
