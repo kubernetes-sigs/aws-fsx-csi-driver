@@ -14,7 +14,7 @@ sidecars:
   livenessProbe:
     image:
       repository: public.ecr.aws/csi-components/livenessprobe
-      tag: v2.19.0-eksbuild.3
+      tag: v2.19.0-eksbuild.7
       pullPolicy: IfNotPresent
     resources:
       requests:
@@ -28,7 +28,7 @@ sidecars:
   nodeDriverRegistrar:
     image:
       repository: public.ecr.aws/csi-components/csi-node-driver-registrar
-      tag: v2.17.0-eksbuild.3
+      tag: v2.17.0-eksbuild.7
       pullPolicy: IfNotPresent
     logLevel: 2
     resources:
@@ -43,7 +43,7 @@ sidecars:
   provisioner:
     image:
       repository: public.ecr.aws/csi-components/csi-provisioner
-      tag: v6.3.0-eksbuild.2
+      tag: v6.3.0-eksbuild.7
       pullPolicy: IfNotPresent
     logLevel: 2
     resources:
@@ -58,7 +58,7 @@ sidecars:
   resizer:
     image:
       repository: public.ecr.aws/csi-components/csi-resizer
-      tag: v2.2.1-eksbuild.1
+      tag: v2.2.1-eksbuild.6
       pullPolicy: IfNotPresent
     logLevel: 2
     resources:

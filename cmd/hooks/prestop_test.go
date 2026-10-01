@@ -355,6 +355,17 @@ func TestPreStopHook(t *testing.T) {
 
 				go func() {
 					<-deleteSignal
+					// The reflector streams the initial list over the watch and ignores
+					// subsequent events until it sees a bookmark marking the end of that
+					// stream, so the fake watcher has to send one before the delete.
+					fakeWatcher.Action(watch.Bookmark, &v1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							ResourceVersion: "1",
+							Annotations: map[string]string{
+								metav1.InitialEventsAnnotationKey: "true",
+							},
+						},
+					})
 					fakeWatcher.Delete(&v1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "pod-1",
