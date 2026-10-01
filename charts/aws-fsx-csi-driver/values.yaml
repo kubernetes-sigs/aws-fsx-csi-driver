@@ -76,6 +76,9 @@ controller:
   loggingFormat: text
   nodeSelector: {}
   replicaCount: 2
+  # PriorityClass assigned to the controller pod. Influences scheduling and
+  # preemption order. Defaults to the built-in system-cluster-critical class.
+  priorityClassName: system-cluster-critical
   # enableMetrics enables the Prometheus metrics endpoint on the controller.
   # When true, the driver exposes metrics on port 3301.
   enableMetrics: false
@@ -161,6 +164,9 @@ node:
   loggingFormat: text
   logLevel: 2
   kubeletPath: /var/lib/kubelet
+  # PriorityClass assigned to the node pods. Influences scheduling and
+  # preemption order. Defaults to the built-in system-node-critical class.
+  priorityClassName: system-node-critical
   # How long NodeUnpublishVolume waits for a normal unmount before escalating to
   # `umount -f`. While waiting, the driver periodically checks whether the target
   # has stopped being a mount point, so a umount(8) that blocks in the kernel
