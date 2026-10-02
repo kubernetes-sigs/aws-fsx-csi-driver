@@ -71,6 +71,9 @@ spec:
             {{- with .Values.node.forcefulUnmountTimeout }}
             - --forceful-unmount-timeout={{ . }}
             {{- end }}
+            {{- with .Values.node.lustreMaxCachedMB }}
+            - --lustre-max-cached-mb={{ . }}
+            {{- end }}
             {{- with .Values.node.extraArgs }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -91,6 +94,10 @@ spec:
               mountPropagation: "Bidirectional"
             - name: plugin-dir
               mountPath: /csi
+            {{- if .Values.node.lustreMaxCachedMB }}
+            - name: sys-kernel-debug
+              mountPath: /sys/kernel/debug
+            {{- end }}
           ports:
             - name: healthz
               containerPort: 9810
@@ -162,3 +169,9 @@ spec:
           hostPath:
             path: {{ .Values.node.kubeletPath }}/plugins/fsx.csi.aws.com/
             type: DirectoryOrCreate
+        {{- if .Values.node.lustreMaxCachedMB }}
+        - name: sys-kernel-debug
+          hostPath:
+            path: /sys/kernel/debug
+            type: Directory
+        {{- end }}

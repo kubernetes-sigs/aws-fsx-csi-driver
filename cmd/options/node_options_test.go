@@ -29,6 +29,11 @@ func TestNodeOptions(t *testing.T) {
 		found bool
 	}{
 		{
+			name:  "lookup desired flag",
+			flag:  "lustre-max-cached-mb",
+			found: true,
+		},
+		{
 			name:  "fail for non-desired flag",
 			flag:  "some-flag",
 			found: false,

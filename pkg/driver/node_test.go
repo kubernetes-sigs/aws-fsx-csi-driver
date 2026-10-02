@@ -492,6 +492,80 @@ func TestNodePublishVolume(t *testing.T) {
 				mockCtl.Finish()
 			},
 		},
+		{
+			name: "success: caps the Lustre read cache after mounting",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				defer mockCtl.Finish()
+
+				mockMounter := driverMocks.NewMockMounter(mockCtl)
+
+				lliteDir := t.TempDir()
+				maxCachedMBFile := writeFakeLlite(t, lliteDir, "fsx-ffff0001", fakeMaxCachedMB)
+				driver := &nodeService{
+					mounter:            mockMounter,
+					inFlight:           internal.NewInFlight(),
+					lustreCacheLimiter: newTestLustreCacheLimiter(lliteDir, map[string]string{targetPath: "fsx-ffff0001"}),
+				}
+				source := dnsname + "@tcp:/" + mountname
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId: "volumeId",
+					VolumeContext: map[string]string{
+						volumeContextDnsName:   dnsname,
+						volumeContextMountName: mountname,
+					},
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+				}
+
+				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(targetPath)).Return(true, nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("lustre"), gomock.Any()).Return(nil)
+				_, err := driver.NodePublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("NodePublishVolume is failed: %v", err)
+				}
+
+				assert.Equal(t, "102400\n", readFile(t, maxCachedMBFile))
+			},
+		},
+		{
+			name: "success: mounts even when the Lustre read cache cannot be capped",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				defer mockCtl.Finish()
+
+				mockMounter := driverMocks.NewMockMounter(mockCtl)
+
+				driver := &nodeService{
+					mounter:            mockMounter,
+					inFlight:           internal.NewInFlight(),
+					lustreCacheLimiter: newTestLustreCacheLimiter(t.TempDir(), map[string]string{}),
+				}
+				source := dnsname + "@tcp:/" + mountname
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId: "volumeId",
+					VolumeContext: map[string]string{
+						volumeContextDnsName:   dnsname,
+						volumeContextMountName: mountname,
+					},
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+				}
+
+				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(targetPath)).Return(true, nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("lustre"), gomock.Any()).Return(nil)
+				_, err := driver.NodePublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("NodePublishVolume is failed: %v", err)
+				}
+			},
+		},
 	}
 
 	for _, tc := range testCases {
