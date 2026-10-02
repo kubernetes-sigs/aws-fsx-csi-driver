@@ -36,6 +36,9 @@ type NodeOptions struct {
 	// already disappeared. Negative disables the feature (default, preserves
 	// existing behavior); 0 skips the normal unmount entirely.
 	ForcefulUnmountTimeout time.Duration
+
+	// LustreMaxCachedMB caps the Lustre client read cache of each new mount. Zero leaves the Lustre default.
+	LustreMaxCachedMB int
 }
 
 func (o *NodeOptions) AddFlags(fs *flag.FlagSet) {
@@ -45,6 +48,7 @@ func (o *NodeOptions) AddFlags(fs *flag.FlagSet) {
 			"for a normal unmount before escalating to umount -f. "+
 			"Set to 0 to call umount -f directly (skip normal unmount). "+
 			"Set to a negative duration to disable forced unmount entirely (default).")
+	fs.IntVar(&o.LustreMaxCachedMB, "lustre-max-cached-mb", 0, "Cap on the Lustre client read cache (llite max_cached_mb) of each new mount, never above half of RAM. 0 leaves the Lustre default. Requires the host's debugfs at /sys/kernel/debug.")
 }
 
 // Validate checks that NodeOptions values are within acceptable bounds.
