@@ -13,7 +13,7 @@
 # limitations under the License.
 
 ARG AL_VERSION=al23
-FROM --platform=$BUILDPLATFORM golang:1.26.4 as builder
+FROM --platform=$BUILDPLATFORM golang:1.27.1 as builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-fsx-csi-driver
 COPY go.* .
 RUN go mod download

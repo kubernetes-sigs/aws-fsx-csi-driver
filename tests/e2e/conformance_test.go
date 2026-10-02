@@ -68,7 +68,9 @@ func (e *fsxDriver) GetDriverInfo() *storageframework.DriverInfo {
 	}
 }
 
-func (e *fsxDriver) SkipUnsupportedTest(storageframework.TestPattern) {}
+// SkipUnsupportedTest returns the reason to skip a pattern, or an empty string
+// to run it. No pattern is skipped for this driver.
+func (e *fsxDriver) SkipUnsupportedTest(storageframework.TestPattern) string { return "" }
 
 func (e *fsxDriver) PrepareTest(ctx context.Context, f *framework.Framework) *storageframework.PerTestConfig {
 	return &storageframework.PerTestConfig{
