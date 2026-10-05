@@ -52,9 +52,10 @@ var (
 const VolumeOperationAlreadyExists = "An operation with the given volume=%q and target=%q is already in progress"
 
 type nodeService struct {
-	mounter       Mounter
-	inFlight      *internal.InFlight
-	driverOptions *DriverOptions
+	mounter            Mounter
+	inFlight           *internal.InFlight
+	driverOptions      *DriverOptions
+	lustreCacheLimiter *lustreCacheLimiter // nil when the read cache is left at the Lustre default
 	csi.UnimplementedNodeServer
 }
 
@@ -81,10 +82,21 @@ func newNodeService(driverOptions *DriverOptions) nodeService {
 	// This is done in the background as a goroutine to allow for driver startup
 	go removeTaintInBackground(cloud.DefaultKubernetesAPIClient, removeNotReadyTaint)
 
+	var lustreCacheLimiter *lustreCacheLimiter
+	if driverOptions.lustreMaxCachedMB > 0 {
+		ramMB, err := totalRAMMB("/proc/meminfo")
+		if err != nil {
+			panic(err)
+		}
+		lustreCacheLimiter = newLustreCacheLimiter(lustreLliteDir, driverOptions.lustreMaxCachedMB, ramMB)
+		klog.InfoS("Capping Lustre read cache", "limitMB", lustreCacheLimiter.limitMB, "totalRAMMB", ramMB)
+	}
+
 	return nodeService{
-		mounter:       nodeMounter,
-		inFlight:      internal.NewInFlight(),
-		driverOptions: driverOptions,
+		mounter:            nodeMounter,
+		inFlight:           internal.NewInFlight(),
+		driverOptions:      driverOptions,
+		lustreCacheLimiter: lustreCacheLimiter,
 	}
 }
 
@@ -179,6 +191,13 @@ func (d *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", source, target, err)
 		}
 		klog.V(5).InfoS("NodePublishVolume: was mounted", "target", target)
+	}
+
+	// Best effort: an uncapped cache is a tuning problem, a failed mount is an outage.
+	if d.lustreCacheLimiter != nil {
+		if err := d.lustreCacheLimiter.applyLimit(target); err != nil {
+			klog.ErrorS(err, "NodePublishVolume: could not cap Lustre read cache", "target", target)
+		}
 	}
 
 	return &csi.NodePublishVolumeResponse{}, nil

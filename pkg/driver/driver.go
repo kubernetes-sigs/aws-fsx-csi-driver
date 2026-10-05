@@ -58,6 +58,8 @@ type DriverOptions struct {
 	mode                   string
 	extraTags              string
 	forcefulUnmountTimeout time.Duration
+
+	lustreMaxCachedMB int
 }
 
 func NewDriver(options ...func(*DriverOptions)) (*Driver, error) {
@@ -157,5 +159,11 @@ func WithExtraTags(extraTags string) func(*DriverOptions) {
 func WithForcefulUnmountTimeout(timeout time.Duration) func(*DriverOptions) {
 	return func(o *DriverOptions) {
 		o.forcefulUnmountTimeout = timeout
+	}
+}
+
+func WithLustreMaxCachedMB(lustreMaxCachedMB int) func(*DriverOptions) {
+	return func(o *DriverOptions) {
+		o.lustreMaxCachedMB = lustreMaxCachedMB
 	}
 }
