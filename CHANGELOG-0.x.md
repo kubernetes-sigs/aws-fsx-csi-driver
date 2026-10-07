@@ -1,3 +1,10 @@
+# v1.11.0
+* Focus e2e suite on FSx specs only ([#9761b70c](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/9761b70c), [@MichaelKwok1998](https://github.com/MichaelKwok1998))
+* Make priorityClassName configurable for controller and node pods ([#8d2dd9a0](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/8d2dd9a0), [@MichaelKwok1998](https://github.com/MichaelKwok1998))
+* Go Dependency Update and Bump Up Sidecar Image ([#ed0ddbc0](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/ed0ddbc0), [@MichaelKwok1998](https://github.com/MichaelKwok1998))
+* Add MichaelKwok1998 to Owners ([#6e296dce](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/6e296dce), [@MichaelKwok1998](https://github.com/MichaelKwok1998))
+* Add Manual Trigger to Helm-Release ([#bba1e7d6](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/bba1e7d6), [@MichaelKwok1998](https://github.com/MichaelKwok1998))
+
 # v1.10.0
 * Use idempotency token + FS cache for createVolume ([#b0acfd53](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/b0acfd53), [@khoang98](https://github.com/khoang98))
 * Add Forceful unmount feature ([#d98bfede](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/d98bfede), [@MichaelKwok1998](https://github.com/MichaelKwok1998))
