@@ -1,0 +1,216 @@
+name: Release Prep
+
+# Manually triggered. Prepares a release in one pass and stops at a pull request:
+#
+#   1. work out the next version from what landed since the last tag
+#        - only CSI sidecar bumps  -> patch (v1.11.0 -> v1.11.1)
+#        - anything else           -> minor (v1.11.0 -> v1.12.0)
+#   2. cut the release branch from master, named after that version
+#   3. bump the Go toolchain, the sidecar images and the Go dependencies
+#   4. apply the "Release X.Y.Z part 1/3" edits
+#   5. open a PR against the release branch, with the bumps and the release
+#      edits as two separate commits
+#
+# Nothing here tags, publishes an image, or pushes to a protected branch. Parts
+# 2/3 and 3/3 of a release are still done by hand.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (default: worked out from the commit log)"
+        type: string
+      release_branch:
+        description: "Release branch to open the PR against (default: named after the version)"
+        type: string
+      previous_version:
+        description: "Tag to compare against (default: newest vX.Y.Z tag)"
+        type: string
+      skip_go_deps:
+        description: "Skip go get -u, when a dependency refresh is not wanted"
+        type: boolean
+        default: false
+      dry_run:
+        description: Show everything in the job log without pushing or opening a PR
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    name: Prepare release
+    # this is to prevent the job to run at forked projects
+    if: github.repository == 'kubernetes-sigs/aws-fsx-csi-driver'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: master
+          # Full history and tags: the version and the changelog both come from
+          # the commit range since the previous release tag.
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+
+      - name: Work out the next version
+        id: next
+        run: |
+          set -o pipefail
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          ./hack/next-version.py \
+            ${{ inputs.previous_version && format('--previous-version {0}', inputs.previous_version) || '' }} \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Settle on the version and branch
+        id: plan
+        env:
+          VERSION: ${{ inputs.version || steps.next.outputs.version }}
+          BRANCH: ${{ inputs.release_branch || steps.next.outputs.branch }}
+          PREVIOUS: ${{ inputs.previous_version || steps.next.outputs.previous_version }}
+        run: |
+          case "$VERSION" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "::error::version must look like v1.12.0, got '$VERSION'"; exit 1 ;;
+          esac
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "previous=$PREVIOUS" >> "$GITHUB_OUTPUT"
+          echo "title=Release ${VERSION#v} part 1/3" >> "$GITHUB_OUTPUT"
+          echo "::notice::preparing $VERSION on $BRANCH (previous $PREVIOUS)"
+
+      - name: Refuse to overwrite an existing release
+        env:
+          VERSION: ${{ steps.plan.outputs.version }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null; then
+            echo "::error::$VERSION is already tagged"
+            exit 1
+          fi
+
+      - name: Cut the release branch
+        env:
+          BRANCH: ${{ steps.plan.outputs.branch }}
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            echo "::notice::$BRANCH already exists, basing the PR on it"
+            git fetch origin "$BRANCH"
+            git checkout -B "$BRANCH" FETCH_HEAD
+          else
+            git checkout -b "$BRANCH"
+            if [ '${{ inputs.dry_run }}' != 'true' ]; then
+              git push origin "$BRANCH"
+            fi
+          fi
+          git checkout -b "${BRANCH}-part-1"
+
+      - name: Bump the Go toolchain
+        run: ./hack/bump-go.py | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Bump the sidecar images
+        run: ./hack/bump-sidecars.py --summary-file "$RUNNER_TEMP/sidecars.md"
+
+      - name: Bump the Go dependencies
+        if: ${{ !inputs.skip_go_deps }}
+        run: |
+          go get -u ./...
+          go mod tidy
+          (cd tests/e2e && go get -u ./... && go mod tidy)
+
+      # `make verify` is deliberately not run here: hack/verify-golint installs
+      # golangci-lint v1.21.0 from 2019, which does not work with current Go.
+      - name: Test
+        id: verify
+        continue-on-error: true
+        run: make test
+
+      - name: Commit the bumps
+        id: bumps
+        run: |
+          if git diff --quiet; then
+            echo "::notice::no bumps to commit"
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -am "Go Dependency Update and Bump Up Sidecar Image"
+            echo "committed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Apply the part 1/3 edits
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./hack/release-prep.py \
+            --version '${{ steps.plan.outputs.version }}' \
+            --previous-version '${{ steps.plan.outputs.previous }}' \
+            --release-branch '${{ steps.plan.outputs.branch }}' \
+            --repo '${{ github.repository }}' \
+            --summary-file "$RUNNER_TEMP/changelog.md"
+          git commit -am '${{ steps.plan.outputs.title }}'
+
+      - name: Show what would be proposed
+        run: |
+          git --no-pager log --oneline '${{ steps.plan.outputs.branch }}'..HEAD
+          git --no-pager diff '${{ steps.plan.outputs.branch }}'..HEAD
+
+      - name: Compose the pull request body
+        run: |
+          {
+            echo '**Is this a bug fix or adding new feature?**'
+            echo 'Neither, release preparation.'
+            echo
+            echo '**What is this PR about? / Why do we need it?**'
+            echo 'Release `${{ steps.plan.outputs.version }}`, prepared by the'
+            echo '[Release Prep](../blob/master/.github/workflows/release-prep.yaml) workflow.'
+            echo
+            echo 'Bumps the Go toolchain, the CSI sidecar images and the Go'
+            echo 'dependencies, then applies part 1/3 of the release: the driver'
+            echo 'version, the changelog section, the compatibility matrix rows'
+            echo 'and the kustomize `?ref=${{ steps.plan.outputs.branch }}` pointer.'
+            echo
+            cat "$RUNNER_TEMP/sidecars.md"
+            echo
+            echo '<details><summary>Changelog</summary>'
+            echo
+            cat "$RUNNER_TEMP/changelog.md"
+            echo
+            echo '</details>'
+            echo
+            echo '**What testing is done?**'
+            echo 'CI on this PR, plus `make test` in the'
+            echo 'workflow run: `${{ steps.verify.outcome }}`.'
+            if [ '${{ steps.verify.outcome }}' = 'failure' ]; then
+              echo
+              echo '> [!WARNING]'
+              echo '> `make test` failed in the workflow run, so this'
+              echo '> PR is a draft. Dependency bumps have needed hand-finishing'
+              echo '> before - regenerating mocks, pinning transitive modules,'
+              echo '> adapting tests - see the run log.'
+            fi
+            echo
+            echo 'Parts 2/3 and 3/3 of the release are still manual.'
+          } > "$RUNNER_TEMP/pr.md"
+          cat "$RUNNER_TEMP/pr.md"
+
+      - name: Open the pull request
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ steps.plan.outputs.branch }}
+          DRAFT: ${{ steps.verify.outcome == 'failure' && '--draft' || '' }}
+        run: |
+          git push origin "${BRANCH}-part-1"
+          gh pr create \
+            --base "$BRANCH" \
+            --head "${BRANCH}-part-1" \
+            --title '${{ steps.plan.outputs.title }}' \
+            --body-file "$RUNNER_TEMP/pr.md" \
+            $DRAFT
