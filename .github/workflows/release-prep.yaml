@@ -42,8 +42,9 @@ permissions:
 jobs:
   prepare:
     name: Prepare release
-    # this is to prevent the job to run at forked projects
-    if: github.repository == 'kubernetes-sigs/aws-fsx-csi-driver'
+    # No fork guard: the trigger is manual only and every write (the release
+    # branch, the PR) goes to the repository the run belongs to, so running this
+    # in a fork is both harmless and the way to try changes to it.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout master
@@ -208,7 +209,9 @@ jobs:
           DRAFT: ${{ steps.verify.outcome == 'failure' && '--draft' || '' }}
         run: |
           git push origin "${BRANCH}-part-1"
+          # --repo matters in a fork: gh otherwise aims the PR at the parent.
           gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
             --base "$BRANCH" \
             --head "${BRANCH}-part-1" \
             --title '${{ steps.plan.outputs.title }}' \
