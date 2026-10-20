@@ -1,5 +1,10 @@
 # Helm chart
 
+# v1.19.0
+* Use driver image 1.11.0
+* Parameterize controller.priorityClassName and node.priorityClassName
+* Bump up sidecar images
+
 # v1.18.0
 * Use driver image 1.10.0
 
