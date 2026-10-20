@@ -177,6 +177,14 @@ node:
   # ---
   # forcefulUnmountTimeout: 2m
   forcefulUnmountTimeout: ""
+  # Cap, in MiB, on the Lustre client read cache (llite max_cached_mb), applied
+  # to each volume's mount right after NodePublishVolume mounts it. Other mounts
+  # on the node are left alone. Never set above half of the node's RAM, which is
+  # the Lustre default. Mounts the host's /sys/kernel/debug into the node
+  # plugin. Unset (the default) leaves the Lustre default untouched.
+  # ---
+  # lustreMaxCachedMB: 102400
+  lustreMaxCachedMB: ""
   # Additional arguments passed to the fsx-plugin container.
   # ---
   # extraArgs:
