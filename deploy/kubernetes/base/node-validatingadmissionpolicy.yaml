@@ -1,0 +1,65 @@
+---
+# Source: aws-fsx-csi-driver/templates/node-validatingadmissionpolicy.yaml
+# Limits the node pods' service account to removing the fsx.csi.aws.com/agent-not-ready taint from the Node each pod runs on.
+# The chart installs this policy on Kubernetes 1.30 and later.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: fsx-csi-node
+  labels:
+    app.kubernetes.io/name: aws-fsx-csi-driver
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["*"]
+        operations: ["CREATE", "UPDATE", "DELETE"]
+        resources: ["nodes", "nodes/*"]
+  matchConditions:
+    - name: node-service-account
+      expression: request.userInfo.username.startsWith("system:serviceaccount:") && request.userInfo.username.endsWith(":fsx-csi-node-sa")
+  variables:
+    # the name of the node the pod that requested the service account token runs on
+    - name: nodeName
+      expression: >-
+        request.userInfo.?extra[?'authentication.kubernetes.io/node-name'].orValue([]).size() == 1 ?
+        request.userInfo.extra['authentication.kubernetes.io/node-name'][0] : ''
+    - name: isUpdate
+      expression: request.operation == 'UPDATE' && request.?subResource.orValue('') == ''
+    - name: oldTaints
+      expression: "variables.isUpdate ? oldObject.spec.?taints.orValue([]) : []"
+    - name: newTaints
+      expression: "variables.isUpdate ? object.spec.?taints.orValue([]) : []"
+  validations:
+    - expression: variables.nodeName != ''
+      message: the service account token is not bound to a pod on a node
+    - expression: variables.isUpdate
+      message: the FSx CSI node pods' service account may only update Node objects
+    - expression: request.name == variables.nodeName
+      messageExpression: "'the FSx CSI node pod on ' + variables.nodeName + ' may only update its own Node object, not ' + request.name"
+    - expression: >-
+        !variables.isUpdate || (
+        object.metadata.?labels.orValue({}) == oldObject.metadata.?labels.orValue({}) &&
+        object.metadata.?annotations.orValue({}) == oldObject.metadata.?annotations.orValue({}) &&
+        object.metadata.?finalizers.orValue([]) == oldObject.metadata.?finalizers.orValue([]) &&
+        object.metadata.?ownerReferences.orValue([]) == oldObject.metadata.?ownerReferences.orValue([]) &&
+        object.spec.all(k, k == 'taints' || (k in oldObject.spec && object.spec[k] == oldObject.spec[k])) &&
+        oldObject.spec.all(k, k == 'taints' || k in object.spec))
+      message: the FSx CSI node pods' service account may only change the taints of the Node its pod runs on
+    - expression: >-
+        variables.newTaints.all(t, t in variables.oldTaints) &&
+        variables.oldTaints.all(t, t.key == "fsx.csi.aws.com/agent-not-ready" || t in variables.newTaints)
+      message: the FSx CSI node pods' service account may only remove the fsx.csi.aws.com/agent-not-ready taint from the Node its pod runs on
+---
+# Source: aws-fsx-csi-driver/templates/node-validatingadmissionpolicy.yaml
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: fsx-csi-node
+  labels:
+    app.kubernetes.io/name: aws-fsx-csi-driver
+spec:
+  policyName: fsx-csi-node
+  validationActions: ["Deny"]
+

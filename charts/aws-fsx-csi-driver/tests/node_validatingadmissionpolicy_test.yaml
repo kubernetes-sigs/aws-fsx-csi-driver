@@ -1,0 +1,85 @@
+suite: node ValidatingAdmissionPolicy
+templates:
+  - templates/node-validatingadmissionpolicy.yaml
+release:
+  namespace: kube-system
+capabilities:
+  majorVersion: "1"
+  minorVersion: "30"
+tests:
+  - it: limits the node pods' service account on Kubernetes 1.30
+    asserts:
+      - hasDocuments:
+          count: 2
+      - isKind:
+          of: ValidatingAdmissionPolicy
+        documentIndex: 0
+      - equal:
+          path: spec.failurePolicy
+          value: Fail
+        documentIndex: 0
+      - equal:
+          path: spec.matchConditions[0].expression
+          value: request.userInfo.username == "system:serviceaccount:kube-system:fsx-csi-node-sa"
+        documentIndex: 0
+      - contains:
+          path: spec.matchConstraints.resourceRules
+          content:
+            apiGroups: [""]
+            apiVersions: ["*"]
+            operations: ["CREATE", "UPDATE", "DELETE"]
+            resources: ["nodes", "nodes/*"]
+        documentIndex: 0
+      - matchRegex:
+          path: spec.validations[4].expression
+          pattern: "t.key == \"fsx.csi.aws.com/agent-not-ready\""
+        documentIndex: 0
+      - isKind:
+          of: ValidatingAdmissionPolicyBinding
+        documentIndex: 1
+      - equal:
+          path: spec.policyName
+          value: fsx-csi-node
+        documentIndex: 1
+      - equal:
+          path: spec.validationActions
+          value: ["Deny"]
+        documentIndex: 1
+
+  - it: uses the release namespace and the node pods' service account name
+    release:
+      namespace: storage
+    set:
+      node.serviceAccount.name: my-node-sa
+    asserts:
+      - equal:
+          path: spec.matchConditions[0].expression
+          value: request.userInfo.username == "system:serviceaccount:storage:my-node-sa"
+        documentIndex: 0
+
+  - it: still limits a service account the chart doesn't create
+    set:
+      node.serviceAccount.create: false
+      node.serviceAccount.name: existing-node-sa
+    asserts:
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: spec.matchConditions[0].expression
+          value: request.userInfo.username == "system:serviceaccount:kube-system:existing-node-sa"
+        documentIndex: 0
+
+  - it: is not created when disabled
+    set:
+      node.validatingAdmissionPolicy.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: is not created before Kubernetes 1.30
+    capabilities:
+      majorVersion: "1"
+      minorVersion: "29"
+    asserts:
+      - hasDocuments:
+          count: 0
