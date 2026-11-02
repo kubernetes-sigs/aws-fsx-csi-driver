@@ -206,6 +206,10 @@ node:
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/fsx-csi-role
     name: fsx-csi-node-sa
     annotations: {}
+  validatingAdmissionPolicy:
+    # Limits the node pods' service account to removing the fsx.csi.aws.com/agent-not-ready taint
+    # from the Node each pod runs on. Installed on Kubernetes 1.30 and later.
+    enabled: true
   healthPort: 9809
   # securityContext on the node pod
   securityContext:

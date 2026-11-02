@@ -81,6 +81,10 @@ There are potential race conditions on node startup (especially when a node is f
 
 This feature is activated by default, and cluster administrators should use the taint `fsx.csi.aws.com/agent-not-ready:NoExecute` (any effect will work, but `NoExecute` is recommended). For example, EKS Managed Node Groups [support automatically tainting nodes](https://docs.aws.amazon.com/eks/latest/userguide/node-taints-managed-node-groups.html).
 
+A ValidatingAdmissionPolicy, `fsx-csi-node`, limits the service account of the node pods (`fsx-csi-node-sa`) to removing the `fsx.csi.aws.com/agent-not-ready` taint from the Node each pod runs on.
+The Helm chart installs it on Kubernetes 1.30 and later; set `node.validatingAdmissionPolicy.enabled=false` to not install it.
+The kustomize manifests always include it, so they need Kubernetes 1.30 or later.
+
 ### Deploy driver
 You may deploy the FSx for Lustre CSI driver via Kustomize or Helm
 

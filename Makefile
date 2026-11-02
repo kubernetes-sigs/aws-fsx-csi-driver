@@ -112,10 +112,20 @@ verify:
 	./hack/verify-all
 
 .PHONY: test
-test:
+test: helm-unittest
 	go test -v -race ./pkg/...
 	go test -v ./cmd/...
 	go test -v ./tests/sanity/...
+
+HELM_UNITTEST_VERSION ?= v1.0.3
+HELM ?= $(or $(shell command -v helm 2>/dev/null),bin/helm)
+
+.PHONY: helm-unittest
+helm-unittest: $(HELM)
+	@$(HELM) plugin list | grep -q '^unittest' || \
+		$(HELM) plugin install https://github.com/helm-unittest/helm-unittest --version $(HELM_UNITTEST_VERSION) \
+		$$($(HELM) version --short | grep -q '^v4' && echo --verify=false)
+	$(HELM) unittest charts/aws-fsx-csi-driver
 
 .PHONY: test-e2e
 test-e2e:
@@ -138,6 +148,9 @@ generate-kustomize: bin/helm
 	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/controller-serviceaccount.yaml > ../../deploy/kubernetes/base/controller-serviceaccount.yaml
 	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/clusterrole-csi-node.yaml > ../../deploy/kubernetes/base/clusterrole-csi-node.yaml
 	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/clusterrolebinding-csi-node.yaml > ../../deploy/kubernetes/base/clusterrolebinding-csi-node.yaml
+	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . --namespace kube-system --kube-version 1.30.0 -s templates/node-validatingadmissionpolicy.yaml > ../../deploy/kubernetes/base/node-validatingadmissionpolicy.yaml
+	# kustomize's namespace transformer does not rewrite CEL strings, so match the node pods' service account by name in any namespace
+	sed -i -E 's|request\.userInfo\.username == "system:serviceaccount:[^:"]+:([^"]+)"|request.userInfo.username.startsWith("system:serviceaccount:") \&\& request.userInfo.username.endsWith(":\1")|' deploy/kubernetes/base/node-validatingadmissionpolicy.yaml
 
 	$(MAKE) remove-namespace-kustomize-files
 
