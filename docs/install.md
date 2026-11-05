@@ -8,68 +8,52 @@
 
 ## Installation
 ### Set up driver permissions
-The driver requires IAM permissions to interact with the Amazon FSx for Lustre service to create/delete file systems and volumes on the user's behalf.
-There are several methods to grant the driver IAM permissions:
-* Using [IAM roles for ServiceAccounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) (**Recommended**) - Create a Kubernetes service account for the driver and attach the AmazonFSxFullAccess AWS-managed policy to it with the following command. If your cluster is in the AWS GovCloud Regions, then replace arn:aws: with arn:aws-us-gov. Likewise, if your cluster is in the AWS China Regions, replace arn:aws: with arn:aws-cn:
-```sh
+The driver controller requires IAM permissions to create, update, tag and delete FSx for Lustre file systems on the user's behalf.
+Only the controller service account (`fsx-csi-controller-sa`) needs AWS credentials. The node DaemonSet makes no FSx API calls.
 
-export cluster_name=my-csi-fsx-cluster
-export region_code=region-code
+The EKS Pod Identity example below attaches the tag-based policy [`cluster-tag-policy.json`](iam/cluster-tag-policy.json), which limits each cluster's controller to the file systems tagged for that cluster.
+See [Cluster tag isolation](cluster-tag-isolation.md) for how the policy works.
+If clusters in the account share file systems, attach [`shared-policy.json`](iam/shared-policy.json) instead and skip the cluster tag settings: it limits the controller to file systems this driver created, in any cluster. See [Choosing a policy](cluster-tag-isolation.md#choosing-a-policy).
+If your cluster is in the AWS GovCloud Regions, replace `arn:aws:` with `arn:aws-us-gov:`. Likewise, if your cluster is in the AWS China Regions, replace `arn:aws:` with `arn:aws-cn:`.
 
-eksctl create iamserviceaccount \
-    --name fsx-csi-controller-sa \
-    --namespace kube-system \
-    --cluster $cluster_name \
-    --attach-policy-arn arn:aws:iam::aws:policy/AmazonFSxFullAccess \
-    --approve \
-    --role-name AmazonEKSFSxLustreCSIDriverFullAccess \
-    --region $region_code
-```
+> [!IMPORTANT]
+> These steps are for new clusters. A cluster that already has file systems provisioned by the driver must migrate first:
+> those file systems have no cluster tag, so `enforce` ignores them and the tag-based policy denies expanding or deleting them.
+> Follow [Existing clusters](cluster-tag-isolation.md#existing-clusters) to backfill the cluster tag before you set `enforce`.
 
-* Using IAM [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) - Create the following IAM policy and attach the policy to the instance profile IAM role of your cluster's worker nodes.
-  See [here](https://docs.aws.amazon.com/eks/latest/userguide/create-node-role.html) for guidelines on how to access your EKS node IAM role.
-```sh
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "iam:CreateServiceLinkedRole",
-        "iam:AttachRolePolicy",
-        "iam:PutRolePolicy"
-       ],
-      "Resource": "arn:aws:iam::*:role/aws-service-role/s3.data-source.lustre.fsx.amazonaws.com/*"
-    },
-    {
-      "Action":"iam:CreateServiceLinkedRole",
-      "Effect":"Allow",
-      "Resource":"*",
-      "Condition":{
-        "StringLike":{
-          "iam:AWSServiceName":[
-            "fsx.amazonaws.com"
-          ]
-        }
-      }
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:ListBucket",
-        "fsx:CreateFileSystem",
-        "fsx:DeleteFileSystem",
-        "fsx:DescribeFileSystems",
-        "fsx:TagResource",
-        "fsx:UpdateFileSystem"
-      ],
-      "Resource": ["*"]
-    }
-  ]
-}
-```
+#### Amazon EKS: EKS Pod Identity (Recommended)
+With Pod Identity, one IAM role and policy can be shared by every cluster in the account, and each cluster's controller is still limited to its own file systems.
+Create the role once and repeat only the association (step 2) and step 3 for each cluster. See [Roles per cluster](cluster-tag-isolation.md#the-tag-based-policy).
 
+1. Install the [EKS Pod Identity Agent](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-agent-setup.html) add-on, if it is not already installed:
+   ```sh
+   aws eks create-addon --cluster-name my-cluster --addon-name eks-pod-identity-agent
+   ```
 
+2. Create a role with the standard [EKS Pod Identity trust policy](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-role.html), attach the policy, and associate the role with the controller service account:
+   ```sh
+   aws iam create-role --role-name my-cluster-fsx-csi-controller \
+     --assume-role-policy-document file://pod-identity-trust-policy.json
+   aws iam put-role-policy --role-name my-cluster-fsx-csi-controller --policy-name fsx-csi-cluster-tag \
+     --policy-document file://docs/iam/cluster-tag-policy.json
+   aws eks create-pod-identity-association --cluster-name my-cluster --namespace kube-system \
+     --service-account fsx-csi-controller-sa \
+     --role-arn arn:aws:iam::111122223333:role/my-cluster-fsx-csi-controller
+   ```
+
+3. When you [deploy the driver](#deploy-driver), set the cluster tag options:
+   ```sh
+   helm upgrade --install aws-fsx-csi-driver aws-fsx-csi-driver/aws-fsx-csi-driver --namespace kube-system \
+     --set controller.clusterName=my-cluster \
+     --set controller.clusterTagKey=eks:eks-cluster-name \
+     --set controller.clusterTagIsolation=enforce
+   ```
+   Without Helm, pass the same values as controller flags:
+   `--cluster-name=my-cluster --cluster-tag-key=eks:eks-cluster-name --cluster-tag-isolation=enforce`.
+
+#### Other credentials
+On a self-managed cluster, or with IRSA or another credential type, give the controller [`docs/iam/shared-policy.json`](iam/shared-policy.json): it needs no Pod Identity session tags.
+See [IRSA and other credentials](cluster-tag-isolation.md#irsa-and-other-credentials).
 
 ### Configure driver toleration settings
 By default, the driver controller tolerates taint `CriticalAddonsOnly` and has `tolerationSeconds` configured as `300`; and the driver node tolerates all taints.

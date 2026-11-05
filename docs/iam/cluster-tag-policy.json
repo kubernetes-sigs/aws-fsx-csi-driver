@@ -1,0 +1,100 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DescribeFileSystemsInClusterRegion",
+      "Effect": "Allow",
+      "Action": "fsx:DescribeFileSystems",
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        }
+      }
+    },
+    {
+      "Sid": "CreateFileSystemsTaggedForOwnCluster",
+      "Effect": "Allow",
+      "Action": "fsx:CreateFileSystem",
+      "Resource": "arn:*:fsx:*:*:file-system/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/eks:eks-cluster-name": "${aws:PrincipalTag/eks-cluster-name}"
+        },
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        }
+      }
+    },
+    {
+      "Sid": "TagFileSystemsOnCreateForOwnCluster",
+      "Effect": "Allow",
+      "Action": "fsx:TagResource",
+      "Resource": "arn:*:fsx:*:*:file-system/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/eks:eks-cluster-name": "${aws:PrincipalTag/eks-cluster-name}",
+          "aws:RequestTag/eks:eks-cluster-name": "${aws:PrincipalTag/eks-cluster-name}"
+        },
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        }
+      }
+    },
+    {
+      "Sid": "UpdateAndDeleteOwnClusterFileSystems",
+      "Effect": "Allow",
+      "Action": [
+        "fsx:UpdateFileSystem",
+        "fsx:DeleteFileSystem"
+      ],
+      "Resource": "arn:*:fsx:*:*:file-system/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/eks:eks-cluster-name": "${aws:PrincipalTag/eks-cluster-name}"
+        },
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        }
+      }
+    },
+    {
+      "Sid": "S3DataRepositoryListBucketViaFSx",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:*:s3:::*",
+      "Condition": {
+        "Bool": {
+          "aws:ViaAWSService": "true"
+        },
+        "StringEquals": {
+          "aws:ResourceAccount": "${aws:PrincipalAccount}"
+        },
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        }
+      }
+    },
+    {
+      "Sid": "FSxServiceLinkedRole",
+      "Effect": "Allow",
+      "Action": "iam:CreateServiceLinkedRole",
+      "Resource": "arn:*:iam::*:role/aws-service-role/fsx.amazonaws.com/*",
+      "Condition": {
+        "StringEquals": {
+          "iam:AWSServiceName": "fsx.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "FSxS3DataRepositoryServiceLinkedRole",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateServiceLinkedRole",
+        "iam:AttachRolePolicy",
+        "iam:PutRolePolicy"
+      ],
+      "Resource": "arn:*:iam::*:role/aws-service-role/s3.data-source.lustre.fsx.amazonaws.com/*"
+    }
+  ]
+}

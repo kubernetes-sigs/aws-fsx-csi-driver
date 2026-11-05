@@ -43,10 +43,18 @@ func main() {
 		r.InitializeMetricsHandler(options.ServerOptions.HTTPEndpoint, "/metrics", options.ServerOptions.MetricsCertFile, options.ServerOptions.MetricsKeyFile)
 	}
 
+	clusterTag, err := driver.NewClusterTagOptions(options.ControllerOptions.ClusterName, options.ControllerOptions.ClusterTagKey,
+		options.ControllerOptions.ClusterTagIsolation, options.ControllerOptions.ExtraTags)
+	if err != nil {
+		klog.ErrorS(err, "invalid cluster tag options")
+		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
+	}
+
 	drv, err := driver.NewDriver(
 		driver.WithEndpoint(options.ServerOptions.Endpoint),
 		driver.WithMode(options.ServerOptions.DriverMode),
 		driver.WithExtraTags(options.ControllerOptions.ExtraTags),
+		driver.WithClusterTag(clusterTag),
 		driver.WithForcefulUnmountTimeout(options.NodeOptions.ForcefulUnmountTimeout),
 	)
 

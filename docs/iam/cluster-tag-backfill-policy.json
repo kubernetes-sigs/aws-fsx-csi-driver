@@ -1,0 +1,30 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AddOwnClusterTagToUntaggedDriverFileSystems",
+      "Effect": "Allow",
+      "Action": "fsx:TagResource",
+      "Resource": "arn:*:fsx:*:*:file-system/*",
+      "Condition": {
+        "Null": {
+          "aws:ResourceTag/eks:eks-cluster-name": "true",
+          "aws:ResourceTag/CSIVolumeName": "false"
+        },
+        "StringEquals": {
+          "aws:RequestTag/eks:eks-cluster-name": "${aws:PrincipalTag/eks-cluster-name}",
+          "aws:RequestTag/fsx.csi.aws.com/cluster": "true"
+        },
+        "ForAllValues:StringEquals": {
+          "aws:TagKeys": [
+            "eks:eks-cluster-name",
+            "fsx.csi.aws.com/cluster"
+          ]
+        },
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        }
+      }
+    }
+  ]
+}

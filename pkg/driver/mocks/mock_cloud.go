@@ -115,6 +115,20 @@ func (mr *MockCloudMockRecorder) ResizeFileSystem(ctx, fileSystemId, newSizeGiB 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResizeFileSystem", reflect.TypeOf((*MockCloud)(nil).ResizeFileSystem), ctx, fileSystemId, newSizeGiB)
 }
 
+// TagFileSystem mocks base method.
+func (m *MockCloud) TagFileSystem(ctx context.Context, resourceARN string, tags map[string]string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TagFileSystem", ctx, resourceARN, tags)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// TagFileSystem indicates an expected call of TagFileSystem.
+func (mr *MockCloudMockRecorder) TagFileSystem(ctx, resourceARN, tags any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagFileSystem", reflect.TypeOf((*MockCloud)(nil).TagFileSystem), ctx, resourceARN, tags)
+}
+
 // WaitForFileSystemAvailable mocks base method.
 func (m *MockCloud) WaitForFileSystemAvailable(ctx context.Context, fileSystemId string) error {
 	m.ctrl.T.Helper()
