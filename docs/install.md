@@ -81,6 +81,9 @@ There are potential race conditions on node startup (especially when a node is f
 
 This feature is activated by default, and cluster administrators should use the taint `fsx.csi.aws.com/agent-not-ready:NoExecute` (any effect will work, but `NoExecute` is recommended). For example, EKS Managed Node Groups [support automatically tainting nodes](https://docs.aws.amazon.com/eks/latest/userguide/node-taints-managed-node-groups.html).
 
+### Configure Lustre client userspace installation
+To have the driver node install the Lustre client userspace tools on Amazon Linux 2 and Amazon Linux 2023 hosts, set Helm `Value.node.lustreClientInstaller.enabled` to true before deployment.
+
 ### Deploy driver
 You may deploy the FSx for Lustre CSI driver via Kustomize or Helm
 

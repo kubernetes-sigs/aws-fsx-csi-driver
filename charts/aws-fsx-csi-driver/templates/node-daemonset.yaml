@@ -57,6 +57,30 @@ spec:
       {{- with .Values.node.affinity }}
       affinity: {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.node.lustreClientInstaller.enabled }}
+      initContainers:
+        - name: lustre-client-installer
+          image: {{ printf "%s%s:%s" (default "" .Values.image.containerRegistry) .Values.node.lustreClientInstaller.image.repository .Values.node.lustreClientInstaller.image.tag }}
+          imagePullPolicy: {{ .Values.node.lustreClientInstaller.image.pullPolicy }}
+          securityContext:
+            privileged: true
+          command:
+            - /bin/sh
+            - -c
+            - |
+              if chroot /host test -x /usr/sbin/lctl; then
+                echo "Lustre client userspace already installed"
+              elif chroot /host grep -q "Amazon Linux 2023" /etc/os-release; then
+                chroot /host dnf install -y lustre-client
+              elif chroot /host grep -q "Amazon Linux 2" /etc/os-release; then
+                chroot /host amazon-linux-extras install -y lustre
+              else
+                echo "Non-AL based distro, no need to install userspace"
+              fi
+          volumeMounts:
+            - name: host-root
+              mountPath: /host
+      {{- end }}
       containers:
         - name: fsx-plugin
           securityContext:
@@ -162,3 +186,9 @@ spec:
           hostPath:
             path: {{ .Values.node.kubeletPath }}/plugins/fsx.csi.aws.com/
             type: DirectoryOrCreate
+        {{- if .Values.node.lustreClientInstaller.enabled }}
+        - name: host-root
+          hostPath:
+            path: /
+            type: Directory
+        {{- end }}

@@ -182,6 +182,13 @@ node:
   # extraArgs:
   #   - --forceful-unmount-timeout=2m
   extraArgs: []
+  # Installs the Lustre client userspace tools on Amazon Linux hosts.
+  lustreClientInstaller:
+    enabled: false
+    image:
+      repository: public.ecr.aws/amazonlinux/amazonlinux
+      tag: "2023"
+      pullPolicy: IfNotPresent
   nodeSelector: {}
   updateStrategy: {}
   #If you do want to specify resources, uncomment the following lines, adjust them as necessary,
