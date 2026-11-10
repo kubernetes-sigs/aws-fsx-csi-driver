@@ -375,17 +375,29 @@ func (c *cloud) WaitForFileSystemAvailable(ctx context.Context, fileSystemId str
 			return true, err
 		}
 		klog.V(2).InfoS("WaitForFileSystemAvailable", "filesystem", fileSystemId, "status", string(fs.Lifecycle))
-		switch string(fs.Lifecycle) {
-		case "AVAILABLE":
-			return true, nil
-		case "CREATING":
-			return false, nil
-		default:
-			return true, fmt.Errorf("unexpected state for filesystem %s: %q", fileSystemId, string(fs.Lifecycle))
-		}
+		return fileSystemLifecycleState(fileSystemId, fs)
 	})
 
 	return err
+}
+
+// fileSystemLifecycleState interprets the lifecycle state of a filesystem returned by
+// DescribeFileSystems and determines whether WaitForFileSystemAvailable's poll should stop,
+// and if so, whether it should return an error.
+func fileSystemLifecycleState(fileSystemId string, fs *types.FileSystem) (done bool, err error) {
+	switch fs.Lifecycle {
+	case types.FileSystemLifecycleAvailable:
+		return true, nil
+	case types.FileSystemLifecycleCreating:
+		return false, nil
+	case types.FileSystemLifecycleFailed:
+		if fs.FailureDetails != nil && fs.FailureDetails.Message != nil && *fs.FailureDetails.Message != "" {
+			return true, fmt.Errorf("filesystem %s is in FAILED state: %s", fileSystemId, *fs.FailureDetails.Message)
+		}
+		return true, fmt.Errorf("filesystem %s is in FAILED state", fileSystemId)
+	default:
+		return true, fmt.Errorf("unexpected state for filesystem %s: %q", fileSystemId, string(fs.Lifecycle))
+	}
 }
 
 // WaitForFileSystemResize polls the FSx API for status of the update operation with the given target storage
