@@ -1,3 +1,7 @@
+# v1.12.0
+* Go dependency and sidecar bump for v1.12.0 ([#0a5207a2](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/0a5207a2), [@tejgop](https://github.com/tejgop))
+* Add optional init container to install Lustre client userspace tools ([#a071511f](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/a071511f), [@tejgop](https://github.com/tejgop))
+
 # v1.11.0
 * Focus e2e suite on FSx specs only ([#9761b70c](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/9761b70c), [@MichaelKwok1998](https://github.com/MichaelKwok1998))
 * Make priorityClassName configurable for controller and node pods ([#8d2dd9a0](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/commit/8d2dd9a0), [@MichaelKwok1998](https://github.com/MichaelKwok1998))
