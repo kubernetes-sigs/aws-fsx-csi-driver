@@ -1,5 +1,10 @@
 # Helm chart
 
+# v1.20.0
+* Use driver image 1.12.0
+* Add optional node.lustreClientInstaller init container to install Lustre client userspace tools
+* Bump up sidecar images
+
 # v1.19.0
 * Use driver image 1.11.0
 * Parameterize controller.priorityClassName and node.priorityClassName
