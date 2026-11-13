@@ -57,6 +57,7 @@ type DriverOptions struct {
 	endpoint               string
 	mode                   string
 	extraTags              string
+	clusterTag             *ClusterTagOptions
 	forcefulUnmountTimeout time.Duration
 }
 
@@ -69,6 +70,9 @@ func NewDriver(options ...func(*DriverOptions)) (*Driver, error) {
 	}
 	for _, option := range options {
 		option(&driverOptions)
+	}
+	if driverOptions.clusterTag == nil {
+		driverOptions.clusterTag = &ClusterTagOptions{Isolation: ClusterTagIsolationDisable}
 	}
 
 	driver := Driver{
@@ -127,6 +131,10 @@ func (d *Driver) Run() error {
 		return fmt.Errorf("unknown mode: %s", d.options.mode)
 	}
 
+	if d.options.mode == ControllerMode || d.options.mode == AllMode {
+		d.startClusterTagBackfill()
+	}
+
 	klog.V(4).InfoS("Listening for connections", "address", listener.Addr())
 	return d.srv.Serve(listener)
 }
@@ -151,6 +159,13 @@ func WithMode(mode string) func(*DriverOptions) {
 func WithExtraTags(extraTags string) func(*DriverOptions) {
 	return func(o *DriverOptions) {
 		o.extraTags = extraTags
+	}
+}
+
+// WithClusterTag sets the cluster tag options, as returned by NewClusterTagOptions.
+func WithClusterTag(clusterTag *ClusterTagOptions) func(*DriverOptions) {
+	return func(o *DriverOptions) {
+		o.clusterTag = clusterTag
 	}
 }
 

@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -52,6 +53,11 @@ const (
 const (
 	// VolumeNameTagKey is the key value that refers to the volume's name.
 	VolumeNameTagKey = "CSIVolumeName"
+	// SharedTagKey marks every file system this driver creates, in every cluster.
+	// docs/iam/shared-policy.json limits the driver to file systems with this tag.
+	SharedTagKey = "fsx.csi.aws.com/cluster"
+	// SharedTagValue is the value of SharedTagKey.
+	SharedTagValue = "true"
 )
 
 // Set during build time via -ldflags
@@ -79,6 +85,10 @@ type FileSystem struct {
 	StorageType              string
 	DeploymentType           string
 	PerUnitStorageThroughput int32
+	// ResourceARN is the ARN of the file system.
+	ResourceARN string
+	// Tags are the tags of the file system.
+	Tags map[string]string
 }
 
 // FileSystemOptions represents the options to create FSx for Lustre filesystem
@@ -112,6 +122,7 @@ type FSx interface {
 	UpdateFileSystem(context.Context, *fsx.UpdateFileSystemInput, ...func(*fsx.Options)) (*fsx.UpdateFileSystemOutput, error)
 	DeleteFileSystem(context.Context, *fsx.DeleteFileSystemInput, ...func(*fsx.Options)) (*fsx.DeleteFileSystemOutput, error)
 	DescribeFileSystems(context.Context, *fsx.DescribeFileSystemsInput, ...func(*fsx.Options)) (*fsx.DescribeFileSystemsOutput, error)
+	TagResource(context.Context, *fsx.TagResourceInput, ...func(*fsx.Options)) (*fsx.TagResourceOutput, error)
 }
 
 type Cloud interface {
@@ -122,6 +133,7 @@ type Cloud interface {
 	WaitForFileSystemAvailable(ctx context.Context, fileSystemId string) error
 	WaitForFileSystemResize(ctx context.Context, fileSystemId string, resizeGiB int32) error
 	GetFileSystemIdByVolumeName(volumeName string) (string, bool)
+	TagFileSystem(ctx context.Context, resourceARN string, tags map[string]string) error
 }
 
 type cloud struct {
@@ -221,6 +233,10 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 			Key:   aws.String(VolumeNameTagKey),
 			Value: aws.String(volumeName),
 		},
+		{
+			Key:   aws.String(SharedTagKey),
+			Value: aws.String(SharedTagValue),
+		},
 	}
 
 	for _, extraTag := range fileSystemOptions.ExtraTags {
@@ -277,6 +293,8 @@ func (c *cloud) CreateFileSystem(ctx context.Context, volumeName string, fileSys
 		StorageType:              string(output.FileSystem.StorageType),
 		DeploymentType:           string(output.FileSystem.LustreConfiguration.DeploymentType),
 		PerUnitStorageThroughput: perUnitStorageThroughput,
+		ResourceARN:              aws.ToString(output.FileSystem.ResourceARN),
+		Tags:                     tagsToMap(output.FileSystem.Tags),
 	}
 
 	c.cacheMutex.Lock()
@@ -365,7 +383,41 @@ func (c *cloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (*F
 		StorageType:              string(fs.StorageType),
 		DeploymentType:           string(fs.LustreConfiguration.DeploymentType),
 		PerUnitStorageThroughput: perUnitStorageThroughput,
+		ResourceARN:              aws.ToString(fs.ResourceARN),
+		Tags:                     tagsToMap(fs.Tags),
 	}, nil
+}
+
+// TagFileSystem adds tags to an existing file system in one request that
+// carries only those tags, in key order.
+func (c *cloud) TagFileSystem(ctx context.Context, resourceARN string, tags map[string]string) error {
+	if resourceARN == "" {
+		return fmt.Errorf("TagFileSystem: resource ARN is empty")
+	}
+	if len(tags) == 0 {
+		return fmt.Errorf("TagFileSystem: no tags")
+	}
+	keys := make([]string, 0, len(tags))
+	for key := range tags {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	input := &fsx.TagResourceInput{ResourceARN: aws.String(resourceARN)}
+	for _, key := range keys {
+		input.Tags = append(input.Tags, types.Tag{Key: aws.String(key), Value: aws.String(tags[key])})
+	}
+	if _, err := c.fsx.TagResource(ctx, input); err != nil {
+		return fmt.Errorf("TagResource failed: %w", err)
+	}
+	return nil
+}
+
+func tagsToMap(tags []types.Tag) map[string]string {
+	m := make(map[string]string, len(tags))
+	for _, t := range tags {
+		m[aws.ToString(t.Key)] = aws.ToString(t.Value)
+	}
+	return m
 }
 
 func (c *cloud) WaitForFileSystemAvailable(ctx context.Context, fileSystemId string) error {

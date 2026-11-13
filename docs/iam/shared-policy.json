@@ -1,0 +1,83 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DescribeFileSystems",
+      "Effect": "Allow",
+      "Action": "fsx:DescribeFileSystems",
+      "Resource": "*"
+    },
+    {
+      "Sid": "CreateFileSystemsTaggedForTheDriver",
+      "Effect": "Allow",
+      "Action": "fsx:CreateFileSystem",
+      "Resource": "arn:*:fsx:*:*:file-system/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/fsx.csi.aws.com/cluster": "true"
+        }
+      }
+    },
+    {
+      "Sid": "TagDriverFileSystems",
+      "Effect": "Allow",
+      "Action": "fsx:TagResource",
+      "Resource": "arn:*:fsx:*:*:file-system/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/fsx.csi.aws.com/cluster": "true",
+          "aws:RequestTag/fsx.csi.aws.com/cluster": "true"
+        }
+      }
+    },
+    {
+      "Sid": "UpdateAndDeleteDriverFileSystems",
+      "Effect": "Allow",
+      "Action": [
+        "fsx:UpdateFileSystem",
+        "fsx:DeleteFileSystem"
+      ],
+      "Resource": "arn:*:fsx:*:*:file-system/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/fsx.csi.aws.com/cluster": "true"
+        }
+      }
+    },
+    {
+      "Sid": "S3DataRepositoryListBucketViaFSx",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:*:s3:::*",
+      "Condition": {
+        "Bool": {
+          "aws:ViaAWSService": "true"
+        },
+        "StringEquals": {
+          "aws:ResourceAccount": "${aws:PrincipalAccount}"
+        }
+      }
+    },
+    {
+      "Sid": "FSxServiceLinkedRole",
+      "Effect": "Allow",
+      "Action": "iam:CreateServiceLinkedRole",
+      "Resource": "arn:*:iam::*:role/aws-service-role/fsx.amazonaws.com/*",
+      "Condition": {
+        "StringEquals": {
+          "iam:AWSServiceName": "fsx.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "FSxS3DataRepositoryServiceLinkedRole",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateServiceLinkedRole",
+        "iam:AttachRolePolicy",
+        "iam:PutRolePolicy"
+      ],
+      "Resource": "arn:*:iam::*:role/aws-service-role/s3.data-source.lustre.fsx.amazonaws.com/*"
+    }
+  ]
+}

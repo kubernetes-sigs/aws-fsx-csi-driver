@@ -20,6 +20,7 @@ BASE_DIR=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
 source "${BASE_DIR}"/ecr.sh
 source "${BASE_DIR}"/eksctl.sh
 source "${BASE_DIR}"/helm.sh
+source "${BASE_DIR}"/pod-identity.sh
 source "${BASE_DIR}"/kops.sh
 source "${BASE_DIR}"/util.sh
 
@@ -60,9 +61,10 @@ KOPS_PATCH_NODE_FILE=${KOPS_PATCH_NODE_FILE:-./hack/kops-patch-node.yaml}
 AMI_PARAMETER=${AMI_PARAMETER:-/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}
 AMI_ID=$(aws ssm get-parameters --names ${AMI_PARAMETER} --region ${AWS_REGION} --query 'Parameters[0].Value' --output text)
 
-EKSCTL_VERSION=${EKSCTL_VERSION:-0.208.0}
-EKSCTL_PATCH_FILE=${EKSCTL_PATCH_FILE:-./hack/eksctl-patch.yaml}
+EKSCTL_VERSION=${EKSCTL_VERSION:-0.231.0}
+EKSCTL_TEMPLATE_FILE=${EKSCTL_TEMPLATE_FILE:-${BASE_DIR}/eksctl-cluster.yaml}
 EKSCTL_ADMIN_ROLE=${EKSCTL_ADMIN_ROLE:-}
+GOMPLATE_VERSION=${GOMPLATE_VERSION:-v5.3.0}
 
 HELM_VALUES_FILE=${HELM_VALUES_FILE:-./hack/values.yaml}
 HELM_EXTRA_FLAGS=${HELM_EXTRA_FLAGS:-}
@@ -71,6 +73,10 @@ TEST_PATH=${TEST_PATH:-"./tests/e2e"}
 ARTIFACTS=${ARTIFACTS:-"${TEST_DIR}/artifacts"}
 GINKGO_FOCUS=${GINKGO_FOCUS:-"\[fsx-csi-e2e\]"}
 GINKGO_SKIP=${GINKGO_SKIP:-"\[Disruptive\]"}
+# The isolation tests change the controller's IAM policy and flags, so they run
+# alone after the other tests. They need EKS Pod Identity, so they only run on eksctl clusters.
+ISOLATION_E2E=${ISOLATION_E2E:-true}
+ISOLATION_GINKGO_FOCUS="\[fsx-csi-isolation\]"
 GINKGO_NODES=${GINKGO_NODES:-4}
 TEST_EXTRA_FLAGS=${TEST_EXTRA_FLAGS:-}
 
@@ -89,6 +95,9 @@ elif [[ "${CLUSTER_TYPE}" == "eksctl" ]]; then
   loudecho "Installing eksctl ${EKSCTL_VERSION} to ${BIN_DIR}"
   eksctl_install "${BIN_DIR}" "${EKSCTL_VERSION}"
   EKSCTL_BIN=${BIN_DIR}/eksctl
+  loudecho "Installing gomplate ${GOMPLATE_VERSION} to ${BIN_DIR}"
+  gomplate_install "${BIN_DIR}" "${GOMPLATE_VERSION}"
+  GOMPLATE_BIN=${BIN_DIR}/gomplate
 else
   loudecho "${CLUSTER_TYPE} must be kops or eksctl!"
   exit 1
@@ -114,6 +123,14 @@ ecr_build_and_push "${REGION}" \
   "${IMAGE_NAME}" \
   "${IMAGE_TAG}"
 
+if [[ "${CLUSTER_TYPE}" == "eksctl" ]]; then
+  # The cluster config associates this role with the controller service account.
+  CONTROLLER_ROLE_NAME=${CONTROLLER_ROLE_NAME:-fsx-csi-e2e-${TEST_ID}}
+  loudecho "Creating Pod Identity role ${CONTROLLER_ROLE_NAME} for the controller"
+  CONTROLLER_ROLE_ARN=$(pod_identity_create_role "${CONTROLLER_ROLE_NAME}")
+  pod_identity_set_policies "${CONTROLLER_ROLE_NAME}" "${BASE_DIR}/iam/legacy-policy.json"
+fi
+
 if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
   kops_create_cluster \
     "$SSH_KEY_PATH" \
@@ -134,15 +151,18 @@ if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
   fi
 elif [[ "${CLUSTER_TYPE}" == "eksctl" ]]; then
   eksctl_create_cluster \
-    "$SSH_KEY_PATH" \
     "$CLUSTER_NAME" \
     "$EKSCTL_BIN" \
+    "$GOMPLATE_BIN" \
+    "$REGION" \
     "$ZONES" \
     "$INSTANCE_TYPE" \
+    "$NODE_COUNT" \
     "$K8S_VERSION_EKSCTL" \
     "$CLUSTER_FILE" \
     "$KUBECONFIG" \
-    "$EKSCTL_PATCH_FILE" \
+    "$EKSCTL_TEMPLATE_FILE" \
+    "$CONTROLLER_ROLE_ARN" \
     "$EKSCTL_ADMIN_ROLE"
   if [[ $? -ne 0 ]]; then
     exit 1
@@ -162,6 +182,11 @@ HELM_ARGS=(upgrade --install "${DRIVER_NAME}"
 if [[ -f "$HELM_VALUES_FILE" ]]; then
   HELM_ARGS+=(-f "${HELM_VALUES_FILE}")
 fi
+if [[ -n "${CONTROLLER_ROLE_ARN:-}" ]]; then
+  # eksctl clusters block pod access to IMDS, so set the region. EKS Pod Identity
+  # gives the controller its credentials.
+  HELM_ARGS+=(--set controller.region="${REGION}" --set node.region="${REGION}")
+fi
 eval "EXPANDED_HELM_EXTRA_FLAGS=$HELM_EXTRA_FLAGS"
 if [[ -n "$EXPANDED_HELM_EXTRA_FLAGS" ]]; then
   HELM_ARGS+=("${EXPANDED_HELM_EXTRA_FLAGS}")
@@ -179,12 +204,17 @@ if [ $secondUsed -gt $DRIVER_START_TIME_THRESHOLD_SECONDS ]; then
 fi
 loudecho "Driver deployment complete, time used: $secondUsed seconds"
 
+if [[ -n "${CONTROLLER_ROLE_ARN:-}" ]]; then
+  loudecho "Checking the controller has Pod Identity credentials"
+  pod_identity_wait_for_credentials "${KUBECONFIG}"
+fi
+
 loudecho "Testing focus ${GINKGO_FOCUS}"
 eval "EXPANDED_TEST_EXTRA_FLAGS=$TEST_EXTRA_FLAGS"
 set -x
 set +e
 pushd "${TEST_PATH}"
-${GINKGO_BIN} -timeout 24h -p -nodes="${GINKGO_NODES}" -v --focus="${GINKGO_FOCUS}" --skip="${GINKGO_SKIP}" ./... -- -kubeconfig="${KUBECONFIG}" -report-dir="${ARTIFACTS}" -gce-zone="${FIRST_ZONE}" "${EXPANDED_TEST_EXTRA_FLAGS}"
+${GINKGO_BIN} -timeout 24h -p -nodes="${GINKGO_NODES}" -v --focus="${GINKGO_FOCUS}" --skip="${GINKGO_SKIP}|${ISOLATION_GINKGO_FOCUS}" ./... -- -kubeconfig="${KUBECONFIG}" -report-dir="${ARTIFACTS}" -gce-zone="${FIRST_ZONE}" "${EXPANDED_TEST_EXTRA_FLAGS}"
 TEST_PASSED=$?
 set -e
 set +x
@@ -192,6 +222,25 @@ loudecho "TEST_PASSED: ${TEST_PASSED}"
 popd
 
 OVERALL_TEST_PASSED="${TEST_PASSED}"
+
+if [[ "${ISOLATION_E2E}" == true && -n "${CONTROLLER_ROLE_ARN:-}" ]]; then
+  loudecho "Testing focus ${ISOLATION_GINKGO_FOCUS}"
+  export HELM_BIN KUBECONFIG DRIVER_NAME
+  export CHART_DIR="${PWD}/charts/${DRIVER_NAME}"
+  set -x
+  set +e
+  pushd "${TEST_PATH}"
+  ${GINKGO_BIN} -timeout 3h -nodes=1 -v --focus="${ISOLATION_GINKGO_FOCUS}" ./... -- -kubeconfig="${KUBECONFIG}" -report-dir="${ARTIFACTS}" -gce-zone="${FIRST_ZONE}" \
+    -region="${REGION}" -controller-role-name="${CONTROLLER_ROLE_NAME}" -repo-root="${BASE_DIR}/../.." "${EXPANDED_TEST_EXTRA_FLAGS}"
+  ISOLATION_TEST_PASSED=$?
+  set -e
+  set +x
+  loudecho "ISOLATION_TEST_PASSED: ${ISOLATION_TEST_PASSED}"
+  popd
+  if [[ "${ISOLATION_TEST_PASSED}" -ne 0 ]]; then
+    OVERALL_TEST_PASSED="${ISOLATION_TEST_PASSED}"
+  fi
+fi
 
 PODS=$(kubectl get pod -n kube-system -l "app.kubernetes.io/name=${DRIVER_NAME},app.kubernetes.io/instance=${DRIVER_NAME}" -o json --kubeconfig "${KUBECONFIG}" | jq -r .items[].metadata.name)
 
@@ -210,6 +259,11 @@ if [[ "${CLEAN}" == true ]]; then
   ${HELM_BIN} del "${DRIVER_NAME}" \
     --namespace kube-system \
     --kubeconfig "${KUBECONFIG}"
+
+  if [[ -n "${CONTROLLER_ROLE_NAME:-}" ]]; then
+    loudecho "Deleting Pod Identity role ${CONTROLLER_ROLE_NAME}"
+    pod_identity_delete_role "${CONTROLLER_ROLE_NAME}"
+  fi
 
   if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
     kops_delete_cluster \

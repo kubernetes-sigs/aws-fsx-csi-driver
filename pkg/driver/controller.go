@@ -109,6 +109,29 @@ func newControllerService(driverOptions *DriverOptions) controllerService {
 		driverOptions: driverOptions,
 	}
 }
+
+// startClusterTagBackfill starts the tag sweep unless --cluster-tag-isolation=enforce: in
+// disable it adds the shared tag, in backfill also the cluster tag.
+func (d *controllerService) startClusterTagBackfill() {
+	o := d.driverOptions.clusterTag
+	if o == nil {
+		return
+	}
+	o.logSettings()
+	if !o.Tagging() && (o.ClusterName != "" || o.TagKey != "") {
+		klog.InfoS("no cluster tag is written: set both --cluster-name and --cluster-tag-key")
+	}
+	if !o.sweeps() {
+		return
+	}
+	client, err := cloud.DefaultKubernetesAPIClient()
+	if err != nil {
+		klog.ErrorS(err, "cluster tag backfill cannot start: no Kubernetes client")
+		return
+	}
+	go runClusterTagBackfill(context.Background(), o, d.cloud, client, clusterTagBackfillInterval)
+}
+
 func abs(x int64) int64 {
 	if x < 0 {
 		return -x
@@ -292,24 +315,24 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 			fsOptions.CapacityGiB = newSizeGiB
 		}
 
-		var tagArray []string
-		optionsTags := d.driverOptions.extraTags
-
-		if optionsTags != "" {
-			tagArray = strings.Split(optionsTags, ",")
+		var optionsTags, storageClassTags []string
+		if d.driverOptions.extraTags != "" {
+			optionsTags = strings.Split(d.driverOptions.extraTags, ",")
 		}
 
 		if val, ok := volumeParams[volumeParamsExtraTags]; ok && len(val) > 0 {
-			extraTags := strings.Split(val, ",")
-			err := validateExtraTags(extraTags)
+			storageClassTags = strings.Split(val, ",")
+			err := validateExtraTags(storageClassTags)
 			if err != nil {
 				return nil, status.Error(codes.InvalidArgument, err.Error())
 			}
-			tagArray = append(tagArray, extraTags...)
+		}
+		tagArray, err := d.driverOptions.clusterTag.createTags(optionsTags, storageClassTags)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
 		fsOptions.ExtraTags = tagArray
 
-		var err error
 		fs, err = d.cloud.CreateFileSystem(ctx, volName, fsOptions)
 		if err != nil {
 			switch err {
@@ -342,6 +365,20 @@ func (d *controllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 		return nil, status.Error(codes.Aborted, msg)
 	}
 	defer d.inFlight.Delete(volumeID)
+
+	if d.driverOptions.clusterTag.enforce() {
+		fs, err := d.cloud.DescribeFileSystem(ctx, volumeID)
+		if err == cloud.ErrNotFound {
+			klog.V(4).InfoS("DeleteVolume: volume not found, returning with success")
+			return &csi.DeleteVolumeResponse{}, nil
+		}
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not describe volume ID %q: %v", volumeID, err)
+		}
+		if err := d.driverOptions.clusterTag.checkOwnCluster(fs); err != nil {
+			return nil, err
+		}
+	}
 
 	if err := d.cloud.DeleteFileSystem(ctx, volumeID); err != nil {
 		if err == cloud.ErrNotFound {
@@ -476,6 +513,9 @@ func (d *controllerService) ControllerExpandVolume(ctx context.Context, req *csi
 			return nil, status.Errorf(codes.NotFound, "Filesystem not found: %v", err)
 		}
 		return nil, status.Errorf(codes.Internal, "DescribeFileSystem failed: %v", err)
+	}
+	if err := d.driverOptions.clusterTag.checkOwnCluster(fs); err != nil {
+		return nil, err
 	}
 
 	newSizeInt64 := util.RoundUpVolumeSize(capRange.GetRequiredBytes(), fs.DeploymentType, fs.StorageType, fs.PerUnitStorageThroughput)

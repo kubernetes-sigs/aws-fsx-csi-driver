@@ -129,6 +129,21 @@ test-e2e:
 	GINKGO_SKIP="subPath.should.be.able.to.unmount.after.the.subpath.directory.is.deleted|\[Disruptive\]|\[Serial\]" \
 	./hack/e2e/run.sh
 
+# Same tests on an EKS cluster made by eksctl, where the controller uses EKS Pod
+# Identity, followed by the cluster tag isolation tests.
+.PHONY: test-e2e-eksctl
+test-e2e-eksctl:
+	DRIVER_NAME=aws-fsx-csi-driver \
+	CONTAINER_NAME=fsx-plugin \
+	TEST_EXTRA_FLAGS='--cluster-name=$$CLUSTER_NAME' \
+	AWS_REGION=us-west-2 \
+	AWS_AVAILABILITY_ZONES=us-west-2a,us-west-2b \
+	CLUSTER_TYPE=eksctl \
+	TEST_PATH=./tests/e2e/ \
+	GINKGO_FOCUS="\[fsx-csi-e2e\]|FSx CSI Driver Conformance" \
+	GINKGO_SKIP="subPath.should.be.able.to.unmount.after.the.subpath.directory.is.deleted|\[Disruptive\]|\[Serial\]" \
+	./hack/e2e/run.sh
+
 .PHONY: generate-kustomize
 generate-kustomize: bin/helm
 	cd charts/aws-fsx-csi-driver && ../../bin/helm template kustomize . -s templates/csidriver.yaml > ../../deploy/kubernetes/base/csidriver.yaml

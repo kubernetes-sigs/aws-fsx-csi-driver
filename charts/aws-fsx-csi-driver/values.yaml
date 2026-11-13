@@ -98,7 +98,7 @@ controller:
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
-    ## Enable if EKS IAM for SA is used
+    ## EKS Pod Identity needs no annotation. For IRSA (self-managed Kubernetes), set the role:
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/fsx-csi-role
     name: fsx-csi-controller-sa
     annotations: {}
@@ -152,12 +152,31 @@ controller:
     # Warning: Disabling PodDisruptionBudget may lead to delays in stateful workloads starting due to controller
     # pod restarts or evictions.
     enabled: true
-  # Extra tags to attach to each dynamically provisioned file system.
+  # Tags added to every AWS resource the controller creates (--extra-tags). Not used to find,
+  # filter or isolate resources, and not the cluster tag. A StorageClass extraTags value overrides
+  # these for the same key. Neither can override CSIVolumeName, fsx.csi.aws.com/cluster or the
+  # clusterTagKey key.
   # ---
   # extraTags:
   #   key1: value1
   #   key2: value2
   extraTags: {}
+  # Name of the cluster (--cluster-name). With clusterTagKey set, every file system the controller
+  # creates is tagged <clusterTagKey>=<clusterName>. See docs/cluster-tag-isolation.md.
+  clusterName: ""
+  # Key of the cluster tag (--cluster-tag-key). Empty writes no cluster tag.
+  # On EKS with Pod Identity, use the key that matches the eks-cluster-name session tag:
+  # clusterTagKey: "eks:eks-cluster-name"
+  clusterTagKey: ""
+  # --cluster-tag-isolation. Set this to match the IAM policy attached to the controller. The value
+  # is a string, and the chart fails to render a value that is not one of these strings.
+  #   disable:  no isolation. Tags existing file systems this driver provisioned
+  #             fsx.csi.aws.com/cluster=true, and new ones with the cluster tag.
+  #   backfill: requires clusterName and clusterTagKey. Tags existing file systems this driver
+  #             provisioned, and does not filter.
+  #   enforce:  requires clusterName and clusterTagKey. Ignores file systems that lack this
+  #             cluster's tag value, and does not backfill.
+  clusterTagIsolation: "disable"
 
 node:
   mode: node
@@ -209,8 +228,7 @@ node:
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
-    ## Enable if EKS IAM for SA is used
-    #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/fsx-csi-role
+    ## The node makes no FSx API calls and needs no IAM role.
     name: fsx-csi-node-sa
     annotations: {}
   healthPort: 9809

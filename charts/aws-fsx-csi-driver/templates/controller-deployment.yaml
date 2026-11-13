@@ -56,6 +56,24 @@ spec:
             {{- if .Values.controller.extraTags }}
               {{- include "aws-fsx-csi-driver.extra-tags" . | nindent 12 }}
             {{- end }}
+            {{- with .Values.controller.clusterName }}
+            - --cluster-name={{ . }}
+            {{- end }}
+            {{- with .Values.controller.clusterTagKey }}
+            - --cluster-tag-key={{ . }}
+            {{- end }}
+            {{- $isolation := .Values.controller.clusterTagIsolation }}
+            {{- if not (kindIs "invalid" $isolation) }}
+            {{- if not (kindIs "string" $isolation) }}
+            {{- fail (printf "controller.clusterTagIsolation must be one of \"disable\", \"backfill\" or \"enforce\", got the %s %v" (kindOf $isolation) $isolation) }}
+            {{- end }}
+            {{- if not (has $isolation (list "" "disable" "backfill" "enforce")) }}
+            {{- fail (printf "controller.clusterTagIsolation must be \"disable\", \"backfill\" or \"enforce\", got %q" $isolation) }}
+            {{- end }}
+            {{- if and $isolation (ne $isolation "disable") }}
+            - --cluster-tag-isolation={{ $isolation }}
+            {{- end }}
+            {{- end }}
             - --logging-format={{ .Values.controller.loggingFormat }}
             - --v={{ .Values.controller.logLevel }}
             {{- if .Values.controller.enableMetrics }}

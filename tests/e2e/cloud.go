@@ -38,7 +38,7 @@ func NewCloud(region string) *cloud {
 
 	c, err := fsx.NewCloud(region)
 	if err != nil {
-		fmt.Sprintf("could not get NewCloud: %v", err)
+		fmt.Printf("could not get NewCloud: %v\n", err)
 		return nil
 	}
 
@@ -49,31 +49,34 @@ func NewCloud(region string) *cloud {
 	}
 }
 
+// getNodeInstance returns a running node of the cluster. kops tags nodes
+// KubernetesCluster=<name>, and EKS managed node groups tag them eks:cluster-name=<name>.
 func (c *cloud) getNodeInstance(clusterName string) (*ec2types.Instance, error) {
-	request := &ec2.DescribeInstancesInput{
-		Filters: []ec2types.Filter{
-			{
-				Name:   aws.String("tag:KubernetesCluster"),
-				Values: []string{clusterName},
-			},
-		},
-	}
-
-	instances := []ec2types.Instance{}
 	ctx := context.Background()
-	response, err := c.ec2client.DescribeInstances(ctx, request)
-	if err != nil {
-		return nil, err
+	for _, tagKey := range []string{"KubernetesCluster", "eks:cluster-name"} {
+		request := &ec2.DescribeInstancesInput{
+			Filters: []ec2types.Filter{
+				{
+					Name:   aws.String("tag:" + tagKey),
+					Values: []string{clusterName},
+				},
+				{
+					Name:   aws.String("instance-state-name"),
+					Values: []string{"running"},
+				},
+			},
+		}
+		response, err := c.ec2client.DescribeInstances(ctx, request)
+		if err != nil {
+			return nil, err
+		}
+		for _, reservation := range response.Reservations {
+			if len(reservation.Instances) > 0 {
+				return &reservation.Instances[0], nil
+			}
+		}
 	}
-	for _, reservation := range response.Reservations {
-		instances = append(instances, reservation.Instances...)
-	}
-
-	if len(instances) == 0 {
-		return nil, fmt.Errorf("no instances in cluster %q found", clusterName)
-	}
-
-	return &instances[0], nil
+	return nil, fmt.Errorf("no instances in cluster %q found", clusterName)
 }
 
 func (c *cloud) createS3Bucket(name string, region string) error {

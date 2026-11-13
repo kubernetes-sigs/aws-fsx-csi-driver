@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -63,6 +64,13 @@ func (c *FakeCloudProvider) CreateFileSystem(ctx context.Context, volumeName str
 		StorageType:              fileSystemOptions.StorageType,
 		DeploymentType:           fileSystemOptions.DeploymentType,
 		PerUnitStorageThroughput: fileSystemOptions.PerUnitStorageThroughput,
+		Tags:                     map[string]string{VolumeNameTagKey: volumeName, SharedTagKey: SharedTagValue},
+	}
+	fs.ResourceARN = "arn:aws:fsx:us-east-1:111122223333:file-system/" + fs.FileSystemId
+	for _, t := range fileSystemOptions.ExtraTags {
+		if k, v, ok := strings.Cut(t, "="); ok {
+			fs.Tags[k] = v
+		}
 	}
 	c.fileSystems[volumeName] = fs
 	return fs, nil
@@ -112,4 +120,16 @@ func (c *FakeCloudProvider) GetFileSystemIdByVolumeName(volumeName string) (stri
 		return fs.FileSystemId, true
 	}
 	return "", false
+}
+
+func (c *FakeCloudProvider) TagFileSystem(ctx context.Context, resourceARN string, tags map[string]string) error {
+	for _, fs := range c.fileSystems {
+		if fs.ResourceARN == resourceARN {
+			for key, value := range tags {
+				fs.Tags[key] = value
+			}
+			return nil
+		}
+	}
+	return ErrNotFound
 }
