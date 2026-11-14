@@ -48,6 +48,7 @@ func main() {
 		driver.WithMode(options.ServerOptions.DriverMode),
 		driver.WithExtraTags(options.ControllerOptions.ExtraTags),
 		driver.WithForcefulUnmountTimeout(options.NodeOptions.ForcefulUnmountTimeout),
+		driver.WithLustreMaxCachedMB(options.NodeOptions.LustreMaxCachedMB),
 	)
 
 	if err != nil {
