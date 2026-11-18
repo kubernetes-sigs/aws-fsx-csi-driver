@@ -38,7 +38,7 @@ func NewCloud(region string) *cloud {
 
 	c, err := fsx.NewCloud(region)
 	if err != nil {
-		fmt.Sprintf("could not get NewCloud: %v", err)
+		fmt.Printf("could not get NewCloud: %v\n", err)
 		return nil
 	}
 
