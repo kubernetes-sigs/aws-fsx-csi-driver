@@ -21,6 +21,8 @@ import (
 	"k8s.io/mount-utils"
 	"os"
 	"time"
+
+	"github.com/container-storage-interface/spec/lib/go/csi"
 )
 
 // Mounter is an interface for mount operations
@@ -32,6 +34,9 @@ type Mounter interface {
 	// UnmountWithForce unmounts target, escalating to a forced unmount if the
 	// normal unmount has not returned within umountTimeout.
 	UnmountWithForce(target string, umountTimeout time.Duration) error
+	// GetVolumeStats returns the byte and inode usage of the filesystem that
+	// holds volumePath.
+	GetVolumeStats(volumePath string) ([]*csi.VolumeUsage, error)
 }
 
 type NodeMounter struct {

@@ -902,6 +902,194 @@ func TestNodeUnpublishVolumeForcefulUnmount(t *testing.T) {
 	}
 }
 
+func TestNodeGetVolumeStats(t *testing.T) {
+
+	var (
+		volumePath = "/volume/path"
+		usage      = []*csi.VolumeUsage{
+			{Unit: csi.VolumeUsage_BYTES, Total: 4096000, Available: 1228800, Used: 2457600},
+		}
+	)
+
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "fail: volume ID is missing",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				defer mockCtl.Finish()
+
+				driver := &nodeService{
+					mounter: driverMocks.NewMockMounter(mockCtl),
+				}
+
+				req := &csi.NodeGetVolumeStatsRequest{
+					VolumePath: volumePath,
+				}
+
+				_, err := driver.NodeGetVolumeStats(context.Background(), req)
+				expectErr(t, err, codes.InvalidArgument)
+			},
+		},
+		{
+			name: "fail: volume path is missing",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				defer mockCtl.Finish()
+
+				driver := &nodeService{
+					mounter: driverMocks.NewMockMounter(mockCtl),
+				}
+
+				req := &csi.NodeGetVolumeStatsRequest{
+					VolumeId: volumeID,
+				}
+
+				_, err := driver.NodeGetVolumeStats(context.Background(), req)
+				expectErr(t, err, codes.InvalidArgument)
+			},
+		},
+		{
+			name: "fail: volume path does not exist",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				defer mockCtl.Finish()
+
+				mockMounter := driverMocks.NewMockMounter(mockCtl)
+				driver := &nodeService{
+					mounter: mockMounter,
+				}
+
+				req := &csi.NodeGetVolumeStatsRequest{
+					VolumeId:   volumeID,
+					VolumePath: volumePath,
+				}
+
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(volumePath)).Return(true, os.ErrNotExist)
+
+				_, err := driver.NodeGetVolumeStats(context.Background(), req)
+				expectErr(t, err, codes.NotFound)
+			},
+		},
+		{
+			name: "fail: checking the mount point fails",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				defer mockCtl.Finish()
+
+				mockMounter := driverMocks.NewMockMounter(mockCtl)
+				driver := &nodeService{
+					mounter: mockMounter,
+				}
+
+				req := &csi.NodeGetVolumeStatsRequest{
+					VolumeId:   volumeID,
+					VolumePath: volumePath,
+				}
+
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(volumePath)).Return(false, fmt.Errorf("stat failed"))
+
+				_, err := driver.NodeGetVolumeStats(context.Background(), req)
+				expectErr(t, err, codes.Internal)
+			},
+		},
+		{
+			name: "fail: volume path is not mounted",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				defer mockCtl.Finish()
+
+				mockMounter := driverMocks.NewMockMounter(mockCtl)
+				driver := &nodeService{
+					mounter: mockMounter,
+				}
+
+				req := &csi.NodeGetVolumeStatsRequest{
+					VolumeId:   volumeID,
+					VolumePath: volumePath,
+				}
+
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(volumePath)).Return(true, nil)
+
+				_, err := driver.NodeGetVolumeStats(context.Background(), req)
+				expectErr(t, err, codes.NotFound)
+			},
+		},
+		{
+			name: "fail: statfs fails",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				defer mockCtl.Finish()
+
+				mockMounter := driverMocks.NewMockMounter(mockCtl)
+				driver := &nodeService{
+					mounter: mockMounter,
+				}
+
+				req := &csi.NodeGetVolumeStatsRequest{
+					VolumeId:   volumeID,
+					VolumePath: volumePath,
+				}
+
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(volumePath)).Return(false, nil)
+				mockMounter.EXPECT().GetVolumeStats(gomock.Eq(volumePath)).Return(nil, fmt.Errorf("statfs failed"))
+
+				_, err := driver.NodeGetVolumeStats(context.Background(), req)
+				expectErr(t, err, codes.Internal)
+			},
+		},
+		{
+			name: "success: normal",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				defer mockCtl.Finish()
+
+				mockMounter := driverMocks.NewMockMounter(mockCtl)
+				driver := &nodeService{
+					mounter: mockMounter,
+				}
+
+				req := &csi.NodeGetVolumeStatsRequest{
+					VolumeId:   volumeID,
+					VolumePath: volumePath,
+				}
+
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Eq(volumePath)).Return(false, nil)
+				mockMounter.EXPECT().GetVolumeStats(gomock.Eq(volumePath)).Return(usage, nil)
+
+				resp, err := driver.NodeGetVolumeStats(context.Background(), req)
+				if err != nil {
+					t.Fatalf("NodeGetVolumeStats is failed: %v", err)
+				}
+				if len(resp.GetUsage()) != 1 || resp.GetUsage()[0] != usage[0] {
+					t.Fatalf("Expected usage %v, got %v", usage, resp.GetUsage())
+				}
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
+	}
+}
+
+func TestNodeGetCapabilities(t *testing.T) {
+	driver := &nodeService{}
+
+	resp, err := driver.NodeGetCapabilities(context.Background(), &csi.NodeGetCapabilitiesRequest{})
+	if err != nil {
+		t.Fatalf("NodeGetCapabilities is failed: %v", err)
+	}
+
+	for _, c := range resp.GetCapabilities() {
+		if c.GetRpc().GetType() == csi.NodeServiceCapability_RPC_GET_VOLUME_STATS {
+			return
+		}
+	}
+	t.Fatalf("NodeGetCapabilities does not advertise GET_VOLUME_STATS: %v", resp.GetCapabilities())
+}
+
 func TestRemoveNotReadyTaint(t *testing.T) {
 	nodeName := "test-node-123"
 	testCases := []struct {

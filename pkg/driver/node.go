@@ -38,7 +38,9 @@ import (
 )
 
 var (
-	nodeCaps = []csi.NodeServiceCapability_RPC_Type{}
+	nodeCaps = []csi.NodeServiceCapability_RPC_Type{
+		csi.NodeServiceCapability_RPC_GET_VOLUME_STATS,
+	}
 
 	// taintRemovalBackoff is the exponential backoff configuration for node taint removal
 	taintRemovalBackoff = wait.Backoff{
@@ -221,7 +223,35 @@ func (d *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 }
 
 func (d *nodeService) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
+	klog.V(4).InfoS("NodeGetVolumeStats: called", "args", util.SanitizeRequest(req))
+
+	if len(req.GetVolumeId()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
+	}
+	volumePath := req.GetVolumePath()
+	if len(volumePath) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Volume path not provided")
+	}
+
+	// statfs on a directory with no Lustre mount would report the disk that
+	// holds the directory, so check for the mount first.
+	notMnt, err := d.mounter.IsLikelyNotMountPoint(volumePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, status.Errorf(codes.NotFound, "Volume path %q does not exist", volumePath)
+		}
+		return nil, status.Errorf(codes.Internal, "Could not check if %q is a mount point: %v", volumePath, err)
+	}
+	if notMnt {
+		return nil, status.Errorf(codes.NotFound, "Volume path %q is not mounted", volumePath)
+	}
+
+	usage, err := d.mounter.GetVolumeStats(volumePath)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Could not get filesystem stats of %q: %v", volumePath, err)
+	}
+
+	return &csi.NodeGetVolumeStatsResponse{Usage: usage}, nil
 }
 
 func (d *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
