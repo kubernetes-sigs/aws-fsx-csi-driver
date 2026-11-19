@@ -47,7 +47,7 @@ For installation and deployment instructions, please refer to our [installation 
 ### Features
 The following CSI interfaces are implemented:
 * Controller Service: CreateVolume, DeleteVolume, ControllerExpandVolume, ControllerGetCapabilities, ValidateVolumeCapabilities
-* Node Service: NodePublishVolume, NodeUnpublishVolume, NodeGetCapabilities, NodeGetInfo, NodeGetId
+* Node Service: NodePublishVolume, NodeUnpublishVolume, NodeGetVolumeStats, NodeGetCapabilities, NodeGetInfo, NodeGetId
 * Identity Service: GetPluginInfo, GetPluginCapabilities, Probe
 
 ## FSx for Lustre CSI Driver on Kubernetes

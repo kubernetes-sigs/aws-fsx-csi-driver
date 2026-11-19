@@ -13,6 +13,7 @@ import (
 	reflect "reflect"
 	time "time"
 
+	csi "github.com/container-storage-interface/spec/lib/go/csi"
 	gomock "go.uber.org/mock/gomock"
 	mount "k8s.io/mount-utils"
 )
@@ -68,6 +69,21 @@ func (m *MockMounter) GetMountRefs(pathname string) ([]string, error) {
 func (mr *MockMounterMockRecorder) GetMountRefs(pathname any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMountRefs", reflect.TypeOf((*MockMounter)(nil).GetMountRefs), pathname)
+}
+
+// GetVolumeStats mocks base method.
+func (m *MockMounter) GetVolumeStats(volumePath string) ([]*csi.VolumeUsage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVolumeStats", volumePath)
+	ret0, _ := ret[0].([]*csi.VolumeUsage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVolumeStats indicates an expected call of GetVolumeStats.
+func (mr *MockMounterMockRecorder) GetVolumeStats(volumePath any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVolumeStats", reflect.TypeOf((*MockMounter)(nil).GetVolumeStats), volumePath)
 }
 
 // IsCorruptedMnt mocks base method.
